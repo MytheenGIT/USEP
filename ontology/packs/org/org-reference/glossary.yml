@@ -1,0 +1,8 @@
+# Organization glossary: maps the organization's own words to core concepts. Replace with real terms.
+# Source: HLD 6 Table 10 ("org structure, glossary"). Content here is a placeholder.
+terms:
+  - {term: "<organization word for a running system>", maps_to: Service, status: placeholder}
+  - {term: "<organization word for a product team>", maps_to: Team, status: placeholder}
+  - {term: "<organization word for a business function>", maps_to: Capability, status: placeholder}
+structure:
+  note: "Org structure (business units, teams, reporting lines by role) is loaded from the organization's source of record, not typed here."

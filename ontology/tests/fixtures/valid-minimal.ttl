@@ -1,0 +1,66 @@
+# Synthetic instance data for shape tests. Every name and identifier here is made up. No source system is involved.
+# Used by ontology/tests and ontology/tools/check_ontology.py to prove the shapes accept good data.
+@prefix usep: <https://usep.invalid/ontology/core#> .
+@prefix ex:   <https://usep.invalid/synthetic#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+ex:team-payments a usep:Team ;
+    usep:tenant_id "01930000-0000-7000-8000-000000000001" ;
+    usep:entity_id "01930000-0000-7000-8000-0000000000a1" ;
+    usep:domain "business" ; usep:sensitivity 1 ;
+    usep:source_system "git" ; usep:source_id "team:payments" ; usep:source_version "2026-11-01T00:00:00.000Z#1" ;
+    usep:valid_from "2026-11-01T00:00:00.000Z"^^xsd:dateTime ; usep:recorded_at "2026-11-01T00:00:01.000Z"^^xsd:dateTime ;
+    usep:name "Synthetic Payments Team" ;
+    usep:owns ex:svc-checkout .
+
+ex:svc-checkout a usep:Service ;
+    usep:tenant_id "01930000-0000-7000-8000-000000000001" ;
+    usep:entity_id "01930000-0000-7000-8000-0000000000b1" ;
+    usep:domain "architecture" ; usep:sensitivity 1 ;
+    usep:source_system "git" ; usep:source_id "repo:checkout" ; usep:source_version "2026-11-01T00:00:00.000Z#2" ;
+    usep:valid_from "2026-11-01T00:00:00.000Z"^^xsd:dateTime ; usep:recorded_at "2026-11-01T00:00:01.000Z"^^xsd:dateTime ;
+    usep:name "Synthetic Checkout Service" ;
+    usep:criticality "tier_1" ; usep:lifecycle_state "active" ;
+    usep:exposes ex:api-charges ;
+    usep:realizes ex:cap-payments .
+
+ex:api-charges a usep:API ;
+    usep:tenant_id "01930000-0000-7000-8000-000000000001" ;
+    usep:entity_id "01930000-0000-7000-8000-0000000000c1" ;
+    usep:domain "architecture" ; usep:sensitivity 1 ;
+    usep:source_system "git" ; usep:source_id "api:charges" ; usep:source_version "2026-11-01T00:00:00.000Z#3" ;
+    usep:valid_from "2026-11-01T00:00:00.000Z"^^xsd:dateTime ; usep:recorded_at "2026-11-01T00:00:01.000Z"^^xsd:dateTime ;
+    usep:name "Synthetic Charges API" ; usep:protocol "rest" .
+
+ex:cap-payments a usep:Capability ;
+    usep:tenant_id "01930000-0000-7000-8000-000000000001" ;
+    usep:entity_id "01930000-0000-7000-8000-0000000000d1" ;
+    usep:domain "business" ; usep:sensitivity 1 ;
+    usep:source_system "confluence" ; usep:source_id "page:payments" ; usep:source_version "2026-11-01T00:00:00.000Z#4" ;
+    usep:valid_from "2026-11-01T00:00:00.000Z"^^xsd:dateTime ; usep:recorded_at "2026-11-01T00:00:01.000Z"^^xsd:dateTime ;
+    usep:name "Synthetic Payments Capability" .
+
+ex:chg-101 a usep:Change ;
+    usep:tenant_id "01930000-0000-7000-8000-000000000001" ;
+    usep:entity_id "01930000-0000-7000-8000-0000000000e1" ;
+    usep:domain "product" ; usep:sensitivity 1 ;
+    usep:source_system "jira" ; usep:source_id "SYN-101" ; usep:source_version "2026-11-02T00:00:00.000Z#1" ;
+    usep:valid_from "2026-11-02T00:00:00.000Z"^^xsd:dateTime ; usep:recorded_at "2026-11-02T00:00:01.000Z"^^xsd:dateTime ;
+    usep:name "Synthetic change to checkout" ; usep:change_state "in_review" ;
+    usep:implements ex:req-201 .
+
+ex:req-201 a usep:Requirement ;
+    usep:tenant_id "01930000-0000-7000-8000-000000000001" ;
+    usep:entity_id "01930000-0000-7000-8000-0000000000f1" ;
+    usep:domain "product" ; usep:sensitivity 1 ;
+    usep:source_system "jira" ; usep:source_id "SYN-201" ; usep:source_version "2026-11-02T00:00:00.000Z#2" ;
+    usep:valid_from "2026-11-02T00:00:00.000Z"^^xsd:dateTime ; usep:recorded_at "2026-11-02T00:00:01.000Z"^^xsd:dateTime ;
+    usep:name "Synthetic requirement" ; usep:status "approved" .
+
+ex:role-approver a usep:Person ;
+    usep:tenant_id "01930000-0000-7000-8000-000000000001" ;
+    usep:entity_id "01930000-0000-7000-8000-000000000101" ;
+    usep:domain "business" ; usep:sensitivity 2 ;
+    usep:source_system "git" ; usep:source_id "role:domain-approver" ; usep:source_version "2026-11-01T00:00:00.000Z#5" ;
+    usep:valid_from "2026-11-01T00:00:00.000Z"^^xsd:dateTime ; usep:recorded_at "2026-11-01T00:00:01.000Z"^^xsd:dateTime ;
+    usep:role_name "Domain approver" .

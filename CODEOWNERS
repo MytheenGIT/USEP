@@ -1,0 +1,15 @@
+# Owners are roles from HLD 4.4 and 12.1, not named people. Replace each role with a team handle
+# when the owners are named (open item: named owners). Until then GitHub ignores unknown handles.
+
+*                         @usep/platform-lead
+/ontology/                @usep/lead-ontology-engineer
+/ontology/packs/org/      @usep/enterprise-architect @usep/governance-lead
+/ontology/packs/app/      @usep/application-architect
+/ontology/packs/project/  @usep/delivery-lead
+/ontology/packs/industry/ @usep/industry-practice-lead
+/harnesses/               @usep/harness-engineer
+/policies/                @usep/security-architect
+/evals/                   @usep/context-engineering-lead
+/services/audit/          @usep/governance-lead
+/platform-iac/            @usep/platform-lead
+/docs/adr/                @usep/semantic-architect

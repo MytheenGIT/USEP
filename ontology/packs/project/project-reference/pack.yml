@@ -1,0 +1,16 @@
+# Project pack: defined in the stack (HLD 6 Table 10) but not in the pilot slice or S6 (OI-19).
+# LLD 3.6 shows "project 0.4" in a package, so the pack exists in the model. This reference shows the shape.
+id: project.project-reference
+level: project
+version: 0.1.0
+status: draft
+signed: false
+signature_ref: null
+owner_role: delivery-lead
+owner_name: null
+requires_core: ">=0.1.0 <1.0.0"
+additive_only: true
+reference_only: true
+files:
+  workflow: workflow.yml
+  definition_of_done: definition-of-done.yml

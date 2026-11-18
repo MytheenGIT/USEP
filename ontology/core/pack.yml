@@ -1,0 +1,29 @@
+# Core World Model (CWM) manifest. Source: HLD 6, Table 9; LLD 2.3, 3.3.
+# The core holds concepts, relationship types, constraints, policy hooks and query templates.
+# It holds no tenant data: sources fill it with instances.
+id: core
+level: core
+version: 0.1.0            # semantic version; core v1 is built in S6 (RM 4 S6); a core major needs ARB approval (HLD 6.2)
+status: draft             # draft | candidate | published
+signed: false             # a pack is signed by pack CI (C-07) before it is published (HLD 6.1)
+signature_ref: null
+owner_role: lead-ontology-engineer
+owner_name: null          # named owners are an open item (knowledge/08)
+requires_core: null
+additive_only: true
+files:
+  common_attributes: common-attributes.yml
+  vocabularies: vocabularies.yml
+  domains: domains.yml
+  concepts: concepts.yml
+  relationships: relationships.yml
+  policy_hooks: policy-hooks.yml
+  policies: policies.yml
+shapes:
+  - ../shapes/core-shapes.ttl
+  - ../shapes/core-relationship-shapes.ttl
+templates_dir: ../templates
+proposal_marker: >
+  Concept and relationship names come from HLD 6 Table 9 and LLD 3.3 Table 8. Concept attributes,
+  relationship endpoint signatures, the domain given to each concept and the vocabulary values are
+  proposals (P) for the lead ontology engineer to confirm. They are recorded as open item OI-49.

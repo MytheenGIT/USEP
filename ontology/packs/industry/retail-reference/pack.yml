@@ -1,0 +1,18 @@
+# Industry pack: reference example for retail. Mirrors the shape of industry.banking-reference (HLD 6 Table 10).
+# Industry packs are a Phase 3 deliverable (RM 2 Table 1; RM 8 Table 11).
+# The first use of an industry pack needs ARB approval (HLD 13 Table 28).
+id: industry.retail-reference
+level: industry
+version: 0.1.0
+status: draft
+signed: false
+signature_ref: null
+owner_role: industry-practice-lead
+owner_name: null
+requires_core: ">=0.1.0 <1.0.0"
+additive_only: true
+reference_only: true      # not for a tenant to pin; copy and replace content with real regulatory material
+files:
+  concepts: concepts.yml
+  vocabularies: vocabularies.yml
+  policies: policies.yml

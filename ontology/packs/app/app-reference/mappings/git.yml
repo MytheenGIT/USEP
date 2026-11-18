@@ -1,0 +1,33 @@
+# Git connector mapping. Pilot source (HLD 5.2 Table 8: manifests, CODEOWNERS, ADRs, symbols).
+# Source field names are generic: the connector spec (services/connectors/git/SPEC.md) fixes the real payload names.
+# The mapping rules are proposals (P), tested with fuzzed payloads (CC-04).
+source_system: git
+mappings:
+  - source_object: repository
+    entity: Service
+    fields:
+      name: repository.name
+      repository_ref: repository.url
+      source_id: repository.id
+  - source_object: codeowners_entry
+    relationship: owns
+    from_entity: Team            # resolved from the owner handle by entity resolution
+    to_entity: Service
+    fields: {source_id: codeowners.path_and_owner}
+  - source_object: adr_file
+    entity: Decision
+    fields:
+      name: adr.title
+      status: adr.status          # mapped through core decision_status values; unknown value goes to quarantine
+      decided_on: adr.date
+  - source_object: pull_request
+    entity: Change
+    fields:
+      name: pull_request.title
+      change_state: "pull_request.state (project pack maps this to change_state)"
+      source_id: pull_request.id
+  - source_object: manifest_dependency
+    relationship: depends_on
+    from_entity: Service
+    to_entity: Service
+unmapped_policy: "A source object with no mapping is not an entity. Its content can still serve as evidence for other entities."

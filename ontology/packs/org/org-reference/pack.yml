@@ -1,0 +1,19 @@
+# Organization pack v0 (RM 4 S6). Source: HLD 6 Table 10; LLD 5.3; HLD 7.2 Table 14.
+# Content marked placeholder is decided by the owner named in the sources. The source precedence is set at the
+# precedence workshop in week 4 (RM 10; ADR-17 is Proposed) and the Tier 3 additions by the governance lead.
+id: org.org-reference
+level: organization
+version: 0.1.0
+status: draft
+signed: false
+signature_ref: null
+owner_role: enterprise-architect
+owner_name: null
+requires_core: ">=0.1.0 <1.0.0"
+additive_only: true
+reference_only: true
+files:
+  glossary: glossary.yml
+  precedence: precedence.yml
+  policies: policies.yml
+  approval_matrix: approval-matrix.yml

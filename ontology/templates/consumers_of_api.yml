@@ -1,0 +1,26 @@
+# Source: HLD 6 Table 9 relationship types exposes and consumes; HLD 6.2 worked example (consuming services).
+name: consumers_of_api
+version: "1.0"
+status: draft
+owner_role: lead-ontology-engineer
+description: "Who exposes an API and who consumes it, with the owning team of each consumer"
+parameters:
+  - {name: tenant_id, type: uuid, required: true, from: token}
+  - {name: api_id,    type: uuid, required: true}
+limits: {max_depth: 2, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06)."
+steps:
+  - id: provider
+    cypher: |
+      MATCH (s:Entity {tenant_id: $tenant_id})-[:exposes]->(a:API {tenant_id: $tenant_id, entity_id: $api_id})
+      WHERE {{access_predicate}}
+      RETURN s.entity_id AS provider_id, labels(s) AS labels
+      LIMIT $fanout_cap
+  - id: consumers
+    cypher: |
+      MATCH (c:Entity {tenant_id: $tenant_id})-[:consumes]->(a:API {tenant_id: $tenant_id, entity_id: $api_id})
+      WHERE {{access_predicate}}
+      OPTIONAL MATCH (t:Team {tenant_id: $tenant_id})-[:owns]->(c)
+      RETURN c.entity_id AS consumer_id, labels(c) AS labels, t.entity_id AS team_id
+      LIMIT $fanout_cap
+returns: [provider, consumers]

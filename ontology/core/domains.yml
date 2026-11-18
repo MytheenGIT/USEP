@@ -1,0 +1,11 @@
+# Seven semantic domains, each with a named owner. Source: HLD 6 Table 9; HLD 12.1.
+# Owner names are not in the sources: owner_name stays null until the owners are named.
+domains:
+  - {id: business,     owner_role: business-domain-owner,     description: "Capabilities, requirements, teams and the people roles around them"}
+  - {id: architecture, owner_role: architecture-domain-owner, description: "Applications, services, APIs and the decisions about them"}
+  - {id: product,      owner_role: product-domain-owner,      description: "Requirements, changes and releases"}
+  - {id: security,     owner_role: security-domain-owner,     description: "Policies and controls (HLD 6 Table 9 example: security owns policy and control)"}
+  - {id: operations,   owner_role: operations-domain-owner,   description: "Incidents and the environments they happen in"}
+  - {id: platform,     owner_role: platform-domain-owner,     description: "Environments and data assets that run and hold the estate"}
+  - {id: testing,      owner_role: testing-domain-owner,      description: "Tests and their coverage of changes and services"}
+owner_name: null

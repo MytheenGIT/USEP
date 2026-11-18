@@ -1,0 +1,142 @@
+# Core SHACL shapes. Source: HLD 6 Table 9 (constraints: cardinality, mandatory attributes, allowed values,
+# temporal validity); LLD 3.3 (every Service has exactly one owning team); LLD 5.2 (schema gate).
+# The namespace IRI below is a placeholder until the ontology registry (C-06) fixes a base IRI (OI-49).
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix usep: <https://usep.invalid/ontology/core#> .
+
+# ---- Mandatory attributes, allowed values and temporal validity on every core concept ----
+usep:EntityShape a sh:NodeShape ;
+    sh:targetClass usep:Capability, usep:Application, usep:Service, usep:API, usep:DataAsset,
+                   usep:Team, usep:Person, usep:Requirement, usep:Change, usep:Incident,
+                   usep:Decision, usep:Policy, usep:Control, usep:Environment, usep:Release, usep:Test ;
+    sh:property [
+        sh:path usep:tenant_id ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+        sh:pattern "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" ;
+        sh:message "tenant_id is required and must be a UUID v7"
+    ] ;
+    sh:property [
+        sh:path usep:entity_id ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+        sh:pattern "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" ;
+        sh:message "entity_id is required and must be a UUID v7"
+    ] ;
+    sh:property [
+        sh:path usep:domain ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ( "business" "architecture" "product" "security" "operations" "platform" "testing" ) ;
+        sh:message "domain must be one of the seven semantic domains"
+    ] ;
+    sh:property [
+        sh:path usep:sensitivity ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ;
+        sh:minInclusive 0 ; sh:maxInclusive 3 ;
+        sh:message "sensitivity is required and must be 0 to 3"
+    ] ;
+    sh:property [ sh:path usep:source_system  ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path usep:source_id      ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path usep:source_version ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path usep:recorded_at    ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [
+        sh:path usep:valid_from ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+        sh:lessThanOrEquals usep:valid_to ;
+        sh:message "valid_from is required and must not be later than valid_to"
+    ] ;
+    sh:property [ sh:path usep:valid_to ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [
+        sh:path usep:acl_state ; sh:maxCount 1 ; sh:in ( "known" "unknown" "stale" ) ;
+        sh:message "acl_state must be known, unknown or stale"
+    ] ;
+    sh:property [ sh:path usep:name ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+# ---- Every Service has exactly one owning Team (LLD 3.3) ----
+usep:ServiceShape a sh:NodeShape ;
+    sh:targetClass usep:Service ;
+    sh:property [
+        sh:path [ sh:inversePath usep:owns ] ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:class usep:Team ;
+        sh:message "Every Service must have exactly one owning Team"
+    ] ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:criticality ; sh:maxCount 1 ; sh:in ( "tier_1" "tier_2" "tier_3" ) ] ;
+    sh:property [ sh:path usep:lifecycle_state ; sh:maxCount 1 ; sh:in ( "planned" "active" "deprecated" "retired" ) ] .
+
+usep:ApplicationShape a sh:NodeShape ;
+    sh:targetClass usep:Application ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:criticality ; sh:maxCount 1 ; sh:in ( "tier_1" "tier_2" "tier_3" ) ] ;
+    sh:property [ sh:path usep:lifecycle_state ; sh:maxCount 1 ; sh:in ( "planned" "active" "deprecated" "retired" ) ] .
+
+usep:APIShape a sh:NodeShape ;
+    sh:targetClass usep:API ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:protocol ; sh:maxCount 1 ; sh:in ( "rest" "grpc" "graphql" "event" "other" ) ] .
+
+# ---- Person is recorded by role only (HLD 6 Table 9) ----
+usep:PersonShape a sh:NodeShape ;
+    sh:targetClass usep:Person ;
+    sh:property [ sh:path usep:role_name ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path usep:full_name ; sh:maxCount 0 ; sh:message "Person is role only: no full_name" ] ;
+    sh:property [ sh:path usep:email     ; sh:maxCount 0 ; sh:message "Person is role only: no email" ] ;
+    sh:property [ sh:path usep:phone     ; sh:maxCount 0 ; sh:message "Person is role only: no phone" ] .
+
+# ---- Allowed values for the other concepts ----
+usep:RequirementShape a sh:NodeShape ;
+    sh:targetClass usep:Requirement ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:status ; sh:maxCount 1 ; sh:in ( "draft" "approved" "implemented" "withdrawn" ) ] .
+
+usep:ChangeShape a sh:NodeShape ;
+    sh:targetClass usep:Change ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:change_state ; sh:maxCount 1 ;
+        sh:in ( "proposed" "in_progress" "in_review" "approved" "released" "rejected" ) ] .
+
+usep:IncidentShape a sh:NodeShape ;
+    sh:targetClass usep:Incident ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:severity ; sh:maxCount 1 ; sh:in ( "sev1" "sev2" "sev3" "sev4" ) ] ;
+    sh:property [ sh:path usep:status ; sh:maxCount 1 ; sh:in ( "open" "mitigated" "resolved" "closed" ) ] .
+
+usep:DecisionShape a sh:NodeShape ;
+    sh:targetClass usep:Decision ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:status ; sh:maxCount 1 ; sh:in ( "proposed" "accepted" "superseded" "rejected" ) ] .
+
+usep:EnvironmentShape a sh:NodeShape ;
+    sh:targetClass usep:Environment ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:environment_kind ; sh:maxCount 1 ;
+        sh:in ( "development" "test" "staging" "production" ) ] .
+
+usep:ReleaseShape a sh:NodeShape ;
+    sh:targetClass usep:Release ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:release_state ; sh:maxCount 1 ; sh:in ( "planned" "released" "rolled_back" ) ] .
+
+usep:TestShape a sh:NodeShape ;
+    sh:targetClass usep:Test ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:test_kind ; sh:maxCount 1 ;
+        sh:in ( "unit" "contract" "integration" "load" "security" "regression" "acceptance" ) ] ;
+    sh:property [ sh:path usep:status ; sh:maxCount 1 ; sh:in ( "passing" "failing" "flaky" "not_run" ) ] .
+
+usep:PolicyShape a sh:NodeShape ;
+    sh:targetClass usep:Policy ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] ;
+    sh:property [ sh:path usep:policy_kind ; sh:maxCount 1 ;
+        sh:in ( "access" "change_control" "data_protection" "retention" "operational" ) ] .
+
+usep:ControlShape a sh:NodeShape ;
+    sh:targetClass usep:Control ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] .
+
+usep:CapabilityShape a sh:NodeShape ;
+    sh:targetClass usep:Capability ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] .
+
+usep:TeamShape a sh:NodeShape ;
+    sh:targetClass usep:Team ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] .
+
+usep:DataAssetShape a sh:NodeShape ;
+    sh:targetClass usep:DataAsset ;
+    sh:property [ sh:path usep:name ; sh:minCount 1 ] .

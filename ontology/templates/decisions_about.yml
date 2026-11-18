@@ -1,0 +1,20 @@
+# Source: HLD 6 Table 9 relationship types decided_in and supersedes.
+name: decisions_about
+version: "1.0"
+status: draft
+owner_role: lead-ontology-engineer
+description: "Decisions recorded for an entity, and which of them are superseded"
+parameters:
+  - {name: tenant_id, type: uuid, required: true, from: token}
+  - {name: anchor_id, type: uuid, required: true}
+limits: {max_depth: 2, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06)."
+steps:
+  - id: decisions
+    cypher: |
+      MATCH (n:Entity {tenant_id: $tenant_id, entity_id: $anchor_id})-[:decided_in]->(d:Decision {tenant_id: $tenant_id})
+      WHERE {{access_predicate}}
+      OPTIONAL MATCH (newer:Decision {tenant_id: $tenant_id})-[:supersedes]->(d)
+      RETURN d.entity_id AS decision_id, d.name AS name, d.status AS status, newer.entity_id AS superseded_by
+      LIMIT $fanout_cap
+returns: [decisions]

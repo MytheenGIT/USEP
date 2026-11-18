@@ -1,0 +1,19 @@
+# Policy hooks: attributes and tags that policies read. Source: HLD 6 Table 9.
+# The core defines the hook; the organization pack decides what a value means for approval.
+hooks:
+  - id: sensitivity
+    attribute: sensitivity
+    applies_to: all
+    description: "Data sensitivity of a node. Read by ABAC inside retrieval and traversal (ADR-06), never as an output filter"
+  - id: criticality
+    attribute: criticality
+    applies_to: [Application, Service]
+    description: "Business criticality. Example: criticality tier_1 forces Tier 2 approval (HLD 6 Table 9)"
+  - id: regulatory_scope
+    attribute: regulatory_scope
+    applies_to: [DataAsset, Application, Service, Control]
+    description: "Regulations that apply, supplied by industry packs"
+  - id: acl_state
+    attribute: acl_state
+    applies_to: all
+    description: "Permission state harvested from the source. Unknown or stale means owners only (HLD 5.4)"

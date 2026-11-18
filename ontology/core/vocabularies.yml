@@ -1,0 +1,40 @@
+# Core controlled vocabularies. Values are proposals (P) unless a source is cited (OI-49).
+# A pack may add values and synonyms; it may not remove or renumber a core value (HLD 6.1).
+sensitivity:
+  type: ordinal_integer     # stored as smallint (knowledge/03)
+  values:
+    - {value: 0, label: public}
+    - {value: 1, label: internal}
+    - {value: 2, label: confidential}
+    - {value: 3, label: restricted, note: "Embeddings are treated as restricted (HLD 8)"}
+criticality:
+  note: "Criticality classes. Not the autonomy tiers (Tier 0 to 3). HLD 6 Table 9 example: criticality tier-1 forces Tier 2 approval."
+  values: [tier_1, tier_2, tier_3]
+lifecycle_state:
+  values: [planned, active, deprecated, retired]
+change_state:
+  note: "Abstract change states. The project pack maps source workflow states (for example Jira) to these (HLD 6 Table 10)."
+  values: [proposed, in_progress, in_review, approved, released, rejected]
+requirement_status:
+  values: [draft, approved, implemented, withdrawn]
+decision_status:
+  values: [proposed, accepted, superseded, rejected]
+incident_severity:
+  values: [sev1, sev2, sev3, sev4]
+incident_status:
+  values: [open, mitigated, resolved, closed]
+environment_kind:
+  values: [development, test, staging, production]
+test_kind:
+  values: [unit, contract, integration, load, security, regression, acceptance]
+test_status:
+  values: [passing, failing, flaky, not_run]
+release_state:
+  values: [planned, released, rolled_back]
+api_protocol:
+  values: [rest, grpc, graphql, event, other]
+policy_kind:
+  values: [access, change_control, data_protection, retention, operational]
+acl_state:
+  note: "Permission state of an entity (HLD 5.4). Unknown or stale means visible to owners only."
+  values: [known, unknown, stale]

@@ -1,0 +1,21 @@
+# Source: HLD 6 Table 9 relationship type caused_by; HLD 6.2 worked example ("the last incident").
+name: incidents_for
+version: "1.0"
+status: draft
+owner_role: lead-ontology-engineer
+description: "Incidents caused by an entity, newest first"
+parameters:
+  - {name: tenant_id, type: uuid, required: true, from: token}
+  - {name: anchor_id, type: uuid, required: true}
+  - {name: limit,     type: integer, default: 10, min: 1, max: 50}
+limits: {max_depth: 1, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06)."
+steps:
+  - id: incidents
+    cypher: |
+      MATCH (i:Incident {tenant_id: $tenant_id})-[:caused_by]->(n:Entity {tenant_id: $tenant_id, entity_id: $anchor_id})
+      WHERE {{access_predicate}}
+      RETURN i.entity_id AS incident_id, i.name AS name, i.severity AS severity, i.status AS status, i.valid_from AS occurred
+      ORDER BY occurred DESC
+      LIMIT $limit
+returns: [incidents]

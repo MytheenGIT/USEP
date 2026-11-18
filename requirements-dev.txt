@@ -1,0 +1,7 @@
+# Tools for the ontology checks (ontology/tools/check_ontology.py) and tests.
+# Pinned to the versions the checks were run with. Install in a virtual environment:
+#   python -m venv .venv && .venv/Scripts/pip install -r requirements-dev.txt
+pyyaml==6.0.3
+rdflib==7.6.0
+pyshacl==0.40.2
+pytest==9.1.1

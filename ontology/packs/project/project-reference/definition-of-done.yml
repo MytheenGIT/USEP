@@ -1,0 +1,6 @@
+# A squad's definition of done as checkable items. Source: HLD 6 Table 10 ("definition of done").
+# Items here are placeholders. A project pack may add checks; it cannot relax a core or organization policy (CC-17).
+items:
+  - {id: dod.reviewed,        text: "Change reviewed by a person other than the author", status: placeholder}
+  - {id: dod.tests_pass,      text: "Tests linked to the change are passing", status: placeholder}
+  - {id: dod.decision_linked, text: "Any architecture decision the change relies on is linked", status: placeholder}

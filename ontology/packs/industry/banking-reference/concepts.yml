@@ -1,0 +1,14 @@
+# Packs add subclasses, attributes, relationship types, vocabularies and templates. They never delete or redefine core concepts.
+concepts:
+  - id: PaymentScheme
+    subclass_of: Policy
+    description: "A card or payment network rulebook the organization must follow (HLD 6 Table 10 example)"
+    attributes:
+      - {name: scheme_name, type: string}
+  - id: ComplianceControl
+    subclass_of: Control
+    description: "A control that belongs to a named control set, such as PCI-DSS"
+    attributes:
+      - {name: control_set, type: string, required: true}
+      - {name: control_reference, type: string}
+relationships: []

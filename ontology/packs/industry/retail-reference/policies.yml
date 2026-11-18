@@ -1,0 +1,22 @@
+# Pack policies only tighten (deny-overrides). A pack can add a control or raise an approval tier; it never removes one.
+policies:
+  - id: industry.retail.pci_scope_commit_needs_tier2
+    effect: require_approval
+    when: {attribute: regulatory_scope, contains: pci_dss, action_class: commit}
+    approvals: {min_tier: 2}
+    description: "Commit-class actions on anything in PCI-DSS scope need at least Tier 2 approval"
+    source: "Illustrative. Real industry rules come from the industry practice lead and need ARB approval (HLD 13 Table 28)"
+
+  - id: industry.retail.gdpr_retail_data_asset_needs_tier2
+    effect: require_approval
+    when: {attribute: regulatory_scope, contains: gdpr_retail, action_class: commit}
+    approvals: {min_tier: 2}
+    description: "Commit-class actions on customer personal data assets under GDPR scope need at least Tier 2 approval"
+    source: "Illustrative. Replace with real GDPR obligations reviewed by the DPO and ARB (HLD 13 Table 28)"
+
+  - id: industry.retail.age_restricted_deploy_needs_tier3
+    effect: require_approval
+    when: {attribute: regulatory_scope, contains: age_restricted_goods, action_class: deploy}
+    approvals: {min_tier: 3}
+    description: "Deploy-class actions on services handling age-restricted goods need at least Tier 3 approval"
+    source: "Illustrative. Actual tier thresholds must be confirmed with the legal and compliance team"

@@ -1,0 +1,19 @@
+# Source: HLD 6 Table 9 relationship type tests; testing domain (HLD 6 Table 9).
+name: tests_covering
+version: "1.0"
+status: draft
+owner_role: lead-ontology-engineer
+description: "Tests that check an entity, with their latest status"
+parameters:
+  - {name: tenant_id, type: uuid, required: true, from: token}
+  - {name: anchor_id, type: uuid, required: true}
+limits: {max_depth: 1, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06)."
+steps:
+  - id: tests
+    cypher: |
+      MATCH (t:Test {tenant_id: $tenant_id})-[:tests]->(n:Entity {tenant_id: $tenant_id, entity_id: $anchor_id})
+      WHERE {{access_predicate}}
+      RETURN t.entity_id AS test_id, t.name AS name, t.test_kind AS test_kind, t.status AS status
+      LIMIT $fanout_cap
+returns: [tests]

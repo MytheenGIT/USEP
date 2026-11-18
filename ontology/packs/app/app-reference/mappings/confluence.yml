@@ -1,0 +1,17 @@
+# Confluence connector mapping. Pilot source (HLD 5.2 Table 8: webhooks plus incremental crawl with content hash).
+# Rules are proposals (P). Most pages become evidence and vector chunks, not entities.
+source_system: confluence
+mappings:
+  - source_object: page
+    when: {label: [adr, decision]}
+    entity: Decision
+    fields: {name: page.title, source_id: page.id}
+  - source_object: page
+    when: {label: [requirement]}
+    entity: Requirement
+    fields: {name: page.title, source_id: page.id}
+  - source_object: page
+    when: {label: []}
+    entity: null
+    note: "An unlabelled page creates no entity. Its text is chunked and indexed for discovery only; the graph stays the source of structure."
+permissions: "Space and page restrictions are harvested as ABAC attributes (HLD 5.2 Table 8)."

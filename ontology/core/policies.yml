@@ -1,0 +1,36 @@
+# Baseline policies that every pack inherits. Policies only tighten: results combine as deny-overrides
+# across all layers; a lower pack can add a control or raise an approval tier, never remove one
+# (HLD 6.1; CC-17). Pack CI rejects a pack that removes, redefines or loosens a core policy.
+combine: deny_overrides
+default_decision: deny
+policies:
+  - id: core.deny_by_default
+    effect: deny
+    description: "Anything not explicitly permitted by the policy decision point is denied (fail closed; ADR-14)"
+    source: "knowledge/11 Kernel versus per-squad; HLD 8"
+  - id: core.unknown_acl_owner_only
+    effect: restrict_to_owners
+    when: {attribute: acl_state, in: [unknown, stale]}
+    description: "If permissions are unknown or stale, the entity is visible only to its owners until the next sync"
+    source: "HLD 5.4"
+  - id: core.tier3_never_autonomous
+    effect: require_approval
+    when: {action_list: tier3}
+    approvals: {approvers: 2, change_board_record: true, autonomous: false}
+    description: "Tier 3 actions are never autonomous: dual approval and a change-board record"
+    source: "HLD 7.2 Table 14"
+  - id: core.decision_critical_conflict_blocks_commit
+    effect: deny
+    when: {conflict_on_decision_critical_attribute: true, action_class: commit}
+    description: "A conflict on a decision-critical attribute blocks commit-class actions and routes to the data owner"
+    source: "HLD 5.3"
+  - id: core.restricted_personal_data_excluded
+    effect: deny
+    when: {data_class: restricted_personal_data, dpia_and_adr: false}
+    description: "Restricted personal data is excluded unless a DPIA and an ADR exist"
+    source: "implementations/CLAUDE.md design rules; HLD 8"
+tier3_baseline_actions:
+  - data_deletion
+  - access_grant
+  - production_schema_change
+tier3_note: "HLD 7.2 Table 14 gives these three plus 'anything the organization pack lists'. The organization pack adds to this list and never removes from it."

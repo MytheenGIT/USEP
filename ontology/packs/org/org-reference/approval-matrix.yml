@@ -1,0 +1,7 @@
+# Approval matrix by autonomy tier. Source: HLD 7.2 Table 14. Tier 3 is never autonomous.
+tiers:
+  - {tier: 0, meaning: "Read-only answers and analysis", approver: none}
+  - {tier: 1, meaning: "Proposes drafts or pull requests; a human reviews and merges", approver: "human reviewer of the artefact"}
+  - {tier: 2, meaning: "Acts after approval; promoted harnesses and reversible actions only", approver: "domain approver", quorum: 1, delegate_after_hours: 24}
+  - {tier: 3, meaning: "Restricted; never autonomous", approver: "two approvers and the change board", quorum: 2, change_board_record: true}
+pilot_scope: "Pilot autonomy is Tier 0 and Tier 1 (ADR-05). Tier 2 promotion evidence is in HLD 7.2 Table 15."

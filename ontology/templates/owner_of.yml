@@ -1,0 +1,21 @@
+# Source: HLD 6 Table 9 example "team owns service"; LLD 3.3 constraint (exactly one owner per Service).
+name: owner_of
+version: "1.0"
+status: draft
+owner_role: lead-ontology-engineer
+description: "Owning team of one entity, with the winning owner_ref value and any open conflict flag"
+parameters:
+  - {name: tenant_id, type: uuid, required: true, from: token}
+  - {name: anchor_id, type: uuid, required: true}
+  - {name: as_of,     type: datetime, default: now}
+limits: {max_depth: 1, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06)."
+steps:
+  - id: owner
+    cypher: |
+      MATCH (t:Team {tenant_id: $tenant_id})-[o:owns]->(n:Entity {tenant_id: $tenant_id, entity_id: $anchor_id})
+      WHERE {{access_predicate}}
+        AND o.valid_from <= $as_of AND (o.valid_to IS NULL OR o.valid_to > $as_of)
+      RETURN t.entity_id AS team_id, t.name AS team_name, o.source_system AS source_system, o.confidence AS confidence
+      LIMIT $fanout_cap
+returns: [owner]

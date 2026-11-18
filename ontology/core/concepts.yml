@@ -1,0 +1,116 @@
+# Core concepts. Names: HLD 6 Table 9 and LLD 3.3 Table 8 (graph node labels).
+# Everything else here (domain, attributes) is a proposal (P) pending the lead ontology engineer (OI-49).
+# Every concept also carries the common node attributes in common-attributes.yml.
+concepts:
+  - id: Capability
+    domain: business
+    description: "What the enterprise can do, independent of the systems that deliver it"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: summary, type: string}
+  - id: Application
+    domain: architecture
+    description: "A deployable business system made of services"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: criticality, type: enum, values_ref: vocabularies.criticality}
+      - {name: lifecycle_state, type: enum, values_ref: vocabularies.lifecycle_state}
+  - id: Service
+    domain: architecture
+    description: "A running unit of software with one owning team"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: criticality, type: enum, values_ref: vocabularies.criticality}
+      - {name: lifecycle_state, type: enum, values_ref: vocabularies.lifecycle_state}
+      - {name: repository_ref, type: string}
+  - id: API
+    domain: architecture
+    description: "An interface a service exposes and others consume"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: version, type: string}
+      - {name: protocol, type: enum, values_ref: vocabularies.api_protocol}
+      - {name: spec_ref, type: string}
+  - id: DataAsset
+    domain: platform
+    description: "Data held by the enterprise: a database, dataset or topic. Metadata only, never row data (HLD 5.2)"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: regulatory_scope, type: string, multi: true}
+  - id: Team
+    domain: business
+    description: "A group that owns things and is accountable for them"
+    attributes:
+      - {name: name, type: string, required: true}
+  - id: Person
+    domain: business
+    description: "A person, recorded by role only (HLD 6 Table 9). No names or contact details."
+    role_only: true
+    attributes:
+      - {name: role_name, type: string, required: true}
+  - id: Requirement
+    domain: product
+    description: "A stated need a change must satisfy"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: status, type: enum, values_ref: vocabularies.requirement_status}
+  - id: Change
+    domain: product
+    description: "A unit of work that alters a system: a ticket, pull request or change record"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: change_state, type: enum, values_ref: vocabularies.change_state}
+      - {name: change_type, type: string}
+  - id: Incident
+    domain: operations
+    description: "An unplanned event that disrupted a service"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: severity, type: enum, values_ref: vocabularies.incident_severity}
+      - {name: status, type: enum, values_ref: vocabularies.incident_status}
+  - id: Decision
+    domain: architecture
+    description: "A recorded choice and its reason, such as an ADR"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: status, type: enum, values_ref: vocabularies.decision_status}
+      - {name: decided_on, type: date}
+  - id: Policy
+    domain: security
+    description: "A rule that governs behaviour, such as change control for payment systems"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: policy_kind, type: enum, values_ref: vocabularies.policy_kind}
+  - id: Control
+    domain: security
+    description: "A measure that meets a policy or regulation"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: control_set, type: string}
+  - id: Environment
+    domain: platform
+    description: "Where software runs"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: environment_kind, type: enum, values_ref: vocabularies.environment_kind}
+  - id: Release
+    domain: product
+    description: "A versioned set of changes put into an environment"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: version, type: string}
+      - {name: release_state, type: enum, values_ref: vocabularies.release_state}
+  - id: Test
+    domain: testing
+    description: "A check that shows a change or service behaves as required"
+    attributes:
+      - {name: name, type: string, required: true}
+      - {name: test_kind, type: enum, values_ref: vocabularies.test_kind}
+      - {name: status, type: enum, values_ref: vocabularies.test_status}
+meta_concepts:
+  - id: Pack
+    description: "A graph node that records an ontology pack and its version (LLD 3.3 node labels). Not a business concept."
+    attributes:
+      - {name: pack_id, type: string, required: true}
+      - {name: level, type: enum, values: [core, industry, organization, application, project]}
+      - {name: version, type: string, required: true}

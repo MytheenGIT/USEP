@@ -1,0 +1,9 @@
+# Policies only tighten. Source: HLD 6 Table 9 (policy hooks example), HLD 6.1, HLD 7.2 Table 14.
+policies:
+  - id: org.criticality_tier1_requires_tier2_approval
+    effect: require_approval
+    when: {attribute: criticality, equals: tier_1, action_class: commit}
+    approvals: {min_tier: 2}
+    description: "Criticality tier_1 forces Tier 2 approval (HLD 6 Table 9 policy hook example)"
+tier3_additions: []     # actions the organization adds to the Tier 3 list; the governance lead owns this list (HLD 12.1)
+tier3_note: "Adds to core tier3_baseline_actions. It can never remove one. A list change is a draft RACI item with ARB accountable (HLD C.3 Table 41)."

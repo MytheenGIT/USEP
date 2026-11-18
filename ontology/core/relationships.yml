@@ -1,0 +1,55 @@
+# Core relationship types. Names: HLD 6 Table 9 and LLD 3.3 Table 8 (graph edge types).
+# Endpoint signatures (from, to) are proposals (P) built around the source examples:
+# "Service exposes API", "team owns service", "Change implements requirement" (OI-49).
+# Edge properties are in common-attributes.yml (weight, evidence_ref, source_system, confidence).
+relationships:
+  - id: owns
+    from: [Team]
+    to: [Capability, Application, Service, API, DataAsset, Environment, Policy, Control]
+    description: "Team is accountable for the target"
+    constraint: "Every Service has exactly one owns edge from a Team at any valid time (LLD 3.3)"
+  - id: depends_on
+    from: [Capability, Application, Service, API, DataAsset]
+    to: [Capability, Application, Service, API, DataAsset]
+    description: "The source cannot work as intended without the target"
+  - id: exposes
+    from: [Application, Service]
+    to: [API]
+    description: "The source offers the target interface"
+  - id: consumes
+    from: [Application, Service]
+    to: [API, DataAsset]
+    description: "The source calls or reads the target"
+  - id: realizes
+    from: [Application, Service]
+    to: [Capability]
+    description: "The source delivers the capability"
+  - id: implements
+    from: [Change]
+    to: [Requirement, Decision]
+    description: "The change delivers the requirement or carries out the decision"
+  - id: tests
+    from: [Test]
+    to: [Application, Service, API, Requirement, Change]
+    description: "The test checks the target"
+  - id: deployed_to
+    from: [Application, Service, Release]
+    to: [Environment]
+    description: "The source runs in the target environment"
+  - id: governed_by
+    from: [Capability, Application, Service, API, DataAsset, Change, Environment, Release]
+    to: [Policy, Control]
+    description: "The target policy or control applies to the source"
+  - id: caused_by
+    from: [Incident]
+    to: [Change, Release, Service, Incident]
+    description: "The incident arose from the target"
+  - id: decided_in
+    from: [Capability, Application, Service, API, Change, Requirement, Policy]
+    to: [Decision]
+    description: "The source choice was made in the decision record"
+  - id: supersedes
+    from: [Decision, Policy, Requirement, Release, API, Control]
+    to: [Decision, Policy, Requirement, Release, API, Control]
+    same_type: true
+    description: "The source replaces the target of the same type"

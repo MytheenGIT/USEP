@@ -1,0 +1,22 @@
+# Source: HLD 6 Table 9 relationship type governed_by and the policy hooks.
+name: controls_applying
+version: "1.0"
+status: draft
+owner_role: lead-ontology-engineer
+description: "Policies and controls that govern an entity, with its sensitivity, criticality and regulatory scope hooks"
+parameters:
+  - {name: tenant_id, type: uuid, required: true, from: token}
+  - {name: anchor_id, type: uuid, required: true}
+limits: {max_depth: 1, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06)."
+steps:
+  - id: governing
+    cypher: |
+      MATCH (n:Entity {tenant_id: $tenant_id, entity_id: $anchor_id})
+      WHERE {{access_predicate}}
+      OPTIONAL MATCH (n)-[:governed_by]->(g:Entity {tenant_id: $tenant_id})
+      WHERE g:Policy OR g:Control
+      RETURN n.sensitivity AS sensitivity, n.criticality AS criticality, n.regulatory_scope AS regulatory_scope,
+             g.entity_id AS governing_id, labels(g) AS labels, g.name AS governing_name
+      LIMIT $fanout_cap
+returns: [governing]

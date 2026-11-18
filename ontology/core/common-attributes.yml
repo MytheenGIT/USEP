@@ -1,0 +1,28 @@
+# Properties every node carries. Source: LLD 3.3 Table 8; knowledge/03.
+# All node properties are bitemporal: valid_from, valid_to, recorded_at.
+node:
+  required:
+    - {name: tenant_id,      type: uuid,      note: "In every token and every query (ADR-10)"}
+    - {name: entity_id,      type: uuid,      note: "UUID v7; unique with tenant_id"}
+    - {name: domain,         type: enum,      values_ref: domains}
+    - {name: sensitivity,    type: integer,   values_ref: vocabularies.sensitivity}
+    - {name: source_system,  type: string}
+    - {name: source_id,      type: string}
+    - {name: source_version, type: string,    note: "Source updated time plus sequence"}
+    - {name: valid_from,     type: datetime}
+    - {name: recorded_at,    type: datetime}
+  optional:
+    - {name: valid_to,       type: datetime,  note: "Open interval when absent; must not precede valid_from"}
+    - {name: owner_ref,      type: string,    note: "Owner of record; winner chosen by the organization pack precedence (LLD 5.3)"}
+    - {name: acl_ref,        type: string,    note: "Reference to harvested source permissions"}
+    - {name: acl_state,      type: enum,      values_ref: vocabularies.acl_state, note: "Unknown or stale means owners only (HLD 5.4)"}
+    - {name: name,           type: string,    note: "Full-text indexed (LLD 3.3)"}
+    - {name: summary,        type: string,    note: "Full-text indexed (LLD 3.3)"}
+edge:
+  required: []
+  optional:
+    - {name: weight,         type: decimal,   range: [0, 1]}
+    - {name: evidence_ref,   type: string}
+    - {name: source_system,  type: string}
+    - {name: confidence,     type: decimal,   range: [0, 1]}
+  bitemporal: [valid_from, valid_to, recorded_at]

@@ -1,0 +1,8 @@
+# Pack policies only tighten (deny-overrides). A pack can add a control or raise an approval tier; it never removes one.
+policies:
+  - id: industry.banking.pci_scope_commit_needs_tier2
+    effect: require_approval
+    when: {attribute: regulatory_scope, contains: pci_dss, action_class: commit}
+    approvals: {min_tier: 2}
+    description: "Commit-class actions on anything in PCI-DSS scope need at least Tier 2 approval"
+    source: "Illustrative. Real industry rules come from the industry practice lead and need ARB approval (HLD 13 Table 28)"

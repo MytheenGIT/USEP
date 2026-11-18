@@ -1,0 +1,16 @@
+# Source precedence per attribute. Source: HLD 5.3; LLD 5.3 Table 14.
+# Winner order: 1. this precedence, 2. higher source_version at the same level, 3. source_system_priority then lexical source_id.
+# An attribute with no rule has no winner and its conflict stays open.
+# Status: placeholder until the precedence workshop (RM 10, week 4). The orders below are illustrative, not decided.
+status: placeholder_pending_workshop
+source_system_priority: [git, jira, confluence]     # tie-break order "in the pack" (LLD 5.3 rule 3)
+attributes:
+  owner_ref:
+    order: [cmdb, git, confluence]    # HLD 5.3 example: service owner from the CMDB over a wiki page. CMDB is Phase 2 or later.
+  criticality:
+    order: [cmdb, confluence]
+  lifecycle_state:
+    order: [cmdb, git, jira, confluence]
+  change_state:
+    order: [jira, git]
+decision_critical_note: "Which attributes are decision-critical is set by each harness definition (HLD 5.3), not by this file."

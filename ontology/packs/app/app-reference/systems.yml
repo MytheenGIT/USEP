@@ -1,0 +1,4 @@
+# Systems the application architect registers and maps to core types (HLD 6 Table 10: "Checkout service maps to Service").
+# Placeholder rows only. Real systems are added after the data owner approves the source scope.
+systems:
+  - {system_id: "<system-key>", core_type: Service, source_systems: [git, jira, confluence], status: placeholder}

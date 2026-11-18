@@ -1,0 +1,37 @@
+# Packs add subclasses, attributes, relationship types, vocabularies and templates. They never delete or redefine core concepts.
+concepts:
+  - id: MerchandisingPolicy
+    subclass_of: Policy
+    description: "A rule governing product ranging, pricing or promotion in a retail channel"
+    attributes:
+      - {name: channel, type: enum, values_ref: vocabularies.retail_channel}
+      - {name: effective_from, type: date}
+      - {name: effective_to, type: date}
+
+  - id: SupplierAgreement
+    subclass_of: Policy
+    description: "A contractual or trading-terms policy with a product supplier"
+    attributes:
+      - {name: supplier_id, type: string, required: true}
+      - {name: agreement_type, type: enum, values_ref: vocabularies.supplier_agreement_type}
+
+  - id: RetailComplianceControl
+    subclass_of: Control
+    description: "A control that belongs to a named retail regulatory or standards control set (e.g. GDPR, PCI-DSS, food-safety)"
+    attributes:
+      - {name: control_set, type: string, required: true}
+      - {name: control_reference, type: string}
+      - {name: regulatory_scope, type: string, multi: true}
+
+  - id: LoyaltyScheme
+    subclass_of: Policy
+    description: "A customer loyalty or rewards programme the organisation operates"
+    attributes:
+      - {name: scheme_name, type: string, required: true}
+      - {name: points_currency, type: string}
+
+relationships:
+  - id: GOVERNED_BY
+    from: DataAsset
+    to: RetailComplianceControl
+    description: "A data asset is governed by a retail compliance control (e.g. customer PII under GDPR)"

@@ -1,0 +1,20 @@
+# Application pack v0 (RM 4 S6). Source: HLD 6 Table 10 (systems, components and interfaces mapped to core types);
+# HLD 4.4 (C-06 holds mappings); LLD 13 CC-04 (schema drift tested with fuzzed source payloads).
+# Connector mappings sit here because the sources say they are held with the application or organization pack.
+id: app.app-reference
+level: application
+version: 0.1.0
+status: draft
+signed: false
+signature_ref: null
+owner_role: application-architect
+owner_name: null
+requires_core: ">=0.1.0 <1.0.0"
+additive_only: true
+reference_only: true
+files:
+  systems: systems.yml
+  mappings:
+    - mappings/git.yml
+    - mappings/jira.yml
+    - mappings/confluence.yml

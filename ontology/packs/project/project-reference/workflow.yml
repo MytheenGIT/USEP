@@ -1,0 +1,14 @@
+# Maps a squad's source workflow states to core change_state values (HLD 6 Table 10 example:
+# "Jira workflow states mapped to change states"). The state names on the left are examples of common Jira
+# states; the squad replaces them with its own. An unmapped state goes to quarantine, never to a guess.
+source_system: jira
+issue_workflow:
+  - {source_state: "To Do",        change_state: proposed}
+  - {source_state: "In Progress",  change_state: in_progress}
+  - {source_state: "In Review",    change_state: in_review}
+  - {source_state: "Done",         change_state: released}
+  - {source_state: "Won't Do",     change_state: rejected}
+requirement_status:
+  - {source_state: "Open",         status: draft}
+  - {source_state: "Approved",     status: approved}
+  - {source_state: "Closed",       status: implemented}

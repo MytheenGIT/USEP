@@ -1,0 +1,3151 @@
+# USEP Golden Set — Engineering Domain
+# Source: HLD 9 (at least 150 items per domain at pilot start, growing to 300)
+# Template: golden-set-item.yaml
+# Stratified by template and difficulty. Each item owned by a named SME.
+# Items are held out from prompt and template tuning (HLD 9).
+# Domain: engineering | Count: see evals/tools/check_golden.py (floor 150)
+#
+# STATUS: DRAFT, synthetic. Entity names, evidence IDs and claims are proposals (OI-49), not facts from
+# any source system. Each item must be checked against pilot data by its SME before it is used to score
+# recall at K = 8 or evidence support. Do not publish scores from this file until then.
+# sme_owner holds a role placeholder until named owners are known.
+
+items:
+
+# ─────────────────────────────────────────────
+# GROUP 1: OWNERSHIP & DEPENDENCY (easy) 001-020
+# ─────────────────────────────────────────────
+
+- id: eng-001
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Who owns the checkout service?"
+  expected_entities: [checkout-service, payments-team]
+  expected_claims:
+    - "The checkout service has exactly one owning team at any valid time"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/checkout}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-002
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Which team is responsible for the orders API?"
+  expected_entities: [orders-api, orders-team]
+  expected_claims:
+    - "The orders API is owned by a single team with an active owns edge"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/orders-api}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-003
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "What services does the platform team own?"
+  expected_entities: [platform-team]
+  expected_claims:
+    - "All services with an owns edge from platform-team are returned"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/platform}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-004
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: easy
+  question: "What does the checkout service depend on?"
+  expected_entities: [checkout-service, payments-api, inventory-service]
+  expected_claims:
+    - "checkout-service has depends_on edges to payments-api and inventory-service"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/checkout}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-005
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: easy
+  question: "Which services consume the notifications API?"
+  expected_entities: [notifications-api, checkout-service, user-service]
+  expected_claims:
+    - "All services with a consumes edge to notifications-api are listed"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/notifications}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-006
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: easy
+  question: "List all APIs exposed by the payments service."
+  expected_entities: [payments-service, payments-api, refunds-api]
+  expected_claims:
+    - "payments-service has exposes edges to payments-api and refunds-api"
+  required_evidence:
+    - {source_system: git, source_id: openapi/payments}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-007
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: medium
+  question: "What is the full upstream dependency chain for the reporting service up to depth 3?"
+  expected_entities: [reporting-service, data-pipeline-service, warehouse-api, storage-service]
+  expected_claims:
+    - "Graph traversal depth 3 fan-out cap 200 applied"
+    - "All depends_on edges within depth 3 are included"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/reporting}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-008
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: medium
+  question: "Which services would be affected if the auth service went down?"
+  expected_entities: [auth-service, checkout-service, orders-service, user-service]
+  expected_claims:
+    - "All services with direct or transitive consumes edges to auth-service are listed"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/auth}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-009
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Who owns the data warehouse asset?"
+  expected_entities: [data-warehouse, data-platform-team]
+  expected_claims:
+    - "data-warehouse has an owns edge from data-platform-team"
+  required_evidence:
+    - {source_system: confluence, source_id: data-ownership-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-010
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Which team owns the production Kubernetes environment?"
+  expected_entities: [prod-k8s-env, platform-team]
+  expected_claims:
+    - "prod-k8s-env has an owns edge from platform-team"
+  required_evidence:
+    - {source_system: confluence, source_id: infra-ownership}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-011
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: hard
+  question: "Map all services that transitively depend on the legacy payments database, including indirect consumers."
+  expected_entities: [legacy-payments-db, payments-service, checkout-service, reconciliation-service]
+  expected_claims:
+    - "Transitive depends_on and consumes edges resolved to depth 3"
+    - "Conflict flags shown where ownership is disputed"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/payments}
+    - {source_system: confluence, source_id: legacy-db-register}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-012
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Who owns the fraud detection capability?"
+  expected_entities: [fraud-detection-capability, risk-team]
+  expected_claims:
+    - "fraud-detection-capability has an owns edge from risk-team"
+  required_evidence:
+    - {source_system: confluence, source_id: capability-register}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-013
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: easy
+  question: "What environments is the checkout service deployed to?"
+  expected_entities: [checkout-service, staging-env, production-env]
+  expected_claims:
+    - "checkout-service has deployed_to edges to staging-env and production-env"
+  required_evidence:
+    - {source_system: git, source_id: deploy-manifest/checkout}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-014
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: medium
+  question: "Which capabilities does the payments application realize?"
+  expected_entities: [payments-application, payment-processing-capability, refund-capability]
+  expected_claims:
+    - "payments-application has realizes edges to payment-processing-capability and refund-capability"
+  required_evidence:
+    - {source_system: confluence, source_id: capability-map}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-015
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Who is responsible for the PCI-DSS control set?"
+  expected_entities: [pci-dss-control, security-team]
+  expected_claims:
+    - "pci-dss-control has an owns edge from security-team"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-016
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: medium
+  question: "Which upstream APIs and services does the payments API depend on?"
+  expected_entities: [payments-api, fraud-detection-service, auth-api]
+  expected_claims:
+    - "payments-api has depends_on edges to fraud-detection-service and auth-api"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/payments}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-017
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Which team owns the user profile service?"
+  expected_entities: [user-profile-service, identity-team]
+  expected_claims:
+    - "user-profile-service has exactly one owns edge from identity-team"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/user-profile}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-018
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: easy
+  question: "What data assets does the analytics service consume?"
+  expected_entities: [analytics-service, events-topic, user-events-dataset]
+  expected_claims:
+    - "analytics-service has consumes edges to events-topic and user-events-dataset"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/analytics}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-019
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: easy
+  question: "Who owns the staging environment?"
+  expected_entities: [staging-env, platform-team]
+  expected_claims:
+    - "staging-env has an owns edge from platform-team"
+  required_evidence:
+    - {source_system: confluence, source_id: infra-ownership}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-020
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: medium
+  question: "Which services expose a gRPC API?"
+  expected_entities: [internal-comms-service, data-sync-service]
+  expected_claims:
+    - "Services with exposes edges to APIs where protocol=grpc are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+# ─────────────────────────────────────────────
+# GROUP 2: IMPACT OF CHANGE (021-050)
+# ─────────────────────────────────────────────
+
+- id: eng-021
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "What is the impact of changing the payments API contract?"
+  expected_entities: [payments-api, checkout-service, reconciliation-service, payments-team]
+  expected_claims:
+    - "All services with consumes edges to payments-api are listed"
+    - "Owning team is identified"
+  required_evidence:
+    - {source_system: git, source_id: openapi/payments}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-022
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "Which teams need to be notified if the auth service is deprecated?"
+  expected_entities: [auth-service, checkout-team, orders-team, user-team]
+  expected_claims:
+    - "Teams owning services that consume auth-service are identified"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/auth}
+    - {source_system: jira, source_id: deprecation-ticket-AUTH-001}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-023
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What capabilities are at risk if the inventory service is taken offline for maintenance?"
+  expected_entities: [inventory-service, order-fulfilment-capability, checkout-capability]
+  expected_claims:
+    - "Capabilities realized by services that depend on inventory-service are listed"
+  required_evidence:
+    - {source_system: confluence, source_id: capability-map}
+    - {source_system: git, source_id: service-manifest/inventory}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-024
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: "What is the blast radius of a schema change to the orders database, including downstream data assets and reports?"
+  expected_entities: [orders-db, orders-service, reporting-service, analytics-service, finance-report]
+  expected_claims:
+    - "Transitive depends_on and consumes edges to depth 3 are resolved"
+    - "Data assets downstream of orders-db are included"
+  required_evidence:
+    - {source_system: git, source_id: schema/orders-db}
+    - {source_system: confluence, source_id: data-lineage-orders}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-025
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "Which requirements does the current checkout change implement?"
+  expected_entities: [checkout-change-001, req-payment-flow-v2, req-3ds-support]
+  expected_claims:
+    - "checkout-change-001 has implements edges to the listed requirements"
+  required_evidence:
+    - {source_system: jira, source_id: CHECKOUT-001}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-026
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What policies govern a change to the user data service?"
+  expected_entities: [user-data-service, data-protection-policy, gdpr-control]
+  expected_claims:
+    - "user-data-service has governed_by edges to data-protection-policy and gdpr-control"
+  required_evidence:
+    - {source_system: confluence, source_id: policy-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-027
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "Which environments will be affected by the next release of the payments service?"
+  expected_entities: [payments-service, release-payments-v3, staging-env, production-env]
+  expected_claims:
+    - "release-payments-v3 has deployed_to edges to staging-env and production-env"
+  required_evidence:
+    - {source_system: git, source_id: deploy-manifest/payments}
+    - {source_system: jira, source_id: RELEASE-PAY-003}
+  requester_role: release-manager
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-028
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: "What is the full impact of retiring the v1 orders API, including consumers, tests, and dependent releases?"
+  expected_entities: [orders-api-v1, checkout-service, reporting-service, contract-test-orders, release-q1]
+  expected_claims:
+    - "All consumers of orders-api-v1 are listed"
+    - "Tests covering orders-api-v1 are listed"
+    - "Releases that include orders-api-v1 are identified"
+  required_evidence:
+    - {source_system: git, source_id: openapi/orders-v1}
+    - {source_system: jira, source_id: DEPRECATION-ORDERS-V1}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-029
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "What change records are currently in progress for the fraud detection service?"
+  expected_entities: [fraud-detection-service, fraud-change-001, fraud-change-002]
+  expected_claims:
+    - "Changes with change_state=in_progress and implements or governed_by edges to fraud-detection-service are returned"
+  required_evidence:
+    - {source_system: jira, source_id: FRAUD-001}
+    - {source_system: jira, source_id: FRAUD-002}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-030
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "Which controls apply to a change that touches the payment processing capability?"
+  expected_entities: [payment-processing-capability, pci-dss-control, change-control-policy]
+  expected_claims:
+    - "payment-processing-capability has governed_by edges to pci-dss-control and change-control-policy"
+    - "criticality tier-1 forces Tier 2 approval"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-031
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What incidents have been caused by changes to the checkout service in the last 90 days?"
+  expected_entities: [checkout-service, incident-001, incident-002, checkout-change-003]
+  expected_claims:
+    - "Incidents with caused_by edges to changes that implement checkout-service changes are listed"
+  required_evidence:
+    - {source_system: jira, source_id: INC-001}
+    - {source_system: jira, source_id: INC-002}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-032
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: "If the Payments capability criticality is raised to tier-1, which harnesses require Tier 2 approval?"
+  expected_entities: [payment-processing-capability, architecture-harness, development-harness]
+  expected_claims:
+    - "criticality tier-1 forces Tier 2 approval per HLD 6 Table 9"
+    - "Harnesses operating on tier-1 entities are identified"
+  required_evidence:
+    - {source_system: confluence, source_id: capability-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-033
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "Which decision records are related to the current API versioning change?"
+  expected_entities: [api-versioning-change, adr-007, adr-002]
+  expected_claims:
+    - "api-versioning-change has decided_in edges to adr-007 and adr-002"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr/ADR-007}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-034
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What is the rollback plan evidence for the last release of the orders service?"
+  expected_entities: [orders-service, release-orders-v5, rollback-plan-orders-v5]
+  expected_claims:
+    - "release-orders-v5 has evidence_ref to rollback-plan-orders-v5 in the evidence store"
+  required_evidence:
+    - {source_system: git, source_id: release-notes/orders-v5}
+  requester_role: release-manager
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-035
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: "Which services have open conflicts on their owner attribute that could block a commit-class change?"
+  expected_entities: [conflict-001, conflict-002, payments-service, auth-service]
+  expected_claims:
+    - "Open conflicts on decision-critical owner attribute block commit-class actions"
+    - "Conflict records with status=OPEN on owner attribute are returned"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS}
+    - {source_system: confluence, source_id: ownership-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-036
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What requirements are still unimplemented for the current release milestone?"
+  expected_entities: [release-q2-milestone, req-search-v2, req-recommendations]
+  expected_claims:
+    - "Requirements with status=approved and no implements edge from a released change are listed"
+  required_evidence:
+    - {source_system: jira, source_id: MILESTONE-Q2}
+  requester_role: product-owner
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-037
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "Which decision supersedes the old caching strategy ADR?"
+  expected_entities: [adr-old-cache, adr-new-cache]
+  expected_claims:
+    - "adr-new-cache has a supersedes edge to adr-old-cache"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr/ADR-cache}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-038
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What tests are currently failing for the checkout service?"
+  expected_entities: [checkout-service, unit-test-checkout-001, contract-test-checkout-002]
+  expected_claims:
+    - "Tests with tests edges to checkout-service and status=failing are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-results/checkout}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-039
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "Which services are in a deprecated lifecycle state but still have active consumers?"
+  expected_entities: [legacy-auth-service, checkout-service, mobile-gateway]
+  expected_claims:
+    - "Services with lifecycle_state=deprecated and incoming consumes edges are listed"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/legacy-auth}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-040
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: "What is the complete change history for the payments capability over the last 6 months, including incidents and decisions?"
+  expected_entities: [payment-processing-capability, payments-service, incident-pay-001, adr-007, change-pay-001]
+  expected_claims:
+    - "Changes, incidents and decisions linked to payment-processing-capability within the time window are returned"
+    - "Bitemporal valid_from and valid_to are respected"
+  required_evidence:
+    - {source_system: jira, source_id: PAYMENTS-HISTORY}
+    - {source_system: git, source_id: docs/adr/ADR-007}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-041
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "What is the current lifecycle state of the legacy reporting service?"
+  expected_entities: [legacy-reporting-service]
+  expected_claims:
+    - "lifecycle_state attribute of legacy-reporting-service is returned"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/legacy-reporting}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-042
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "Which releases have been rolled back in the last quarter?"
+  expected_entities: [release-orders-v4, release-auth-v2]
+  expected_claims:
+    - "Releases with release_state=rolled_back within the time window are returned"
+  required_evidence:
+    - {source_system: jira, source_id: RELEASE-ROLLBACK-LOG}
+  requester_role: release-manager
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-043
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What controls must be satisfied before the fraud detection service can be released to production?"
+  expected_entities: [fraud-detection-service, pci-dss-control, pen-test-control, change-control-policy]
+  expected_claims:
+    - "fraud-detection-service has governed_by edges to all required controls"
+    - "Controls with status not yet evidenced are flagged"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-044
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: "Which open incidents are linked to services that have a change currently in review?"
+  expected_entities: [incident-003, checkout-service, checkout-change-005]
+  expected_claims:
+    - "Incidents with status=open and caused_by edges to services with in_review changes are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-003}
+    - {source_system: jira, source_id: CHECKOUT-005}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-045
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "What is the severity of the most recent incident affecting the payments service?"
+  expected_entities: [payments-service, incident-pay-002]
+  expected_claims:
+    - "Most recent incident with caused_by edge to payments-service has severity attribute returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-PAY-002}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-046
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "Which requirements have been withdrawn and what changes were implementing them?"
+  expected_entities: [req-old-search, req-legacy-export, change-search-001]
+  expected_claims:
+    - "Requirements with status=withdrawn and their associated implements edges are returned"
+  required_evidence:
+    - {source_system: jira, source_id: REQ-WITHDRAWN-LOG}
+  requester_role: product-owner
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-047
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What is the dependency path between the mobile app and the payments capability?"
+  expected_entities: [mobile-app, mobile-gateway, checkout-service, payments-service, payment-processing-capability]
+  expected_claims:
+    - "Full path from mobile-app to payment-processing-capability via depends_on and realizes edges is returned"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/mobile-gateway}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-048
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: easy
+  question: "Which ADRs are currently in proposed status?"
+  expected_entities: [adr-017, adr-018]
+  expected_claims:
+    - "Decisions with status=proposed are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-049
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: "What services are deployed to production but have no passing acceptance tests?"
+  expected_entities: [legacy-reporting-service, batch-processor-service]
+  expected_claims:
+    - "Services with deployed_to edge to production-env and no tests edge with test_kind=acceptance and status=passing are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-results}
+    - {source_system: git, source_id: deploy-manifest}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-050
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: "Produce a full impact assessment for a proposed change to the core authentication service, including all consumers, capabilities, policies, and open incidents."
+  expected_entities: [auth-service, checkout-service, orders-service, user-service, identity-capability, access-policy, incident-auth-001]
+  expected_claims:
+    - "All direct and transitive consumers of auth-service are listed"
+    - "Capabilities realized by dependent services are listed"
+    - "Policies governing auth-service are listed"
+    - "Open incidents caused by auth-service changes are listed"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/auth}
+    - {source_system: confluence, source_id: capability-map}
+    - {source_system: confluence, source_id: policy-register}
+    - {source_system: jira, source_id: INC-AUTH-001}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+# ─────────────────────────────────────────────
+# GROUP 3: CONSUMERS OF API (051-080)
+# ─────────────────────────────────────────────
+
+- id: eng-051
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which services consume the payments API?"
+  expected_entities: [payments-api, checkout-service, reconciliation-service, payments-team]
+  expected_claims:
+    - "All entities with a consumes edge to payments-api are returned"
+    - "Owning team of each consumer is included"
+  required_evidence:
+    - {source_system: git, source_id: openapi/payments}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-052
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Who exposes the orders API and which services consume it?"
+  expected_entities: [orders-api, orders-service, checkout-service, reporting-service]
+  expected_claims:
+    - "orders-service has an exposes edge to orders-api"
+    - "checkout-service and reporting-service have consumes edges to orders-api"
+  required_evidence:
+    - {source_system: git, source_id: openapi/orders}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-053
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which teams own the services that consume the auth API?"
+  expected_entities: [auth-api, checkout-team, orders-team, user-team]
+  expected_claims:
+    - "Teams owning services with consumes edges to auth-api are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi/auth}
+    - {source_system: git, source_id: CODEOWNERS}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-054
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "What service exposes the notifications API?"
+  expected_entities: [notifications-api, notifications-service]
+  expected_claims:
+    - "notifications-service has an exposes edge to notifications-api"
+  required_evidence:
+    - {source_system: git, source_id: openapi/notifications}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-055
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which services consume the inventory API?"
+  expected_entities: [inventory-api, checkout-service, order-fulfilment-service]
+  expected_claims:
+    - "All services with consumes edges to inventory-api are listed"
+  required_evidence:
+    - {source_system: git, source_id: openapi/inventory}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-056
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "How many distinct teams consume the search API, and which are they?"
+  expected_entities: [search-api, product-team, recommendations-team, mobile-team]
+  expected_claims:
+    - "Distinct teams owning consumers of search-api are counted and listed"
+  required_evidence:
+    - {source_system: git, source_id: openapi/search}
+    - {source_system: git, source_id: CODEOWNERS}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-057
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which consumers of the refunds API are owned by teams outside the payments domain?"
+  expected_entities: [refunds-api, finance-service, reporting-service, finance-team, data-platform-team]
+  expected_claims:
+    - "Consumers of refunds-api whose owning team is not in the payments domain are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi/refunds}
+    - {source_system: confluence, source_id: team-domain-register}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-058
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which APIs does the mobile gateway consume?"
+  expected_entities: [mobile-gateway, auth-api, checkout-api, product-api]
+  expected_claims:
+    - "All APIs with consumes edges from mobile-gateway are returned"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/mobile-gateway}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-059
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Are there any services consuming a deprecated API version?"
+  expected_entities: [orders-api-v1, checkout-service, legacy-reporting-service]
+  expected_claims:
+    - "Services with consumes edges to APIs where lifecycle_state=deprecated are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-060
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which services consume more than three distinct APIs?"
+  expected_entities: [checkout-service, mobile-gateway]
+  expected_claims:
+    - "Services with more than three distinct consumes edges to API entities are returned"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-061
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Who exposes the user profile API?"
+  expected_entities: [user-profile-api, user-profile-service]
+  expected_claims:
+    - "user-profile-service has an exposes edge to user-profile-api"
+  required_evidence:
+    - {source_system: git, source_id: openapi/user-profile}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-062
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which services consume the fraud detection API?"
+  expected_entities: [fraud-detection-api, checkout-service, payments-service]
+  expected_claims:
+    - "All services with consumes edges to fraud-detection-api are listed"
+  required_evidence:
+    - {source_system: git, source_id: openapi/fraud-detection}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-063
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: hard
+  question: "Which consumers of the payments API have no passing contract test against it?"
+  expected_entities: [payments-api, reconciliation-service, batch-processor-service]
+  expected_claims:
+    - "Consumers of payments-api with no tests edge where test_kind=contract and status=passing are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi/payments}
+    - {source_system: git, source_id: test-results}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-064
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: hard
+  question: "Which services consume the auth API?"
+  expected_entities: [auth-api, reporting-service, analytics-service]
+  expected_claims:
+    - "Consumers of auth-api that the requester may see are returned"
+    - "Restricted entities are absent from the answer and from the evidence"
+  required_evidence:
+    - {source_system: git, source_id: openapi/auth}
+    - {source_system: confluence, source_id: abac-policy-register}
+  requester_role: developer
+  must_not_include: [user-identity-store]
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-065
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which APIs are consumed by services owned by the platform team?"
+  expected_entities: [platform-team, internal-comms-service, data-sync-service, metrics-api, config-api]
+  expected_claims:
+    - "APIs with consumes edges from services owned by platform-team are returned"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/platform}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-066
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which service exposes the config API and who consumes it?"
+  expected_entities: [config-api, config-service, checkout-service, payments-service, orders-service]
+  expected_claims:
+    - "config-service has an exposes edge to config-api"
+    - "All services with consumes edges to config-api are listed"
+  required_evidence:
+    - {source_system: git, source_id: openapi/config}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-067
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which consumers of the data export API are in the finance domain?"
+  expected_entities: [data-export-api, finance-reporting-service, finance-reconciliation-service, finance-team]
+  expected_claims:
+    - "Consumers of data-export-api whose owning team is in the finance domain are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi/data-export}
+    - {source_system: confluence, source_id: team-domain-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-068
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: hard
+  question: "As of six months ago, which services were consuming the v1 orders API that have since migrated away?"
+  expected_entities: [orders-api-v1, checkout-service, legacy-reporting-service]
+  expected_claims:
+    - "Bitemporal query: consumes edges to orders-api-v1 valid at T-6months but not at T-now are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi/orders-v1}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-069
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which services consume the metrics API?"
+  expected_entities: [metrics-api, checkout-service, payments-service, monitoring-service]
+  expected_claims:
+    - "All services with consumes edges to metrics-api are listed"
+  required_evidence:
+    - {source_system: git, source_id: openapi/metrics}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-070
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which APIs have only a single consumer?"
+  expected_entities: [admin-api, batch-export-api]
+  expected_claims:
+    - "APIs with exactly one consumes edge are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-071
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Who exposes the product catalogue API?"
+  expected_entities: [product-catalogue-api, product-service]
+  expected_claims:
+    - "product-service has an exposes edge to product-catalogue-api"
+  required_evidence:
+    - {source_system: git, source_id: openapi/product-catalogue}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-072
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which consumers of the product catalogue API are mobile clients?"
+  expected_entities: [product-catalogue-api, mobile-app, mobile-gateway]
+  expected_claims:
+    - "Consumers of product-catalogue-api where entity_type=mobile_client or entity_type=gateway are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi/product-catalogue}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-073
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: hard
+  question: "Which APIs have consumers in more than two different deployment environments?"
+  expected_entities: [auth-api, payments-api]
+  expected_claims:
+    - "APIs whose consumers have deployed_to edges spanning more than two distinct environments are returned"
+  required_evidence:
+    - {source_system: git, source_id: deploy-manifest}
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-074
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which services consume the recommendations API?"
+  expected_entities: [recommendations-api, product-page-service, email-service]
+  expected_claims:
+    - "All services with consumes edges to recommendations-api are listed"
+  required_evidence:
+    - {source_system: git, source_id: openapi/recommendations}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-075
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which APIs are consumed by the checkout service and what teams own those APIs?"
+  expected_entities: [checkout-service, payments-api, inventory-api, auth-api, payments-team, platform-team, identity-team]
+  expected_claims:
+    - "All APIs with consumes edges from checkout-service are returned with their owning teams"
+  required_evidence:
+    - {source_system: git, source_id: service-manifest/checkout}
+    - {source_system: git, source_id: CODEOWNERS}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-076
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: hard
+  question: "Which services consume the admin API from a non-production environment?"
+  expected_entities: [admin-api, dev-tooling-service, staging-env]
+  expected_claims:
+    - "Consumers of admin-api with deployed_to edges to non-production environments are returned"
+    - "Only consumers with deployed_to edges to non-production environments are listed"
+  required_evidence:
+    - {source_system: git, source_id: openapi/admin}
+    - {source_system: git, source_id: deploy-manifest}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-077
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which APIs have no consumers at all?"
+  expected_entities: [legacy-export-api, internal-debug-api]
+  expected_claims:
+    - "APIs with no incoming consumes edges are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-078
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: easy
+  question: "Which service exposes the reporting API?"
+  expected_entities: [reporting-api, reporting-service]
+  expected_claims:
+    - "reporting-service has an exposes edge to reporting-api"
+  required_evidence:
+    - {source_system: git, source_id: openapi/reporting}
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-079
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: "Which consumers of the reporting API are in a read-only requester role?"
+  expected_entities: [reporting-api, finance-reporting-service, analytics-service]
+  expected_claims:
+    - "Consumers of reporting-api where requester_role is read-only are returned"
+  required_evidence:
+    - {source_system: git, source_id: openapi/reporting}
+    - {source_system: confluence, source_id: abac-policy-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-080
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: hard
+  question: "Which APIs are consumed by services that have an open incident and no passing contract test?"
+  expected_entities: [payments-api, auth-api, checkout-service, incident-001]
+  expected_claims:
+    - "APIs consumed by services with status=open incident and no passing contract test are returned"
+    - "Both conditions must hold simultaneously"
+  required_evidence:
+    - {source_system: jira, source_id: INC-001}
+    - {source_system: git, source_id: test-results}
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+# ─────────────────────────────────────────────
+# GROUP 4: CONTROLS APPLYING (081-110)
+# ─────────────────────────────────────────────
+
+- id: eng-081
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "Which policies govern the payments service?"
+  expected_entities: [payments-service, pci-dss-control, change-control-policy]
+  expected_claims:
+    - "payments-service has governed_by edges to pci-dss-control and change-control-policy"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-082
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "What is the sensitivity classification of the user data service?"
+  expected_entities: [user-data-service]
+  expected_claims:
+    - "sensitivity attribute of user-data-service is returned"
+  required_evidence:
+    - {source_system: confluence, source_id: data-classification-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-083
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "Which controls apply to the fraud detection service?"
+  expected_entities: [fraud-detection-service, pci-dss-control, pen-test-control]
+  expected_claims:
+    - "fraud-detection-service has governed_by edges to pci-dss-control and pen-test-control"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-084
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "What regulatory scope applies to the orders database?"
+  expected_entities: [orders-db]
+  expected_claims:
+    - "regulatory_scope attribute of orders-db is returned"
+  required_evidence:
+    - {source_system: confluence, source_id: data-classification-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-085
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "Which policies govern the auth service?"
+  expected_entities: [auth-service, access-control-policy, data-protection-policy]
+  expected_claims:
+    - "auth-service has governed_by edges to access-control-policy and data-protection-policy"
+  required_evidence:
+    - {source_system: confluence, source_id: policy-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-086
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which services have a criticality of tier-1 and what controls apply to them?"
+  expected_entities: [payments-service, auth-service, pci-dss-control, access-control-policy]
+  expected_claims:
+    - "Services with criticality=tier-1 and their governed_by edges are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: criticality-register}
+    - {source_system: confluence, source_id: control-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-087
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which entities fall under GDPR regulatory scope?"
+  expected_entities: [user-data-service, user-profile-service, gdpr-control]
+  expected_claims:
+    - "Entities with regulatory_scope containing GDPR are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: data-classification-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-088
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "What controls must be evidenced before the checkout service can be released to production?"
+  expected_entities: [checkout-service, change-control-policy, pen-test-control, acceptance-test-control]
+  expected_claims:
+    - "checkout-service governed_by edges to all required controls are returned"
+    - "Controls with no current evidence are flagged"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: release-manager
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-089
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which controls apply to the data warehouse and what is its sensitivity level?"
+  expected_entities: [data-warehouse, data-retention-policy, encryption-control]
+  expected_claims:
+    - "data-warehouse has governed_by edges to data-retention-policy and encryption-control"
+    - "sensitivity attribute of data-warehouse is returned"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+    - {source_system: confluence, source_id: data-classification-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-090
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which services have no governing policy assigned?"
+  expected_entities: [batch-processor-service, legacy-export-service]
+  expected_claims:
+    - "Services with no governed_by edges are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: policy-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-091
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "What is the criticality tier of the payment processing capability?"
+  expected_entities: [payment-processing-capability]
+  expected_claims:
+    - "criticality attribute of payment-processing-capability is returned"
+  required_evidence:
+    - {source_system: confluence, source_id: criticality-register}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-092
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "Which policies govern the user profile service?"
+  expected_entities: [user-profile-service, gdpr-control, data-protection-policy]
+  expected_claims:
+    - "user-profile-service has governed_by edges to gdpr-control and data-protection-policy"
+  required_evidence:
+    - {source_system: confluence, source_id: policy-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-093
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: hard
+  question: "Which services have a PCI-DSS control but lack a current pen-test evidence record?"
+  expected_entities: [payments-service, fraud-detection-service]
+  expected_claims:
+    - "Services with governed_by edge to pci-dss-control and no evidence_ref for pen-test-control are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+    - {source_system: confluence, source_id: evidence-store}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-094
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "What controls apply to the production Kubernetes environment?"
+  expected_entities: [prod-k8s-env, infra-hardening-control, access-control-policy, change-control-policy]
+  expected_claims:
+    - "prod-k8s-env has governed_by edges to all listed controls"
+  required_evidence:
+    - {source_system: confluence, source_id: infra-control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-095
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: hard
+  question: "Which tier-1 entities have an open conflict on their governed_by attribute?"
+  expected_entities: [payments-service, conflict-003]
+  expected_claims:
+    - "Entities with criticality=tier-1 and an open conflict on governed_by attribute are returned"
+    - "Conflict records with status=OPEN are included"
+  required_evidence:
+    - {source_system: confluence, source_id: criticality-register}
+    - {source_system: confluence, source_id: conflict-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-096
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "Which controls apply to the analytics service?"
+  expected_entities: [analytics-service, data-retention-policy, gdpr-control]
+  expected_claims:
+    - "analytics-service has governed_by edges to data-retention-policy and gdpr-control"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-097
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which capabilities have both a PCI-DSS control and a GDPR control applied?"
+  expected_entities: [payment-processing-capability, pci-dss-control, gdpr-control]
+  expected_claims:
+    - "Capabilities with governed_by edges to both pci-dss-control and gdpr-control are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-098
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: hard
+  question: "As of the last audit date, which services had a different set of governing controls than they do today?"
+  expected_entities: [checkout-service, payments-service]
+  expected_claims:
+    - "Bitemporal query: governed_by edges valid at T-audit differ from those valid at T-now"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+    - {source_system: confluence, source_id: audit-log}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-099
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "What is the sensitivity level of the payments database?"
+  expected_entities: [payments-db]
+  expected_claims:
+    - "sensitivity attribute of payments-db is returned"
+  required_evidence:
+    - {source_system: confluence, source_id: data-classification-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-100
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which environments have an infra-hardening control applied?"
+  expected_entities: [prod-k8s-env, dr-env, infra-hardening-control]
+  expected_claims:
+    - "Environments with governed_by edge to infra-hardening-control are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: infra-control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-101
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "Which policies govern the reporting service?"
+  expected_entities: [reporting-service, data-retention-policy, access-control-policy]
+  expected_claims:
+    - "reporting-service has governed_by edges to data-retention-policy and access-control-policy"
+  required_evidence:
+    - {source_system: confluence, source_id: policy-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-102
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which data assets have a data-retention-policy applied and what is their retention period?"
+  expected_entities: [user-events-dataset, orders-archive-dataset, data-retention-policy]
+  expected_claims:
+    - "Data assets with governed_by edge to data-retention-policy and their retention_period attribute are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: data-retention-register}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-103
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: hard
+  question: "Which services are governed by a control that has expired evidence and are deployed to production?"
+  expected_entities: [payments-service, fraud-detection-service, pci-dss-control]
+  expected_claims:
+    - "Services with governed_by edge to a control where evidence valid_to < T-now and deployed_to production-env are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: evidence-store}
+    - {source_system: git, source_id: deploy-manifest}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-104
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "What controls apply to the identity capability?"
+  expected_entities: [identity-capability, access-control-policy, gdpr-control]
+  expected_claims:
+    - "identity-capability has governed_by edges to access-control-policy and gdpr-control"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-105
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which services are in scope for the upcoming PCI-DSS audit?"
+  expected_entities: [payments-service, fraud-detection-service, checkout-service, pci-dss-control]
+  expected_claims:
+    - "Services with governed_by edge to pci-dss-control are returned as audit scope"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+    - {source_system: confluence, source_id: audit-schedule}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-106
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: easy
+  question: "What is the criticality tier of the auth service?"
+  expected_entities: [auth-service]
+  expected_claims:
+    - "criticality attribute of auth-service is returned"
+  required_evidence:
+    - {source_system: confluence, source_id: criticality-register}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-107
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which controls apply to the staging environment?"
+  expected_entities: [staging-env, change-control-policy, access-control-policy]
+  expected_claims:
+    - "staging-env has governed_by edges to change-control-policy and access-control-policy"
+  required_evidence:
+    - {source_system: confluence, source_id: infra-control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-108
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: hard
+  question: "Which entities have a sensitivity of high but no encryption control applied?"
+  expected_entities: [legacy-payments-db, user-events-dataset]
+  expected_claims:
+    - "Entities with sensitivity=high and no governed_by edge to encryption-control are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: data-classification-register}
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-109
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: "Which controls apply to the order fulfilment capability?"
+  expected_entities: [order-fulfilment-capability, change-control-policy, acceptance-test-control]
+  expected_claims:
+    - "order-fulfilment-capability has governed_by edges to change-control-policy and acceptance-test-control"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-110
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: hard
+  question: "Produce a full compliance posture for the payments domain: all entities, their controls, sensitivity, criticality, and any gaps."
+  expected_entities: [payments-service, payments-db, payment-processing-capability, pci-dss-control, pen-test-control, encryption-control]
+  expected_claims:
+    - "All entities in the payments domain with their governed_by edges are returned"
+    - "Entities missing required controls are flagged as gaps"
+    - "sensitivity and criticality attributes are included for each entity"
+  required_evidence:
+    - {source_system: confluence, source_id: control-register}
+    - {source_system: confluence, source_id: data-classification-register}
+    - {source_system: confluence, source_id: criticality-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+# ─────────────────────────────────────────────
+# GROUP 5: DECISIONS ABOUT (111-130)
+# ─────────────────────────────────────────────
+
+- id: eng-111
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "Which ADRs have been recorded for the payments service?"
+  expected_entities: [payments-service, adr-007, adr-012]
+  expected_claims:
+    - "payments-service has decided_in edges to adr-007 and adr-012"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-112
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "Is the caching strategy ADR still active or has it been superseded?"
+  expected_entities: [adr-old-cache, adr-new-cache]
+  expected_claims:
+    - "adr-old-cache is no longer the active caching decision"
+    - "adr-old-cache status is superseded"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr/ADR-cache}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-113
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "Which decisions are recorded for the auth service?"
+  expected_entities: [auth-service, adr-003, adr-009]
+  expected_claims:
+    - "auth-service has decided_in edges to adr-003 and adr-009"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-114
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "What is the status of ADR-017?"
+  expected_entities: [adr-017]
+  expected_claims:
+    - "status attribute of adr-017 is returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr/ADR-017}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-115
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "Which decisions about the checkout service are still in proposed status?"
+  expected_entities: [checkout-service, adr-018, adr-019]
+  expected_claims:
+    - "Decisions with decided_in edge from checkout-service and status=proposed are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-116
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "Which ADRs cover the API versioning strategy and are any superseded?"
+  expected_entities: [adr-002, adr-007, adr-new-versioning]
+  expected_claims:
+    - "Decisions with decided_in edge to api-versioning topic are returned"
+    - "Superseded decisions are flagged with their superseding ADR"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-117
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "Which decisions have been recorded for the data warehouse?"
+  expected_entities: [data-warehouse, adr-005, adr-011]
+  expected_claims:
+    - "data-warehouse has decided_in edges to adr-005 and adr-011"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: data-governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-118
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "Which ADR governs the choice of graph database for the semantic layer?"
+  expected_entities: [semantic-layer, adr-001]
+  expected_claims:
+    - "semantic-layer has a decided_in edge to adr-001"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr/ADR-001}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-119
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "How many active (non-superseded) ADRs exist for the payments domain?"
+  expected_entities: [adr-007, adr-012, adr-015]
+  expected_claims:
+    - "Decisions with decided_in edges to payments-domain entities and status=accepted and no supersedes edge are counted"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-120
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: hard
+  question: "Which decisions recorded for the checkout service were made before the last major incident and have since been superseded?"
+  expected_entities: [checkout-service, adr-old-checkout, adr-new-checkout, incident-001]
+  expected_claims:
+    - "Decisions with decided_in edge from checkout-service, valid_from before incident-001 valid_from, and superseded_by set are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+    - {source_system: jira, source_id: INC-001}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-121
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "Which decisions are recorded for the fraud detection capability?"
+  expected_entities: [fraud-detection-capability, adr-010, adr-014]
+  expected_claims:
+    - "fraud-detection-capability has decided_in edges to adr-010 and adr-014"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-122
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "Which ADRs are in deprecated status?"
+  expected_entities: [adr-old-cache, adr-old-auth]
+  expected_claims:
+    - "Decisions with status=deprecated are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-123
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "Which decisions cover the observability strategy?"
+  expected_entities: [observability-strategy, adr-006, adr-013]
+  expected_claims:
+    - "Decisions with decided_in edge to observability-strategy entity are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-124
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: hard
+  question: "Which decisions recorded for the platform team's services have never been reviewed since creation?"
+  expected_entities: [adr-004, adr-008]
+  expected_claims:
+    - "Decisions with decided_in edges to platform-team services where last_reviewed equals created date are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-125
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "Which ADR governs the event streaming technology choice?"
+  expected_entities: [event-streaming-strategy, adr-016]
+  expected_claims:
+    - "event-streaming-strategy has a decided_in edge to adr-016"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr/ADR-016}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-126
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "Which decisions about the orders service have been accepted in the last year?"
+  expected_entities: [orders-service, adr-020, adr-021]
+  expected_claims:
+    - "Decisions with decided_in edge from orders-service, status=accepted, and valid_from within last 12 months are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-127
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: easy
+  question: "Does the identity capability have any recorded decisions?"
+  expected_entities: [identity-capability, adr-009]
+  expected_claims:
+    - "identity-capability has at least one decided_in edge"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-128
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: hard
+  question: "Which decisions are shared across more than one service and what are those services?"
+  expected_entities: [adr-007, payments-service, checkout-service]
+  expected_claims:
+    - "Decisions with decided_in edges from more than one service entity are returned with all linked services"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-129
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: "Which ADRs reference the PCI-DSS control as a driver?"
+  expected_entities: [adr-007, adr-012, pci-dss-control]
+  expected_claims:
+    - "Decisions with a governed_by or references edge to pci-dss-control are returned"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+    - {source_system: confluence, source_id: control-register}
+  requester_role: security-architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-130
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: hard
+  question: "Produce a full decision history for the payments domain, including supersession chains and current status of each ADR."
+  expected_entities: [payments-service, adr-007, adr-012, adr-old-payments, adr-new-payments]
+  expected_claims:
+    - "All decisions with decided_in edges to payments-domain entities are returned"
+    - "Supersession chains are resolved and shown"
+    - "Current status of each decision is included"
+  required_evidence:
+    - {source_system: git, source_id: docs/adr}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+# ─────────────────────────────────────────────
+# GROUP 6: INCIDENTS FOR (131-145)
+# ─────────────────────────────────────────────
+
+- id: eng-131
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: easy
+  question: "What incidents have been caused by the payments service?"
+  expected_entities: [payments-service, incident-pay-001, incident-pay-002]
+  expected_claims:
+    - "Incidents with caused_by edge to payments-service are returned newest first"
+  required_evidence:
+    - {source_system: jira, source_id: INC-PAY-001}
+    - {source_system: jira, source_id: INC-PAY-002}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-132
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: easy
+  question: "What is the most recent incident caused by the auth service?"
+  expected_entities: [auth-service, incident-auth-001]
+  expected_claims:
+    - "Most recent incident with caused_by edge to auth-service is returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-AUTH-001}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-133
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: easy
+  question: "Are there any open incidents caused by the checkout service?"
+  expected_entities: [checkout-service, incident-001]
+  expected_claims:
+    - "Incidents with caused_by edge to checkout-service and status=open are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-001}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-134
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: medium
+  question: "Which services have caused more than two Sev-1 incidents in the last 90 days?"
+  expected_entities: [payments-service, auth-service]
+  expected_claims:
+    - "Services with more than two caused_by edges to incidents where severity=sev-1 within the time window are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-HISTORY}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-135
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: medium
+  question: "What incidents have been caused by the fraud detection service and what were their severities?"
+  expected_entities: [fraud-detection-service, incident-fraud-001, incident-fraud-002]
+  expected_claims:
+    - "Incidents with caused_by edge to fraud-detection-service are returned with severity attribute"
+  required_evidence:
+    - {source_system: jira, source_id: INC-FRAUD-001}
+    - {source_system: jira, source_id: INC-FRAUD-002}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-136
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: medium
+  question: "Which incidents caused by the orders service are still unresolved?"
+  expected_entities: [orders-service, incident-orders-001]
+  expected_claims:
+    - "Incidents with caused_by edge to orders-service and status not in {resolved, closed} are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-ORDERS-001}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-137
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: hard
+  question: "Which incidents were caused by a service that had an open change in review at the time of the incident?"
+  expected_entities: [incident-001, checkout-service, checkout-change-005]
+  expected_claims:
+    - "Incidents where the caused_by service had a change with change_state=in_review at incident valid_from are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-001}
+    - {source_system: jira, source_id: CHECKOUT-005}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-138
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: easy
+  question: "How many incidents has the inventory service caused in total?"
+  expected_entities: [inventory-service]
+  expected_claims:
+    - "Count of incidents with caused_by edge to inventory-service is returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-HISTORY}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-139
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: medium
+  question: "Which incidents caused by the payments service occurred during a release window?"
+  expected_entities: [payments-service, incident-pay-001, release-payments-v3]
+  expected_claims:
+    - "Incidents with caused_by edge to payments-service where valid_from overlaps a release window are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-PAY-001}
+    - {source_system: jira, source_id: RELEASE-PAY-003}
+  requester_role: release-manager
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-140
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: hard
+  question: "Which services have caused incidents that triggered a blameless review, and were the reviews completed within five business days?"
+  expected_entities: [payments-service, auth-service, incident-pay-001, incident-auth-001]
+  expected_claims:
+    - "Sev-1 and Sev-2 incidents with caused_by edges are returned"
+    - "Evidence of blameless review completion within five business days is checked"
+  required_evidence:
+    - {source_system: jira, source_id: INC-PAY-001}
+    - {source_system: jira, source_id: INC-AUTH-001}
+    - {source_system: confluence, source_id: blameless-review-register}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-141
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: easy
+  question: "What incidents have been caused by the data pipeline service?"
+  expected_entities: [data-pipeline-service, incident-pipeline-001]
+  expected_claims:
+    - "Incidents with caused_by edge to data-pipeline-service are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-PIPELINE-001}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-142
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: medium
+  question: "Which incidents in the last 30 days were caused by services owned by the platform team?"
+  expected_entities: [platform-team, internal-comms-service, incident-comms-001]
+  expected_claims:
+    - "Incidents with caused_by edges to services owned by platform-team within the last 30 days are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-COMMS-001}
+    - {source_system: git, source_id: CODEOWNERS/platform}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-143
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: hard
+  question: "Which services have a recurring incident pattern — more than one incident with the same root cause category?"
+  expected_entities: [payments-service, incident-pay-001, incident-pay-003]
+  expected_claims:
+    - "Services with multiple incidents sharing the same root_cause_category are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-HISTORY}
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-144
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: easy
+  question: "What is the severity of incident INC-AUTH-001?"
+  expected_entities: [incident-auth-001]
+  expected_claims:
+    - "severity attribute of incident-auth-001 is returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-AUTH-001}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-145
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: medium
+  question: "Which services have caused no incidents in the last 6 months?"
+  expected_entities: [config-service, notifications-service]
+  expected_claims:
+    - "Services with no caused_by edges to incidents within the last 6 months are returned"
+  required_evidence:
+    - {source_system: jira, source_id: INC-HISTORY}
+  requester_role: operations-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+# ─────────────────────────────────────────────
+# GROUP 7: TESTS COVERING (146-160)
+# ─────────────────────────────────────────────
+
+- id: eng-146
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: easy
+  question: "Which tests cover the payments API?"
+  expected_entities: [payments-api, contract-test-payments, integration-test-payments]
+  expected_claims:
+    - "Tests with tests edges to payments-api are returned with their test_kind and status"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest/payments}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-147
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: easy
+  question: "Are there any failing tests for the auth service?"
+  expected_entities: [auth-service, unit-test-auth-001]
+  expected_claims:
+    - "Tests with tests edge to auth-service and status=failing are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-results/auth}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-148
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: easy
+  question: "Which contract tests cover the orders API?"
+  expected_entities: [orders-api, contract-test-orders-001, contract-test-orders-002]
+  expected_claims:
+    - "Tests with tests edge to orders-api and test_kind=contract are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest/orders}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-149
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: medium
+  question: "Which services have no unit tests at all?"
+  expected_entities: [batch-processor-service, legacy-export-service]
+  expected_claims:
+    - "Services with no tests edge where test_kind=unit are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-150
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: medium
+  question: "What is the test coverage breakdown by test_kind for the checkout service?"
+  expected_entities: [checkout-service, unit-test-checkout-001, contract-test-checkout-002, acceptance-test-checkout-001]
+  expected_claims:
+    - "Tests with tests edges to checkout-service grouped by test_kind are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest/checkout}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-151
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: easy
+  question: "Which acceptance tests cover the fraud detection service?"
+  expected_entities: [fraud-detection-service, acceptance-test-fraud-001]
+  expected_claims:
+    - "Tests with tests edge to fraud-detection-service and test_kind=acceptance are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest/fraud-detection}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-152
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: medium
+  question: "Which tests covering the payments service are currently passing?"
+  expected_entities: [payments-service, contract-test-payments, integration-test-payments]
+  expected_claims:
+    - "Tests with tests edge to payments-service and status=passing are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-results/payments}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-153
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: hard
+  question: "Which services deployed to production have a failing acceptance test?"
+  expected_entities: [legacy-reporting-service, batch-processor-service]
+  expected_claims:
+    - "Services with deployed_to edge to production-env and a tests edge where test_kind=acceptance and status=failing are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-results}
+    - {source_system: git, source_id: deploy-manifest}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-154
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: medium
+  question: "Which APIs have no contract test covering them?"
+  expected_entities: [admin-api, legacy-export-api]
+  expected_claims:
+    - "APIs with no tests edge where test_kind=contract are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest}
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-155
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: easy
+  question: "Which tests cover the inventory service?"
+  expected_entities: [inventory-service, unit-test-inventory-001, integration-test-inventory-001]
+  expected_claims:
+    - "Tests with tests edges to inventory-service are returned with test_kind and status"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest/inventory}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-156
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: hard
+  question: "Which tests were passing before the last release of the payments service but are now failing?"
+  expected_entities: [payments-service, contract-test-payments, release-payments-v3]
+  expected_claims:
+    - "Bitemporal query: tests with tests edge to payments-service where status=passing at T-before-release and status=failing at T-now are returned"
+  required_evidence:
+    - {source_system: git, source_id: test-results/payments}
+    - {source_system: jira, source_id: RELEASE-PAY-003}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-157
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: medium
+  question: "Which services owned by the identity team have passing integration tests?"
+  expected_entities: [identity-team, user-profile-service, auth-service, integration-test-auth-001]
+  expected_claims:
+    - "Services owned by identity-team with tests edges where test_kind=integration and status=passing are returned"
+  required_evidence:
+    - {source_system: git, source_id: CODEOWNERS/identity}
+    - {source_system: git, source_id: test-results}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-158
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: easy
+  question: "How many tests cover the orders service in total?"
+  expected_entities: [orders-service]
+  expected_claims:
+    - "Count of tests with tests edges to orders-service is returned"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest/orders}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-159
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: hard
+  question: "Which tier-1 services have a gap in contract test coverage for at least one of their exposed APIs?"
+  expected_entities: [payments-service, payments-api, auth-service, auth-api]
+  expected_claims:
+    - "Services with criticality=tier-1 where at least one exposes edge leads to an API with no contract test are returned"
+  required_evidence:
+    - {source_system: confluence, source_id: criticality-register}
+    - {source_system: git, source_id: test-manifest}
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+- id: eng-160
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: hard
+  question: "Produce a full test health report for the payments domain: all services, their tests by kind, current status, and any coverage gaps."
+  expected_entities: [payments-service, fraud-detection-service, payments-api, contract-test-payments, integration-test-payments, acceptance-test-fraud-001]
+  expected_claims:
+    - "All services in the payments domain with their tests edges grouped by test_kind are returned"
+    - "Services or APIs with no tests of a required kind are flagged as gaps"
+    - "Current status of each test is included"
+  required_evidence:
+    - {source_system: git, source_id: test-manifest}
+    - {source_system: git, source_id: test-results}
+    - {source_system: git, source_id: openapi-registry}
+  requester_role: qa-engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: 2026-11-10
+  last_reviewed: 2026-11-10
+
+# ─────────────────────────────────────────
+# GROUP 8: ABAC LEAK CHECKS, restricted entities must never appear (ADR-06, ADR-10)
+# ─────────────────────────────────────────
+
+- id: eng-161
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: medium
+  question: What do the checkout service dependencies look like to a developer without access to restricted stores?
+  expected_entities:
+  - checkout-service
+  - payments-api
+  - inventory-service
+  expected_claims:
+  - depends_on edges the requester may see are returned
+  - Restricted entities are absent from the answer and the evidence
+  required_evidence:
+  - source_system: git
+    source_id: service-manifest/checkout
+  requester_role: developer
+  must_not_include:
+  - user-identity-store
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-162
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: hard
+  question: What is affected if the auth service changes?
+  expected_entities:
+  - auth-service
+  - auth-api
+  - checkout-service
+  expected_claims:
+  - Impact paths stop at entities the requester may not see
+  - No restricted entity appears as a path node or in evidence
+  required_evidence:
+  - source_system: git
+    source_id: service-manifest/auth
+  requester_role: developer
+  must_not_include:
+  - user-identity-store
+  - signing-key-registry
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-163
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: medium
+  question: Who consumes the payments API?
+  expected_entities:
+  - payments-api
+  - checkout-service
+  - orders-service
+  expected_claims:
+  - Only consumers the requester may see are listed
+  required_evidence:
+  - source_system: git
+    source_id: openapi/payments
+  requester_role: qa-engineer
+  must_not_include:
+  - payroll-service
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-164
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: hard
+  question: Which controls apply to the reporting service?
+  expected_entities:
+  - reporting-service
+  - pci-dss-control
+  - gdpr-control
+  expected_claims:
+  - Controls the requester may see are returned
+  - Restricted control evidence is absent
+  required_evidence:
+  - source_system: git
+    source_id: control-register/reporting
+  requester_role: developer
+  must_not_include:
+  - customer-pii-db
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-165
+  domain: engineering
+  template: decisions_about@1.0
+  difficulty: medium
+  question: Which decisions affect how secrets are stored?
+  expected_entities:
+  - adr-secrets-handling
+  expected_claims:
+  - Decisions the requester may see are returned
+  - Restricted decision records are absent
+  required_evidence:
+  - source_system: git
+    source_id: docs/adr/ADR-secrets
+  requester_role: developer
+  must_not_include:
+  - secrets-vault-config
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-166
+  domain: engineering
+  template: incidents_for@1.0
+  difficulty: hard
+  question: What incidents involved the auth service?
+  expected_entities:
+  - auth-service
+  - incident-auth-001
+  expected_claims:
+  - Incidents the requester may see are returned
+  - Restricted incident details are absent
+  required_evidence:
+  - source_system: jira
+    source_id: INC-auth
+  requester_role: qa-engineer
+  must_not_include:
+  - signing-key-registry
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-167
+  domain: engineering
+  template: tests_covering@1.0
+  difficulty: medium
+  question: Which tests cover the auth API?
+  expected_entities:
+  - auth-api
+  - contract-test-auth
+  expected_claims:
+  - Tests the requester may see are returned
+  required_evidence:
+  - source_system: git
+    source_id: test-manifest/auth
+  requester_role: product-owner
+  must_not_include:
+  - user-identity-store
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-168
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: medium
+  question: Who owns the HR records service?
+  expected_entities:
+  - hr-records-service
+  expected_claims:
+  - An answer for a restricted entity is refused or empty for this requester, never partial
+  required_evidence:
+  - source_system: git
+    source_id: CODEOWNERS/hr-records
+  requester_role: developer
+  must_not_include:
+  - hr-records-service
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-169
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: hard
+  question: Which services depend on the customer data store?
+  expected_entities:
+  - customer-pii-db
+  expected_claims:
+  - A requester with no access to the store gets no entities and no hint that it exists
+  required_evidence:
+  - source_system: git
+    source_id: service-manifest/customer-data
+  requester_role: qa-engineer
+  must_not_include:
+  - customer-pii-db
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-170
+  domain: engineering
+  template: consumers_of_api@1.0
+  difficulty: hard
+  question: List every consumer of the payroll API.
+  expected_entities:
+  - payroll-service
+  expected_claims:
+  - 'Fail closed: a requester without access gets an empty answer, not a partial one'
+  required_evidence:
+  - source_system: git
+    source_id: openapi/payroll
+  requester_role: developer
+  must_not_include:
+  - payroll-service
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-171
+  domain: engineering
+  template: controls_applying@1.0
+  difficulty: medium
+  question: Which regulatory controls apply to payments data?
+  expected_entities:
+  - payments-service
+  - pci-dss-control
+  expected_claims:
+  - Only controls with sensitivity at or below the requester level are returned
+  required_evidence:
+  - source_system: confluence
+    source_id: control-register
+  requester_role: product-owner
+  must_not_include:
+  - customer-pii-db
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-172
+  domain: engineering
+  template: impact_of_change@1.0
+  difficulty: medium
+  question: What breaks if the notifications API changes?
+  expected_entities:
+  - notifications-api
+  - checkout-service
+  - user-service
+  expected_claims:
+  - Impact paths exclude entities with an unknown ACL for non-owners (core.unknown_acl_owner_only)
+  required_evidence:
+  - source_system: git
+    source_id: openapi/notifications
+  requester_role: developer
+  must_not_include:
+  - user-identity-store
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+
+# ─────────────────────────────────────────
+# GROUP 9: OWNERSHIP, medium and hard
+# ─────────────────────────────────────────
+
+- id: eng-173
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: medium
+  question: Which team owns the service that exposes the orders API?
+  expected_entities:
+  - orders-api
+  - orders-service
+  - orders-team
+  expected_claims:
+  - Traverses exposes then owns and returns exactly one owning team
+  required_evidence:
+  - source_system: git
+    source_id: CODEOWNERS/orders
+  - source_system: git
+    source_id: service-manifest/orders
+  requester_role: developer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-174
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: medium
+  question: Who owns the payments API, and is it the same team that owns the checkout service?
+  expected_entities:
+  - payments-api
+  - payments-team
+  - checkout-service
+  - checkout-team
+  expected_claims:
+  - Both owners are returned
+  - The answer states whether they are the same team
+  required_evidence:
+  - source_system: git
+    source_id: CODEOWNERS/payments
+  - source_system: git
+    source_id: CODEOWNERS/checkout
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-175
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: medium
+  question: Which services have no owning team recorded?
+  expected_entities:
+  - unowned-service-report
+  expected_claims:
+  - Services missing an owns edge are listed, each as a constraint violation
+  required_evidence:
+  - source_system: git
+    source_id: CODEOWNERS
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-176
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: hard
+  question: Two sources disagree on who owns the fraud detection service. Who is the owner and why?
+  expected_entities:
+  - fraud-detection-service
+  - risk-team
+  - payments-team
+  expected_claims:
+  - The winner rule picks the current owner
+  - The conflict is returned as a recorded fact with both source versions
+  required_evidence:
+  - source_system: git
+    source_id: CODEOWNERS/fraud
+  - source_system: confluence
+    source_id: team-directory
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-177
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: hard
+  question: Who owned the auth service on 1 October 2026, and who owns it now?
+  expected_entities:
+  - auth-service
+  - platform-team
+  - identity-team
+  expected_claims:
+  - Answer uses valid_from and valid_to to give both owners
+  - The change date is shown
+  required_evidence:
+  - source_system: git
+    source_id: CODEOWNERS/auth
+  - source_system: git
+    source_id: git-history/auth
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-178
+  domain: engineering
+  template: owner_of@1.0
+  difficulty: hard
+  question: Which owning teams hold more than ten tier 1 services?
+  expected_entities:
+  - platform-team
+  - payments-team
+  expected_claims:
+  - Teams are counted from owns edges to services with criticality tier_1
+  - Count and service list are returned
+  required_evidence:
+  - source_system: git
+    source_id: CODEOWNERS
+  - source_system: confluence
+    source_id: service-catalogue
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+
+# ─────────────────────────────────────────
+# GROUP 10: DEPENDENCIES, hard
+# ─────────────────────────────────────────
+
+- id: eng-179
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: hard
+  question: List all direct and transitive dependencies of the checkout service up to three hops.
+  expected_entities:
+  - checkout-service
+  - payments-api
+  - inventory-service
+  - fraud-detection-service
+  - auth-api
+  expected_claims:
+  - Traversal stops at depth 3
+  - Results are capped at 200 entities
+  required_evidence:
+  - source_system: git
+    source_id: service-manifest/checkout
+  - source_system: git
+    source_id: service-manifest/payments
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-180
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: hard
+  question: Are there circular dependencies between the orders and inventory services?
+  expected_entities:
+  - orders-service
+  - inventory-service
+  expected_claims:
+  - Cycles are reported once, with their path
+  - Traversal still ends at depth 3
+  required_evidence:
+  - source_system: git
+    source_id: service-manifest/orders
+  - source_system: git
+    source_id: service-manifest/inventory
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-181
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: hard
+  question: Which dependencies of the reporting service are owned by a different team, and who owns each?
+  expected_entities:
+  - reporting-service
+  - analytics-service
+  - platform-team
+  expected_claims:
+  - Each dependency is paired with its single owning team
+  - Same-team dependencies are excluded
+  required_evidence:
+  - source_system: git
+    source_id: service-manifest/reporting
+  - source_system: git
+    source_id: CODEOWNERS
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'
+- id: eng-182
+  domain: engineering
+  template: dependencies_of@1.0
+  difficulty: hard
+  question: Which tier 1 services depend on a tier 3 service?
+  expected_entities:
+  - checkout-service
+  - legacy-batch-service
+  expected_claims:
+  - Criticality is read from the entity, not guessed
+  - Each pair is listed with the path
+  required_evidence:
+  - source_system: git
+    source_id: service-manifest
+  - source_system: confluence
+    source_id: service-catalogue
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-12'
+  last_reviewed: '2026-11-12'

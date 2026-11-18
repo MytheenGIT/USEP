@@ -1,0 +1,97 @@
+# Endpoint rules for the twelve core relationship types (HLD 6 Table 9; LLD 3.3 Table 8).
+# The endpoint signatures are proposals (P) and mirror core/relationships.yml (OI-49).
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix usep: <https://usep.invalid/ontology/core#> .
+
+# owns: Team -> Capability, Application, Service, API, DataAsset, Environment, Policy, Control
+usep:OwnsFrom a sh:NodeShape ; sh:targetSubjectsOf usep:owns ; sh:class usep:Team ;
+    sh:message "owns must start at a Team" .
+usep:OwnsTo a sh:NodeShape ; sh:targetObjectsOf usep:owns ;
+    sh:or ( [sh:class usep:Capability] [sh:class usep:Application] [sh:class usep:Service] [sh:class usep:API]
+            [sh:class usep:DataAsset] [sh:class usep:Environment] [sh:class usep:Policy] [sh:class usep:Control] ) ;
+    sh:message "owns points at a type a Team cannot own" .
+
+# depends_on
+usep:DependsOnFrom a sh:NodeShape ; sh:targetSubjectsOf usep:depends_on ;
+    sh:or ( [sh:class usep:Capability] [sh:class usep:Application] [sh:class usep:Service] [sh:class usep:API] [sh:class usep:DataAsset] ) ;
+    sh:message "depends_on starts at a type that cannot depend on others" .
+usep:DependsOnTo a sh:NodeShape ; sh:targetObjectsOf usep:depends_on ;
+    sh:or ( [sh:class usep:Capability] [sh:class usep:Application] [sh:class usep:Service] [sh:class usep:API] [sh:class usep:DataAsset] ) ;
+    sh:message "depends_on points at a type that cannot be depended on" .
+
+# exposes: Application, Service -> API
+usep:ExposesFrom a sh:NodeShape ; sh:targetSubjectsOf usep:exposes ;
+    sh:or ( [sh:class usep:Application] [sh:class usep:Service] ) ;
+    sh:message "exposes must start at an Application or Service" .
+usep:ExposesTo a sh:NodeShape ; sh:targetObjectsOf usep:exposes ; sh:class usep:API ;
+    sh:message "exposes must point at an API" .
+
+# consumes: Application, Service -> API, DataAsset
+usep:ConsumesFrom a sh:NodeShape ; sh:targetSubjectsOf usep:consumes ;
+    sh:or ( [sh:class usep:Application] [sh:class usep:Service] ) ;
+    sh:message "consumes must start at an Application or Service" .
+usep:ConsumesTo a sh:NodeShape ; sh:targetObjectsOf usep:consumes ;
+    sh:or ( [sh:class usep:API] [sh:class usep:DataAsset] ) ;
+    sh:message "consumes must point at an API or DataAsset" .
+
+# realizes: Application, Service -> Capability
+usep:RealizesFrom a sh:NodeShape ; sh:targetSubjectsOf usep:realizes ;
+    sh:or ( [sh:class usep:Application] [sh:class usep:Service] ) ;
+    sh:message "realizes must start at an Application or Service" .
+usep:RealizesTo a sh:NodeShape ; sh:targetObjectsOf usep:realizes ; sh:class usep:Capability ;
+    sh:message "realizes must point at a Capability" .
+
+# implements: Change -> Requirement, Decision
+usep:ImplementsFrom a sh:NodeShape ; sh:targetSubjectsOf usep:implements ; sh:class usep:Change ;
+    sh:message "implements must start at a Change" .
+usep:ImplementsTo a sh:NodeShape ; sh:targetObjectsOf usep:implements ;
+    sh:or ( [sh:class usep:Requirement] [sh:class usep:Decision] ) ;
+    sh:message "implements must point at a Requirement or Decision" .
+
+# tests: Test -> Application, Service, API, Requirement, Change
+usep:TestsFrom a sh:NodeShape ; sh:targetSubjectsOf usep:tests ; sh:class usep:Test ;
+    sh:message "tests must start at a Test" .
+usep:TestsTo a sh:NodeShape ; sh:targetObjectsOf usep:tests ;
+    sh:or ( [sh:class usep:Application] [sh:class usep:Service] [sh:class usep:API] [sh:class usep:Requirement] [sh:class usep:Change] ) ;
+    sh:message "tests points at a type a Test cannot check" .
+
+# deployed_to: Application, Service, Release -> Environment
+usep:DeployedToFrom a sh:NodeShape ; sh:targetSubjectsOf usep:deployed_to ;
+    sh:or ( [sh:class usep:Application] [sh:class usep:Service] [sh:class usep:Release] ) ;
+    sh:message "deployed_to must start at an Application, Service or Release" .
+usep:DeployedToTo a sh:NodeShape ; sh:targetObjectsOf usep:deployed_to ; sh:class usep:Environment ;
+    sh:message "deployed_to must point at an Environment" .
+
+# governed_by: many -> Policy, Control
+usep:GovernedByFrom a sh:NodeShape ; sh:targetSubjectsOf usep:governed_by ;
+    sh:or ( [sh:class usep:Capability] [sh:class usep:Application] [sh:class usep:Service] [sh:class usep:API]
+            [sh:class usep:DataAsset] [sh:class usep:Change] [sh:class usep:Environment] [sh:class usep:Release] ) ;
+    sh:message "governed_by starts at a type a policy cannot govern" .
+usep:GovernedByTo a sh:NodeShape ; sh:targetObjectsOf usep:governed_by ;
+    sh:or ( [sh:class usep:Policy] [sh:class usep:Control] ) ;
+    sh:message "governed_by must point at a Policy or Control" .
+
+# caused_by: Incident -> Change, Release, Service, Incident
+usep:CausedByFrom a sh:NodeShape ; sh:targetSubjectsOf usep:caused_by ; sh:class usep:Incident ;
+    sh:message "caused_by must start at an Incident" .
+usep:CausedByTo a sh:NodeShape ; sh:targetObjectsOf usep:caused_by ;
+    sh:or ( [sh:class usep:Change] [sh:class usep:Release] [sh:class usep:Service] [sh:class usep:Incident] ) ;
+    sh:message "caused_by points at a type that cannot cause an incident" .
+
+# decided_in: many -> Decision
+usep:DecidedInFrom a sh:NodeShape ; sh:targetSubjectsOf usep:decided_in ;
+    sh:or ( [sh:class usep:Capability] [sh:class usep:Application] [sh:class usep:Service] [sh:class usep:API]
+            [sh:class usep:Change] [sh:class usep:Requirement] [sh:class usep:Policy] ) ;
+    sh:message "decided_in starts at a type that decisions do not cover" .
+usep:DecidedInTo a sh:NodeShape ; sh:targetObjectsOf usep:decided_in ; sh:class usep:Decision ;
+    sh:message "decided_in must point at a Decision" .
+
+# supersedes: same type on both ends
+usep:SupersedesFrom a sh:NodeShape ; sh:targetSubjectsOf usep:supersedes ;
+    sh:or ( [sh:class usep:Decision] [sh:class usep:Policy] [sh:class usep:Requirement] [sh:class usep:Release]
+            [sh:class usep:API] [sh:class usep:Control] ) ;
+    sh:message "supersedes starts at a type that can be replaced" .
+usep:SupersedesTo a sh:NodeShape ; sh:targetObjectsOf usep:supersedes ;
+    sh:or ( [sh:class usep:Decision] [sh:class usep:Policy] [sh:class usep:Requirement] [sh:class usep:Release]
+            [sh:class usep:API] [sh:class usep:Control] ) ;
+    sh:message "supersedes points at a type that can be replaced" .
