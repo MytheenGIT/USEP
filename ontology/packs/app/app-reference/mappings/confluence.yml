@@ -1,6 +1,7 @@
 # Confluence connector mapping. Pilot source (HLD 5.2 Table 8: webhooks plus incremental crawl with content hash).
 # Rules are proposals (P). Most pages become evidence and vector chunks, not entities.
 source_system: confluence
+on_unmapped: evidence
 mappings:
   - source_object: page
     when: {label: [adr, decision]}

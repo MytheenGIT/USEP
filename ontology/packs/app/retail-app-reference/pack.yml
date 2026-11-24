@@ -1,0 +1,17 @@
+# Application pack: reference example for a retail estate. Source: HLD 6 Table 10 ("Checkout service maps to Service").
+# Retail is the first-priority industry (owner decision, 20 Nov 2026). Every system below is a SAMPLE name
+# that shows the shape. A real tenant replaces them after the data owner approves the source scope.
+# The Git, Jira and Confluence mappings are in app.app-reference; pin both packs.
+id: app.retail-app-reference
+level: application
+version: 0.1.0
+status: draft
+signed: false
+signature_ref: null
+owner_role: application-architect
+owner_name: null
+requires_core: ">=0.1.0 <1.0.0"
+additive_only: true
+reference_only: true
+files:
+  systems: systems.yml

@@ -1,31 +1,57 @@
 # Git connector mapping. Pilot source (HLD 5.2 Table 8: manifests, CODEOWNERS, ADRs, symbols).
-# Source field names are generic: the connector spec (services/connectors/git/SPEC.md) fixes the real payload names.
-# The mapping rules are proposals (P), tested with fuzzed payloads (CC-04).
+# source_object values are the record kinds the connector emits (services/connectors/git/SPEC.md,
+# "What is ingested"); field values are attribute names on that record. The mapping rules are
+# proposals (P), tested with fuzzed payloads (CC-04).
+#
+# Roles for a source object that does not become an entity of its own:
+#   carrier    its content builds edges through the edge rules (codeowners, manifest)
+#   unmodelled it is a node today but the core has no concept for it (package, OI-61)
+# on_unmapped says what happens to a kind not listed here: this source's unlisted files can still
+# serve as evidence, so they are not quarantined. A source whose every object matters (Jira) says quarantine.
 source_system: git
+on_unmapped: evidence
 mappings:
   - source_object: repository
     entity: Service
     fields:
-      name: repository.name
-      repository_ref: repository.url
-      source_id: repository.id
+      name: name
+      repository_ref: repository       # owner/name, the connector's repository key
+  - source_object: team
+    entity: Team
+    fields:
+      name: name
+  - source_object: adr
+    entity: Decision
+    fields:
+      name: title
+      status: status                   # checked against core decision_status; an unknown value goes to quarantine
+  - source_object: schema
+    entity: DataAsset
+    fields:
+      name: path
+  - source_object: codeowners
+    entity: null
+    role: carrier
+    note: "Each owner handle becomes a Team record; the owns edge comes from the edge rule codeowners_owns."
+  - source_object: manifest
+    entity: null
+    role: carrier
+    note: "Dependencies become depends_on edges through the edge rule manifest_depends_on."
+  - source_object: package
+    entity: null
+    role: unmodelled
+    note: "A third-party package has no core concept. Open item OI-61."
+  # Source objects the connector does not emit yet. Kept so the mapping is complete when it does.
+  - source_object: pull_request
+    entity: Change
+    fields:
+      name: title
+      change_state: "state (project pack maps this to change_state)"
+      source_id: id
   - source_object: codeowners_entry
     relationship: owns
     from_entity: Team            # resolved from the owner handle by entity resolution
     to_entity: Service
-    fields: {source_id: codeowners.path_and_owner}
-  - source_object: adr_file
-    entity: Decision
-    fields:
-      name: adr.title
-      status: adr.status          # mapped through core decision_status values; unknown value goes to quarantine
-      decided_on: adr.date
-  - source_object: pull_request
-    entity: Change
-    fields:
-      name: pull_request.title
-      change_state: "pull_request.state (project pack maps this to change_state)"
-      source_id: pull_request.id
   - source_object: manifest_dependency
     relationship: depends_on
     from_entity: Service
