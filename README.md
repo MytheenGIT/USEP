@@ -1,4 +1,4 @@
-# USEP: the product repository skeleton
+# Universal Semantic Engineering Platform (USEP): Product Repository Skeleton
 
 Layout from RM 11.1. This is one Git repository. It holds definitions only: code, infrastructure code, ontology, harnesses, policies, evaluation assets and ADRs. Runtime data (the four stores, evidence, events), secrets, keys and run state are never committed; `.gitignore` blocks them. Plans, status and evidence go in `../phases/`; reference goes in `../knowledge/`.
 
