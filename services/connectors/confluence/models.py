@@ -30,5 +30,7 @@ class ConfluenceDocument(SourceDocument):
     content: str = ""
     labels: list[str] = []
     version: ConfluenceVersion
+    # Newest first, as returned by the version endpoint (metadata only, no old bodies).
+    version_history: list[ConfluenceVersion] = []
     ancestors: list[ConfluenceChildRef] = []
     children: list[ConfluenceChildRef] = []

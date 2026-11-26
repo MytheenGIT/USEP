@@ -14,3 +14,11 @@ def create_engine(database_url: str) -> AsyncEngine:
 
 def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(engine, expire_on_commit=False)
+
+
+async def create_tables(engine: AsyncEngine) -> None:
+    """Create this service's own bookkeeping tables if missing (no migrations tool yet)."""
+    import db.models  # noqa: F401  -- registers the models on Base.metadata
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

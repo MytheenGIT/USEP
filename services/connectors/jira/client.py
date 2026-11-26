@@ -1,20 +1,50 @@
-"""Example Jira client implementation (JQL search, pagination, changelog, comments)."""
+"""Jira Cloud client: JQL search, paged comments and changelog, attachment download."""
 
 from __future__ import annotations
 
 import base64
 from typing import Any
 
+import httpx
+
 from common.client_base import BaseAPIClient
 
-DEFAULT_FIELDS = ["summary", "description", "status", "priority", "comment", "attachment"]
+DEFAULT_FIELDS = [
+    "summary",
+    "description",
+    "status",
+    "priority",
+    "issuetype",
+    "project",
+    "labels",
+    "components",
+    "fixVersions",
+    "parent",
+    "security",
+    "resolution",
+    "created",
+    "updated",
+    "comment",
+    "attachment",
+]
 
 
 class JiraClient(BaseAPIClient):
-    def __init__(self, base_url: str, email: str, api_token: str, timeout: float = 30.0) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        email: str,
+        api_token: str,
+        timeout: float = 30.0,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
         token = base64.b64encode(f"{email}:{api_token}".encode()).decode()
         headers = {"Authorization": f"Basic {token}", "Accept": "application/json"}
-        super().__init__(base_url=base_url, headers=headers, timeout=timeout)
+        super().__init__(base_url=base_url, headers=headers, timeout=timeout, transport=transport)
+
+    async def get_myself(self) -> dict[str, Any]:
+        """The API user; its ``timeZone`` is the zone JQL date literals are read in."""
+        return await self.get_json("/rest/api/3/myself")
 
     async def search_issues(
         self,
@@ -56,15 +86,38 @@ class JiraClient(BaseAPIClient):
         return issues
 
     async def get_issue_comments(self, issue_key: str, start_at: int = 0, max_results: int = 100) -> dict[str, Any]:
-        """Explicit comment fetch for issues whose embedded comment page was truncated."""
         return await self.get_json(
             f"/rest/api/3/issue/{issue_key}/comment",
-            params={"startAt": start_at, "maxResults": max_results},
+            params={"startAt": start_at, "maxResults": max_results, "orderBy": "created"},
         )
 
     async def get_issue_changelog(self, issue_key: str, start_at: int = 0, max_results: int = 100) -> dict[str, Any]:
-        """Explicit changelog fetch for issues whose embedded changelog page was truncated."""
         return await self.get_json(
             f"/rest/api/3/issue/{issue_key}/changelog",
             params={"startAt": start_at, "maxResults": max_results},
         )
+
+    async def get_all_comments(self, issue_key: str, page_size: int = 100) -> list[dict[str, Any]]:
+        comments: list[dict[str, Any]] = []
+        start = 0
+        while True:
+            page = await self.get_issue_comments(issue_key, start_at=start, max_results=page_size)
+            batch = page.get("comments", [])
+            comments.extend(batch)
+            start += len(batch)
+            if not batch or start >= page.get("total", 0):
+                return comments
+
+    async def get_all_changelog(self, issue_key: str, page_size: int = 100) -> list[dict[str, Any]]:
+        histories: list[dict[str, Any]] = []
+        start = 0
+        while True:
+            page = await self.get_issue_changelog(issue_key, start_at=start, max_results=page_size)
+            batch = page.get("values", [])
+            histories.extend(batch)
+            start += len(batch)
+            if not batch or page.get("isLast", start >= page.get("total", 0)):
+                return histories
+
+    async def download_attachment(self, content_url: str, max_bytes: int) -> bytes:
+        return await self.get_bytes(content_url, max_bytes)

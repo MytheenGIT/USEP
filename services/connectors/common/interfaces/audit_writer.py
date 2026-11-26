@@ -25,11 +25,30 @@ class AuditEvent(BaseModel):
 
 
 class AuditWriter(Protocol):
-    async def record(self, event: AuditEvent) -> None: ...
+    async def record(self, event: AuditEvent) -> None:
+        """Record one audit event.
+
+        Must not raise because of the event's content: ``details`` accepts any
+        value, so implementations have to cope with values that are not plain
+        JSON (an exception object, for example). A durable implementation may
+        raise when the event cannot be persisted; the caller then decides
+        whether that fails the step it was auditing.
+        """
+        ...
 
 
 class StructlogAuditWriter:
-    """Default that only logs via structlog. Not a durable audit trail."""
+    """Default that only logs via structlog. Not a durable audit trail. Never raises."""
 
     async def record(self, event: AuditEvent) -> None:
-        logger.info("audit_event", **event.model_dump(mode="json"))
+        try:
+            payload = event.model_dump(mode="json")
+        except Exception:
+            # ``details`` held something that is not JSON-serializable; log its repr instead.
+            payload = event.model_dump(mode="python", exclude={"details"})
+            payload["at"] = event.at.isoformat()
+            payload["details"] = {str(k): repr(v) for k, v in event.details.items()}
+        try:
+            logger.info("audit_event", **payload)
+        except Exception as exc:
+            logger.warning("audit_event.log_failed", source=event.source, action=event.action, error=repr(exc))

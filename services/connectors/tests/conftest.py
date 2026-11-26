@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from common.connector_base import ObjectError, ScopeFetch
 from common.interfaces.audit_writer import AuditEvent, AuditWriter
 from common.interfaces.cursor_manager import InMemoryCursorManager
 from common.interfaces.raw_payload_writer import NullRawPayloadWriter
@@ -13,15 +14,30 @@ from common.source_document import SourceDocument, SourceType
 class FakeConnector:
     """Deterministic stand-in for a real connector; used to unit test SyncService."""
 
-    def __init__(self, source: SourceType, documents: list[SourceDocument], raises: bool = False) -> None:
+    def __init__(
+        self,
+        source: SourceType,
+        documents: list[SourceDocument],
+        raises: bool = False,
+        scopes: list[str] | None = None,
+        errors: list[ObjectError] | None = None,
+    ) -> None:
         self.source = source
         self._documents = documents
         self._raises = raises
+        self._scopes = scopes or ["default"]
+        self._errors = errors or []
+        self.calls: list[tuple[str, str | None]] = []
 
-    async def fetch(self, cursor: str | None):
+    @property
+    def scopes(self) -> list[str]:
+        return self._scopes
+
+    async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
+        self.calls.append((scope, cursor))
         if self._raises:
             raise RuntimeError("boom")
-        return self._documents, "cursor-2"
+        return ScopeFetch(documents=self._documents, errors=self._errors)
 
 
 class RecordingAuditWriter(AuditWriter):
@@ -32,8 +48,11 @@ class RecordingAuditWriter(AuditWriter):
         self.events.append(event)
 
 
-def make_source_document(source: SourceType = SourceType.JIRA, source_object_id: str = "ABC-1") -> SourceDocument:
+def make_source_document(
+    source: SourceType = SourceType.JIRA, source_object_id: str = "ABC-1", source_version: str | None = "2026-01-01T00:00:00.000Z"
+) -> SourceDocument:
     return SourceDocument(
+        source_version=source_version,
         source=source,
         source_type="issue",
         source_object_id=source_object_id,

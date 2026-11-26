@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
+from common.connector_base import ObjectError
 from common.source_document import SourceDocument, SourceType
 
 
@@ -15,14 +16,17 @@ class SyncStatus(StrEnum):
 
 
 class SyncResult(BaseModel):
-    """Internal result of syncing a single source, used by SyncService/Scheduler."""
+    """Internal result of syncing one source (one or more of its scopes)."""
 
+    run_id: str = ""
     source: SourceType
     status: SyncStatus
     started_at: datetime
     finished_at: datetime
     documents: list[SourceDocument] = []
-    cursor: str | None = None
+    cursors: dict[str, str | None] = {}
+    skipped_scopes: list[str] = []
+    object_errors: list[ObjectError] = []
     errors: list[str] = []
 
     @property
@@ -39,24 +43,30 @@ class SyncResponse(BaseModel):
     shape on the response path.
     """
 
+    run_id: str = ""
     source: SourceType
     status: SyncStatus
     started_at: datetime
     finished_at: datetime
     documents_count: int
-    cursor: str | None = None
+    cursors: dict[str, str | None] = {}
+    skipped_scopes: list[str] = []
+    object_errors: list[ObjectError] = []
     errors: list[str] = []
     documents: list[dict] = []
 
     @classmethod
     def from_result(cls, result: SyncResult, include_documents: bool = True) -> "SyncResponse":
         return cls(
+            run_id=result.run_id,
             source=result.source,
             status=result.status,
             started_at=result.started_at,
             finished_at=result.finished_at,
             documents_count=result.documents_count,
-            cursor=result.cursor,
+            cursors=result.cursors,
+            skipped_scopes=result.skipped_scopes,
+            object_errors=result.object_errors,
             errors=result.errors,
             documents=[doc.model_dump(mode="json") for doc in result.documents] if include_documents else [],
         )

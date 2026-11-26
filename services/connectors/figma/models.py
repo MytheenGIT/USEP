@@ -12,15 +12,20 @@ class FigmaTextLayer(BaseModel):
 
 
 class FigmaFrameExportRef(BaseModel):
-    """A reference to a renderable export. URL only -- never the binary."""
+    """A rendered export of a frame: Figma's temporary URL, plus the stored copy when downloaded."""
 
     format: str
     url: str | None = None
+    stored_ref: str | None = None
+    content_hash: str | None = None
+    skipped_reason: str | None = None
 
 
 class FigmaFrame(BaseModel):
     node_id: str
     name: str
+    page_id: str = ""
+    page_name: str = ""
     text_layers: list[FigmaTextLayer] = []
     export_refs: list[FigmaFrameExportRef] = []
 
@@ -44,6 +49,8 @@ class FigmaDocument(SourceDocument):
     file_name: str
     version: str | None = None
     last_modified: str | None = None
+    # Node ids the scope was limited to (empty means the whole file).
+    selected_node_ids: list[str] = []
     pages: list[FigmaPage] = []
     frames: list[FigmaFrame] = []
     text_layers: list[FigmaTextLayer] = []

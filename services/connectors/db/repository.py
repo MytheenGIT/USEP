@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -20,7 +22,8 @@ class SyncRunRepository:
                     started_at=result.started_at,
                     finished_at=result.finished_at,
                     documents_count=result.documents_count,
-                    cursor=result.cursor,
+                    run_id=result.run_id or None,
+                    cursor=json.dumps(result.cursors, sort_keys=True),
                     errors=result.errors,
                 )
             )

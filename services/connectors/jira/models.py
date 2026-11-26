@@ -28,7 +28,7 @@ class JiraChangelogEntry(BaseModel):
 
 
 class JiraAttachmentMeta(BaseModel):
-    """Metadata + link only. Binaries are never downloaded (out of scope)."""
+    """Attachment metadata plus, when downloaded, where the binary was stored."""
 
     attachment_id: str
     filename: str
@@ -36,16 +36,33 @@ class JiraAttachmentMeta(BaseModel):
     size_bytes: int | None = None
     url: str
     created_at: datetime | None = None
+    stored_ref: str | None = None
+    content_hash: str | None = None
+    # Why the binary was not stored: "Q-SIZE" (over the limit), "disabled", or "download_failed".
+    skipped_reason: str | None = None
 
 
 class JiraDocument(SourceDocument):
-    """Normalized Jira issue. Comments and changelog stay separate fields."""
+    """Normalized Jira issue. Comments and changelog stay separate fields.
+
+    ``description`` and comment bodies are Markdown converted from ADF, so
+    headings and acceptance-criteria blocks survive for the chunker.
+    """
 
     issue_key: str
     summary: str
     description: str | None = None
     status: str
     priority: str | None = None
+    issue_type: str | None = None
+    project_key: str | None = None
+    labels: list[str] = []
+    components: list[str] = []
+    fix_versions: list[str] = []
+    parent_key: str | None = None
+    resolution: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     comments: list[JiraComment] = []
     changelog: list[JiraChangelogEntry] = []
     attachments: list[JiraAttachmentMeta] = []

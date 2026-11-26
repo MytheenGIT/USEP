@@ -20,7 +20,7 @@ async def test_json_sink_writes_result_to_source_folder(tmp_path) -> None:
         started_at=now,
         finished_at=now,
         documents=[make_source_document()],
-        cursor="2026-01-01",
+        cursors={"default": "2026-01-01T00:00:00.000Z"},
     )
 
     path = JsonFileSink(str(tmp_path)).write(result)

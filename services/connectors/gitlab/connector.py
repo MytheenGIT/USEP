@@ -1,27 +1,57 @@
-"""Example GitLab connector: merge requests + commits + notes + approvals + diffs."""
+"""GitLab connector: one scope per configured repository.
+
+A scope can be a numeric project id, a ``group/project`` path or a
+repository URL. Every list (MRs, commits, notes, diffs) is paged to the
+end, so large MRs are not silently truncated. The MR's sub-resource
+responses are kept in ``raw_payload`` next to the MR itself, so the raw
+landing holds everything needed to re-normalize later.
+"""
 
 from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import urlparse
 
+from common.connector_base import ObjectError, ScopeFetch
+from common.source_document import SourceType
+from common.timeutil import to_utc_iso
 from gitlab.client import GitLabClient
 from gitlab.models import GitLabApproval, GitLabCommit, GitLabDiff, GitLabDocument, GitLabNote
-from common.source_document import SourceType
+
+
+def project_ref_from_scope(scope: str) -> str:
+    """Numeric id or ``group/sub/project`` path from an id, path or repository URL."""
+    value = scope.strip()
+    if value.isdigit():
+        return value
+    if "://" in value:
+        value = urlparse(value).path
+    value = value.strip("/")
+    value = value.split("/-/", 1)[0]
+    if value.endswith(".git"):
+        value = value[:-4]
+    return value
 
 
 class GitLabConnector:
     source = SourceType.GITLAB
 
-    def __init__(self, client: GitLabClient, project_ids: list[str], page_size: int = 50) -> None:
+    def __init__(self, client: GitLabClient, project_ids: list[str], page_size: int = 100, mr_concurrency: int = 4) -> None:
         self._client = client
-        self._project_ids = project_ids
+        self._scopes = [p for p in project_ids if str(p).strip()]
         self._page_size = page_size
+        self._mr_concurrency = max(1, mr_concurrency)
+
+    @property
+    def scopes(self) -> list[str]:
+        return list(self._scopes)
 
     def _normalize_mr(
         self,
-        project_id: str,
+        scope: str,
+        project: dict[str, Any],
         mr: dict[str, Any],
         raw_commits: list[dict[str, Any]],
         raw_notes: list[dict[str, Any]],
@@ -69,6 +99,8 @@ class GitLabConnector:
             )
             for d in raw_diffs
         ]
+        project_id = str(project["id"])
+        version = to_utc_iso(mr.get("updated_at"))
 
         return GitLabDocument(
             source=self.source,
@@ -76,40 +108,63 @@ class GitLabConnector:
             source_object_id=f"{project_id}!{mr['iid']}",
             source_url=mr.get("web_url", ""),
             retrieved_at=datetime.now(UTC),
-            raw_payload=mr,
+            raw_payload={
+                "merge_request": mr,
+                "commits": raw_commits,
+                "notes": raw_notes,
+                "approvals": raw_approvals,
+                "diffs": raw_diffs,
+            },
+            scope=scope,
+            source_version=version,
+            acl={"project_id": project_id, "project_path": project.get("path_with_namespace"), "visibility": project.get("visibility")},
             title=mr.get("title", ""),
             content=mr.get("description") or "",
-            metadata={"updated_at": mr.get("updated_at"), "state": mr.get("state")},
-            project_id=str(project_id),
+            metadata={"updated_at": version, "state": mr.get("state"), "project_path": project.get("path_with_namespace")},
+            project_id=project_id,
+            project_path=project.get("path_with_namespace"),
             mr_iid=str(mr["iid"]),
             description=mr.get("description"),
             state=mr.get("state", ""),
+            source_branch=mr.get("source_branch"),
+            target_branch=mr.get("target_branch"),
+            merged_at=mr.get("merged_at"),
             commits=commits,
             discussions=discussions,
             approvals=approvals,
             diffs=diffs,
         )
 
-    async def _fetch_project(self, project_id: str, cursor: str | None) -> list[GitLabDocument]:
-        merge_requests = await self._client.list_merge_requests(
-            project_id, updated_after=cursor, per_page=self._page_size
+    async def _fetch_mr(self, scope: str, project: dict[str, Any], mr: dict[str, Any]) -> GitLabDocument:
+        pid, iid = str(project["id"]), mr["iid"]
+        commits, notes, approvals, diffs = await asyncio.gather(
+            self._client.list_mr_commits(pid, iid),
+            self._client.list_mr_notes(pid, iid),
+            self._client.list_mr_approvals(pid, iid),
+            self._client.get_mr_diffs(pid, iid),
         )
-        documents: list[GitLabDocument] = []
-        for mr in merge_requests:
-            iid = mr["iid"]
-            commits, notes, approvals, diffs = await asyncio.gather(
-                self._client.list_mr_commits(project_id, iid),
-                self._client.list_mr_notes(project_id, iid),
-                self._client.list_mr_approvals(project_id, iid),
-                self._client.get_mr_diffs(project_id, iid),
-            )
-            documents.append(self._normalize_mr(project_id, mr, commits, notes, approvals, diffs))
-        return documents
+        return self._normalize_mr(scope, project, mr, commits, notes, approvals, diffs)
 
-    async def fetch(self, cursor: str | None) -> tuple[list[GitLabDocument], str | None]:
-        per_project = await asyncio.gather(*(self._fetch_project(pid, cursor) for pid in self._project_ids))
-        documents = [doc for docs in per_project for doc in docs]
+    async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
+        project = await self._client.get_project(project_ref_from_scope(scope))
+        merge_requests = await self._client.list_merge_requests(str(project["id"]), updated_after=cursor, per_page=self._page_size)
 
-        updated_values = [d.metadata.get("updated_at") for d in documents if d.metadata.get("updated_at")]
-        new_cursor = max(updated_values) if updated_values else cursor
-        return documents, new_cursor
+        semaphore = asyncio.Semaphore(self._mr_concurrency)
+
+        async def one(mr: dict[str, Any]) -> GitLabDocument | ObjectError:
+            async with semaphore:
+                try:
+                    return await self._fetch_mr(scope, project, mr)
+                except Exception as exc:  # noqa: BLE001 -- one bad MR must not fail the scope
+                    return ObjectError(
+                        scope=scope,
+                        object_id=f"{project['id']}!{mr.get('iid')}",
+                        source_version=to_utc_iso(mr.get("updated_at")),
+                        error=str(exc),
+                    )
+
+        results = await asyncio.gather(*(one(mr) for mr in merge_requests))
+        return ScopeFetch(
+            documents=[r for r in results if isinstance(r, GitLabDocument)],
+            errors=[r for r in results if isinstance(r, ObjectError)],
+        )

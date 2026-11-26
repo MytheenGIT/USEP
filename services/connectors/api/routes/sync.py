@@ -11,9 +11,11 @@ from sync_service import SyncService
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 
-async def _run_source(source: str, sync_service: SyncService, include_documents: bool) -> SyncResponse:
+async def _run_source(
+    source: str, sync_service: SyncService, include_documents: bool, scope: list[str] | None = None
+) -> SyncResponse:
     try:
-        result = await sync_service.sync_source(source)
+        result = await sync_service.sync_source(source, scopes=scope or None)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return SyncResponse.from_result(result, include_documents=include_documents)
@@ -22,33 +24,45 @@ async def _run_source(source: str, sync_service: SyncService, include_documents:
 @router.post("/jira", response_model=SyncResponse)
 async def sync_jira(
     include_documents: bool = Query(True),
+    scope: list[str] | None = Query(None, description="Limit the run to these configured scopes."),
     sync_service: SyncService = Depends(get_sync_service),
 ) -> SyncResponse:
-    return await _run_source("jira", sync_service, include_documents)
+    return await _run_source("jira", sync_service, include_documents, scope)
 
 
 @router.post("/gitlab", response_model=SyncResponse)
 async def sync_gitlab(
     include_documents: bool = Query(True),
+    scope: list[str] | None = Query(None, description="Limit the run to these configured scopes."),
     sync_service: SyncService = Depends(get_sync_service),
 ) -> SyncResponse:
-    return await _run_source("gitlab", sync_service, include_documents)
+    return await _run_source("gitlab", sync_service, include_documents, scope)
 
 
 @router.post("/confluence", response_model=SyncResponse)
 async def sync_confluence(
     include_documents: bool = Query(True),
+    scope: list[str] | None = Query(None, description="Limit the run to these configured scopes."),
     sync_service: SyncService = Depends(get_sync_service),
 ) -> SyncResponse:
-    return await _run_source("confluence", sync_service, include_documents)
+    return await _run_source("confluence", sync_service, include_documents, scope)
 
 
 @router.post("/figma", response_model=SyncResponse)
 async def sync_figma(
     include_documents: bool = Query(True),
+    scope: list[str] | None = Query(None, description="Limit the run to these configured scopes."),
     sync_service: SyncService = Depends(get_sync_service),
 ) -> SyncResponse:
-    return await _run_source("figma", sync_service, include_documents)
+    return await _run_source("figma", sync_service, include_documents, scope)
+
+
+@router.get("/{source}/scopes", response_model=list[str])
+async def list_scopes(source: str, sync_service: SyncService = Depends(get_sync_service)) -> list[str]:
+    try:
+        return sync_service.scopes(source)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/all", response_model=list[SyncResponse])

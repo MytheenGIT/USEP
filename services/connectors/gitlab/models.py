@@ -47,9 +47,13 @@ class GitLabDocument(SourceDocument):
     """Normalized GitLab merge request. Commits/discussions/diffs stay separate."""
 
     project_id: str
+    project_path: str | None = None
     mr_iid: str
     description: str | None = None
     state: str
+    source_branch: str | None = None
+    target_branch: str | None = None
+    merged_at: datetime | None = None
     commits: list[GitLabCommit] = []
     discussions: list[GitLabNote] = []
     approvals: list[GitLabApproval] = []

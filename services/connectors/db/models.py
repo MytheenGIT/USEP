@@ -22,10 +22,12 @@ class SyncRunRecord(Base):
     __tablename__ = "ingestion_sync_runs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     source: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     documents_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # JSON object of scope -> cursor after the run.
     cursor: Mapped[str | None] = mapped_column(Text, nullable=True)
     errors: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
