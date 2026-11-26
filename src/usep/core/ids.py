@@ -1,4 +1,13 @@
-"""IDs and timestamps. UUID v7, UTC ISO 8601 with milliseconds (repo conventions)."""
+"""UUID v7 generation (ground rule, section 1: every generated ID is UUID v7).
+
+Uses the `uuid6` package rather than the stdlib (Python's `uuid` module gains
+`uuid7()` only in 3.14+; this project targets 3.12, and the ground rules name
+`uuid6` explicitly).
+
+The pipeline and the event bus use `uuid7()` below (monotonic inside one process, so S3 listing order is creation order),
+plus `utc_now_iso()` and `to_iso()`. `new_id()` is the ingestion package's generator.
+"""
+
 from __future__ import annotations
 
 import os
@@ -6,6 +15,14 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
+
+from uuid6 import uuid7 as _uuid6_v7
+
+
+def new_id() -> uuid.UUID:
+    """A fresh, time-ordered UUID v7. Use this for every generated ID in the system."""
+    return _uuid6_v7()
+
 
 _lock = threading.Lock()
 _last_ms = 0
