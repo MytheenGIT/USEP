@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from uuid import uuid4
 
 import pytest
@@ -11,7 +12,9 @@ from tests.fakes.object_store import InMemoryObjectStore
 from tests.fakes.quarantine import InMemoryQuarantine
 from tests.fakes.raw_index import InMemoryRawIndex
 
-from usep.ingestion.raw.writer import EnvelopeError, RawPayloadWriter
+from usep.core.ids import new_id
+from usep.ingestion.domain.raw_object import RawObjectRef, canonicalize, content_hash, object_key
+from usep.ingestion.raw.writer import EnvelopeError, RawPayloadWriter, _extract_envelope
 
 TENANT = uuid4()
 RUN = uuid4()
@@ -141,3 +144,117 @@ async def test_pii_payload_quarantined_before_any_write() -> None:
     assert quarantine.entries[0].record.detector_counts == {"Q-PII": 1}
     assert "4111" not in repr(audit.entries)
     assert "4111" not in repr(quarantine.entries)
+
+
+@pytest.mark.asyncio
+async def test_distinct_objects_get_distinct_event_ids() -> None:
+    writer, _, _, event_bus, *_ = _writer()
+    payload1 = {"summary": "v1", **_envelope()}
+    payload2 = {"summary": "v2", **_envelope()}
+
+    await writer.write("jira", "PROJ-1", payload1)
+    await writer.write("jira", "PROJ-2", payload2)
+    assert len(event_bus.published) == 2
+    assert event_bus.published[0].event_id != event_bus.published[1].event_id
+
+
+@pytest.mark.asyncio
+async def test_retry_reuses_event_id_and_publishes_once() -> None:
+    writer, raw_index, _, event_bus, *_ = _writer()
+    payload = {"summary": "v1", **_envelope()}
+
+    event_bus.fail_next = True
+    await writer.write("jira", "PROJ-1", payload)
+    first_event_id = raw_index.all_refs()[0].event_id
+
+    event_bus.fail_next = False
+    await writer.write("jira", "PROJ-1", payload)
+    assert len(event_bus.published) == 1
+    assert event_bus.published[0].event_id == first_event_id
+
+
+@pytest.mark.asyncio
+async def test_event_id_is_uuid_v7() -> None:
+    writer, raw_index, *_ = _writer()
+    await writer.write("jira", "PROJ-1", {"summary": "v1", **_envelope()})
+    event_id = raw_index.all_refs()[0].event_id
+    assert event_id.version == 7
+
+
+class _RaceSimulatingRawIndex(InMemoryRawIndex):
+    """Test double: simulates a race where concurrent writer inserts between find() and insert_if_absent().
+    - find() returns None on first call (simulating no row yet).
+    - insert_if_absent() finds and returns the pre-existing row (another writer inserted in the meantime).
+    This forces the writer to use the pre-existing row's event_id, not its own newly-created one."""
+
+    def __init__(self):
+        super().__init__()
+        self._find_called = False
+
+    async def find(
+        self, tenant_id, source: str, object_type: str, object_id: str, content_hash: str
+    ) -> RawObjectRef | None:
+        if not self._find_called:
+            self._find_called = True
+            return None  # First call: simulates no row yet (race condition)
+        return await super().find(tenant_id, source, object_type, object_id, content_hash)
+
+    async def insert_if_absent(self, ref: RawObjectRef) -> RawObjectRef:
+        key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
+        if key in self._rows:
+            return self._rows[key]  # Return the pre-existing row (with its event_id), not the input ref
+        self._rows[key] = ref
+        return ref
+
+
+@pytest.mark.asyncio
+async def test_race_publishes_the_stored_event_id() -> None:
+    """Race: concurrent insert after find() returns None; writer uses pre-inserted event_id."""
+    # Create writer with race-simulating index.
+    race_index = _RaceSimulatingRawIndex()
+    writer = RawPayloadWriter(
+        race_index,
+        InMemoryObjectStore(),
+        InMemoryKeyEncryption(),
+        InMemoryEventBus(),
+        InMemoryQuarantine(),
+        InMemoryAudit(),
+        FakeClock(),
+        TENANT,
+        RUN,
+    )
+    payload = {"summary": "v1", **_envelope()}
+
+    # Pre-insert a row with a known event_id (simulating another writer's insert).
+    stripped, object_type, scope_id, _ = _extract_envelope(payload)
+    canonical = canonicalize(stripped)
+    digest = content_hash(canonical)
+    key = object_key(TENANT, "jira", scope_id, object_type, "PROJ-1", digest)
+    preinserted_event_id = new_id()
+    preseed = RawObjectRef(
+        tenant_id=TENANT,
+        source="jira",
+        object_type=object_type,
+        object_id="PROJ-1",
+        content_hash=digest,
+        scope_id=scope_id,
+        object_key=key,
+        byte_size=len(canonical),
+        run_id=RUN,
+        imported_at=dt.datetime.now(dt.UTC),
+        published_at=None,
+        wrapped_dek=b"wrapped",
+        kek_id="kek-1",
+        event_id=preinserted_event_id,
+    )
+    race_index._rows[(TENANT, "jira", object_type, "PROJ-1", digest)] = preseed
+
+    # Write: find() returns None (race), then insert_if_absent() returns the pre-inserted ref.
+    result = await writer.write("jira", "PROJ-1", payload)
+    assert result.startswith("raw/")
+    assert len(race_index.all_refs()) == 1
+    # The published event must use the pre-inserted event_id, not a new one.
+    # If the fix is broken, published[0].event_id will be a different UUID than preinserted_event_id.
+    assert writer._event_bus.published[0].event_id == preinserted_event_id, \
+        f"Expected {preinserted_event_id}, got {writer._event_bus.published[0].event_id}"
+

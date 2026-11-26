@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from usep.core.clock import Clock
+from usep.core.ids import new_id
 from usep.ingestion.domain.events import QuarantineRecord, RawObjectPublished
 from usep.ingestion.domain.raw_object import RawObjectRef, canonicalize, content_hash, object_key
 from usep.ingestion.domain.sensitive import DetectionResult
@@ -33,17 +34,6 @@ from usep.ingestion.sensitive.detector import detect as _default_detect
 SCHEMA_VERSION = "1.0"
 _ENVELOPE_KEY = "_usep"
 _ENVELOPE_REQUIRED_FIELDS = ("object_type", "scope_id", "checkpoint")
-
-_EVENT_ID_NAMESPACE = uuid.UUID("3f4b8e2a-7d1c-4e9a-9c2b-5a6d8f1e0b3c")
-
-
-def _derive_event_id(
-    tenant_id: uuid.UUID, source: str, object_type: str, object_id: str, digest: str
-) -> uuid.UUID:
-    """Deterministic from the object's natural key, so a retried publish after an
-    ack was lost reuses the same `event_id` rather than minting a new one."""
-    return uuid.uuid5(_EVENT_ID_NAMESPACE, f"{tenant_id}:{source}:{object_type}:{object_id}:{digest}")
-
 
 class EnvelopeError(ValueError):
     """Raised when `raw_payload["_usep"]` is missing or incomplete."""
@@ -232,7 +222,7 @@ class RawPayloadWriter:
             encrypted = encrypt(canonical, data_key, aad=aad)
             wrapped_dek, kek_id = await self._key_store.wrap(tenant_id, data_key)
 
-            # Step 6: put the ciphertext, insert the index row.
+            # Step 6: put the ciphertext, mint event_id, insert the index row.
             await self._object_store.put(key, pack(encrypted))
             ref = RawObjectRef(
                 tenant_id=tenant_id,
@@ -248,13 +238,15 @@ class RawPayloadWriter:
                 published_at=None,
                 wrapped_dek=wrapped_dek,
                 kek_id=kek_id,
+                event_id=new_id(),
             )
-            await self._raw_index.insert_if_absent(ref)
+            ref = await self._raw_index.insert_if_absent(ref)
 
-        # Step 7: publish the reference-only event. event_id is deterministic, so a
-        # retried publish after a lost ack reuses the same idempotency key.
+        # Step 7: publish the reference-only event. event_id is fixed per object
+        # (UUID v7, minted when first inserted), so a retried publish after a lost
+        # ack reuses the same idempotency key.
         event = RawObjectPublished(
-            event_id=_derive_event_id(tenant_id, source, object_type, object_id, digest),
+            event_id=ref.event_id,
             schema_version=SCHEMA_VERSION,
             tenant_id=tenant_id,
             source=source,

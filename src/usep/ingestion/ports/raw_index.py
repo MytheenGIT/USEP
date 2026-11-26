@@ -16,9 +16,10 @@ class RawIndexPort(Protocol):
         self, tenant_id: UUID, source: str, object_type: str, object_id: str, content_hash: str
     ) -> RawObjectRef | None: ...
 
-    async def insert_if_absent(self, ref: RawObjectRef) -> bool:
-        """`INSERT ... ON CONFLICT DO NOTHING`. Returns `True` if a row was
-        actually inserted, `False` if one already existed at that key."""
+    async def insert_if_absent(self, ref: RawObjectRef) -> RawObjectRef:
+        """Insert or fetch the row at this key. Returns the stored row: the input
+        ref if inserted, the pre-existing row if one already existed. Used to resolve
+        races: concurrent writes to the same object share the first writer's event_id."""
         ...
 
     async def mark_published(self, ref: RawObjectRef) -> None:

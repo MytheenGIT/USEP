@@ -52,5 +52,6 @@ class RawObjectRef:
     published_at: datetime | None
     wrapped_dek: bytes | None
     kek_id: str
+    event_id: UUID
     tombstoned_at: datetime | None = None
     first_seen_extra_at: datetime | None = None

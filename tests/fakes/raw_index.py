@@ -21,12 +21,12 @@ class InMemoryRawIndex:
     ) -> RawObjectRef | None:
         return self._rows.get(self._key(tenant_id, source, object_type, object_id, content_hash))
 
-    async def insert_if_absent(self, ref: RawObjectRef) -> bool:
+    async def insert_if_absent(self, ref: RawObjectRef) -> RawObjectRef:
         key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
         if key in self._rows:
-            return False
+            return self._rows[key]
         self._rows[key] = ref
-        return True
+        return ref
 
     async def mark_published(self, ref: RawObjectRef) -> None:
         key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
