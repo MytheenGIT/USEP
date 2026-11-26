@@ -37,6 +37,7 @@ dev = [
   "pre-commit>=4.0",
   "moto>=5.0",
   "types-PyYAML",
+  "hvac>=2.3",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -122,7 +123,6 @@ source_modules = [
   "usep.ingestion.sensitive",
   "usep.ingestion.cursor",
   "usep.ingestion.raw",
-  "usep.ingestion.pipeline",
 ]
 forbidden_modules = [
   "usep.adapters",

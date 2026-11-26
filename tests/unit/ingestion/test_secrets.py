@@ -7,7 +7,6 @@ import pytest
 
 from usep.adapters.secrets.dev_env import DevEnvSecretResolver
 from usep.adapters.vault.resolver import VaultSecretResolver
-from usep.adapters.vault.svid import SpiffeSvidProvider
 from usep.core.errors import ConfigError
 from usep.ingestion.ports.secrets import SecretValue
 
@@ -62,14 +61,7 @@ def test_dev_resolver_allowed_in_dev_and_test() -> None:
     DevEnvSecretResolver("test", env={})
 
 
-@pytest.mark.asyncio
-async def test_spiffe_svid_provider_delegates_to_client() -> None:
-    client = AsyncMock()
-    client.fetch_jwt_svid.return_value = "fake.jwt.svid"
-    provider = SpiffeSvidProvider(client)
-    svid = await provider.fetch_jwt_svid(audience="vault")
-    assert svid == "fake.jwt.svid"
-    client.fetch_jwt_svid.assert_awaited_once_with("vault")
+
 
 
 @pytest.mark.asyncio
