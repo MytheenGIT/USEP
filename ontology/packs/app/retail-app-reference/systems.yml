@@ -1,0 +1,12 @@
+# Sample retail systems mapped to core types (HLD 6 Table 10). All names are invented for illustration.
+# regulatory_scope on a system is a proposal [P] (OI-63): the sources say industry packs supply the scope
+# values (HLD 6 Table 9) but do not say who assigns a scope to a named system. Values must exist in a
+# pinned industry pack's vocabulary, so this pack needs industry.retail-reference pinned.
+systems:
+  - {system_id: checkout-service,   core_type: Service,     source_systems: [git, jira, confluence], status: sample, note: "Basket and order submit"}
+  - {system_id: catalog-service,    core_type: Service,     source_systems: [git, jira, confluence], status: sample, note: "Product ranges and attributes"}
+  - {system_id: pricing-service,    core_type: Service,     source_systems: [git, jira, confluence], status: sample, note: "Prices and promotions"}
+  - {system_id: loyalty-service,    core_type: Service,     source_systems: [git, jira, confluence], status: sample, note: "Points and tiers", regulatory_scope: [gdpr_retail]}
+  - {system_id: supplier-portal,    core_type: Application, source_systems: [git, jira, confluence], status: sample, note: "Supplier trading terms"}
+  - {system_id: customer-profile-db, core_type: DataAsset,  source_systems: [git],                    status: sample, note: "Customer personal data, metadata only", regulatory_scope: [gdpr_retail]}
+  - {system_id: payment-tokens-db,  core_type: DataAsset,   source_systems: [git],                    status: sample, note: "Card tokens, metadata only", regulatory_scope: [pci_dss]}

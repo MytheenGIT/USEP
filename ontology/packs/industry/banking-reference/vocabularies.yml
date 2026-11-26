@@ -1,5 +1,7 @@
 # Adds values to core vocabularies. Never removes or renumbers a core value.
-extends:
-  regulatory_scope:
-    add: [pci_dss]
+# The term pci_dss is added by industry/retail-reference, the first-priority industry pack (OI-62).
+# Two packs at one level may not add the same term (CC-16), so the banking reference does not repeat it.
+# The banking policy below still reads regulatory_scope for pci_dss: a tenant that pins banking pins
+# retail's term too, or the term moves into the core later.
+extends: {}
 terms: []

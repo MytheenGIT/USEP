@@ -1,11 +1,14 @@
 # Jira connector mapping. Pilot source (HLD 5.2 Table 8: webhooks plus incremental query by updated time).
 # Rules are proposals (P). The mapping from Jira workflow state to change_state is in the project pack.
 source_system: jira
+on_unmapped: quarantine     # every issue type matters here; see unmapped_policy below
+# A value marked "(project pack maps this)" is translated by the project pack's workflow, so the gate
+# does not check it against the core vocabulary.
 mappings:
   - source_object: issue
     when: {issue_type: [epic, story]}
     entity: Requirement
-    fields: {name: issue.summary, status: issue.status, source_id: issue.key}
+    fields: {name: issue.summary, status: "issue.status (project pack maps this)", source_id: issue.key}
   - source_object: issue
     when: {issue_type: [task, bug, change]}
     entity: Change
@@ -13,7 +16,7 @@ mappings:
   - source_object: issue
     when: {issue_type: [incident]}
     entity: Incident
-    fields: {name: issue.summary, severity: issue.priority, status: issue.status, source_id: issue.key}
+    fields: {name: issue.summary, severity: "issue.priority (project pack maps this)", status: "issue.status (project pack maps this)", source_id: issue.key}
   - source_object: issue_link
     when: {link_type: [implements]}
     relationship: implements
