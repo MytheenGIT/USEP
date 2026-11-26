@@ -42,7 +42,7 @@ CREATE TABLE source_configuration (
     jira_url text NOT NULL CHECK (jira_url ~ '^https://' AND length(jira_url) <= 2048),
     confluence_url text NOT NULL CHECK (confluence_url ~ '^https://' AND length(confluence_url) <= 2048),
     figma_url text NOT NULL CHECK (figma_url ~ '^https://' AND length(figma_url) <= 2048),
-    ad_url text NOT NULL CHECK (ad_url ~ '^(https|ldaps)://' AND length(ad_url) <= 2048),
+    ad_url text CHECK (ad_url ~ '^(https|ldaps)://' AND length(ad_url) <= 2048),
     status          text        NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted','processing','ready','failed')),
     status_detail   text,
     created_by      text        NOT NULL,

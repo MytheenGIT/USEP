@@ -1,7 +1,7 @@
 # USEP Console (UI)
 
 React + TypeScript + Vite, with Cytoscape.js (MIT) for the graph. Flow: admin signs in, creates a configuration
-(name and Git, Jira, Confluence, Figma and Active Directory URLs, all required), submits it for processing, selects it, and views its knowledge graph.
+(name and Git, Jira, Confluence, Figma URLs required; Active Directory URL optional), submits it for processing, selects it, and views its knowledge graph.
 
 ```bash
 cd ui && npm install
@@ -19,7 +19,7 @@ npm test && npm run build
 | `POST /api/auth/login` | `{username, password}` | `{token, username}`; 401 on failure |
 | `POST /api/auth/logout` | | 204 |
 | `GET /api/configurations` | | `Configuration[]` for the caller's tenant only |
-| `POST /api/configurations` | `{name, git_url, jira_url, confluence_url, figma_url, ad_url}` (all required, https only; `ad_url` may also be `ldaps://`) | `Configuration` with `status: "processing"`; 422 `{message, fields:{<field>:<error>}}` |
+| `POST /api/configurations` | `{name, git_url, jira_url, confluence_url, figma_url, ad_url}` (`ad_url` optional: empty string = not set, stored as NULL; if given it may be `https://` or `ldaps://`; the rest are required, https only) | `Configuration` with `status: "processing"`; 422 `{message, fields:{<field>:<error>}}` |
 | `GET /api/configurations/{id}` | | `Configuration`; 404 if not this tenant's |
 | `GET /api/configurations/{id}/graph` | | `{configuration_id, generated_at, ontology_version, nodes[], edges[]}`; 409 until `status` is `ready` |
 
@@ -34,5 +34,5 @@ and `evidence_ref`. The graph endpoint must filter by tenant and permission befo
 - Tenant definitions and configurations are stored in PostgreSQL: `services/ontology-registry/migrations/0001_*.sql`.
 
 ## Open points
-- AD means Active Directory. Its URL may be `https://` (for example AD FS) or `ldaps://`; plain `ldap://` is refused. All six fields are required.
+- AD means Active Directory. Its URL may be `https://` (for example AD FS) or `ldaps://`; plain `ldap://` is refused. The AD URL is optional (nullable in the database); the other five are required.
 - The graph shows stored facts only; ontology-definition and LLM-proposal views are not built.

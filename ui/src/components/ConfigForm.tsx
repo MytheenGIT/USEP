@@ -30,7 +30,7 @@ export function ConfigForm({ token, onCreated }: { token: string; onCreated: (c:
     <form onSubmit={submit} noValidate>
       {FIELDS.map((f) => (
         <label key={f.key}>
-          {f.label}<span aria-hidden="true"> *</span>
+          {f.label}{f.required ? <span aria-hidden="true"> *</span> : <span className="muted"> (optional)</span>}
           <input
             value={values[f.key]} placeholder={f.placeholder} maxLength={f.key === "name" ? 80 : 2048}
             type="text" inputMode={f.key === "name" ? "text" : "url"}
