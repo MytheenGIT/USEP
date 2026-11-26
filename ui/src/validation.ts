@@ -8,7 +8,7 @@ export const FIELDS: { key: keyof ConfigInput; label: string; required: boolean;
   { key: "jira_url", label: "Jira URL", required: true, placeholder: "https://acme.atlassian.net/jira/software/projects/PAY" },
   { key: "confluence_url", label: "Confluence URL", required: true, placeholder: "https://acme.atlassian.net/wiki/spaces/PAY" },
   { key: "figma_url", label: "Figma URL", required: true, placeholder: "https://www.figma.com/file/..." },
-  { key: "ad_url", label: "Active Directory URL", required: true, placeholder: "ldaps://dc01.corp.example.com or https://adfs.example.com" },
+  { key: "ad_url", label: "Active Directory URL", required: false, placeholder: "ldaps://dc01.corp.example.com or https://adfs.example.com" },
 ];
 
 /** Client-side check for fast feedback only. The API repeats it; the UI is never the control. */

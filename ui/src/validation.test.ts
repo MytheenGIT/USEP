@@ -9,7 +9,8 @@ const ok = {
 
 describe("validation", () => {
   it("accepts a complete configuration", () => expect(validateConfig(ok)).toEqual({}));
-  it("requires every field", () => expect(Object.keys(validateConfig(emptyConfig())).sort()).toEqual(["ad_url", "confluence_url", "figma_url", "git_url", "jira_url", "name"]));
+  it("requires every field except the AD URL", () => expect(Object.keys(validateConfig(emptyConfig())).sort()).toEqual(["confluence_url", "figma_url", "git_url", "jira_url", "name"]));
+  it("accepts an empty AD URL but checks it when given", () => { expect(validateConfig({ ...ok, ad_url: "" })).toEqual({}); expect(validateConfig({ ...ok, ad_url: "http://x.example.com" }).ad_url).toBeTruthy(); });
   it("allows ldaps only for the AD URL", () => { expect(validateConfig({ ...ok, ad_url: "https://adfs.example.com" })).toEqual({}); expect(validateConfig({ ...ok, ad_url: "ldap://dc01.corp.example.com" }).ad_url).toBeTruthy(); expect(validateConfig({ ...ok, git_url: "ldaps://x.example.com" }).git_url).toBeTruthy(); });
   it.each(["http://a.com/x", "ftp://a.com", "not a url", "https://user:pw@a.com/x", "https://localhost/x", "javascript:alert(1)"])("rejects %s", (u) => expect(validateUrl(u)).not.toBe(""));
   it("checks every URL", () => expect(validateConfig({ ...ok, jira_url: "http://x.com" }).jira_url).toBeTruthy());
