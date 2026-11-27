@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from tests.pipeline.helpers import BUCKET, jira, published, raw_event
-from usep.adapters.s3.object_store import S3ObjectStore
+from usep.adapters.s3.snapshot_store import S3SnapshotStore
 from usep.pipeline.normalize.record import Acl
 from usep.pipeline.sources_config import SourcesConfigError, apply_mappings, load_acl_mappings
 from usep.pipeline.worker import AcquisitionWorker
@@ -32,7 +32,7 @@ def test_bad_mapping_is_rejected(tmp_path):
 
 def test_worker_applies_a_mapping_and_the_record_stays_owners_only(env, bundle):
     s3, bus, _ = env
-    w = AcquisitionWorker(bus, S3ObjectStore(s3, BUCKET), lambda: bundle,
+    w = AcquisitionWorker(bus, S3SnapshotStore(s3, BUCKET), lambda: bundle,
                           acl_mappings={"jira:project:ABC": ("group:abc-team",)})
     ev = raw_event(s3, "jira", "ABC-1", jira("ABC-1", "Task", "In Review"))
     ev.payload["acl"] = {"project_key": "ABC"}
