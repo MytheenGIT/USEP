@@ -160,7 +160,7 @@ function ConfigurationForm({ templateId, addTo }: { templateId?: string; addTo?:
       )}
       <div className="page-head">
         <div>
-          <h1>{addTo ? `Add a connector to “${addTo.name}”` : templateId ? "Edit and resubmit" : "New configuration"}</h1>
+          <h1>{addTo ? `Add a connector to “${addTo.name}”` : templateId ? "Edit and resubmit" : "New Connection"}</h1>
           <p className="muted">
             {addTo
               ? "The connectors already in this configuration are kept and are not read again, so you do not need their tokens. Only what you add now is read, and the knowledge graph is rebuilt with everything. Tokens go to the server for this run only and are never stored."
