@@ -173,6 +173,9 @@ $RECYCLE.BIN/
 *.pptx
 *.pdf
 
+# ---- Demo output (scripts/demo_local.py --out demo_out; generated, includes throwaway dev keys) ----
+demo_out/
+
 # ---- Keep ----
 !.gitkeep
 !.gitattributes
