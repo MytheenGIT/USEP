@@ -7,7 +7,7 @@ import pytest
 
 from tests.ontology_snapshot import COMBOS, snapshot
 from usep.ontology.bundle import OntologyBundle
-from usep.ontology_runtime import load_ontology, resolve_pins
+from usep.ontology import load_ontology, resolve_pins
 
 GOLD = json.loads((Path(__file__).parent / "golden" / "ontology_view_snapshot.json").read_text(encoding="utf-8"))
 ROOT = Path(__file__).resolve().parents[1] / "ontology"

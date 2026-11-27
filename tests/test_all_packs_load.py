@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from usep.ontology_runtime.loader import load_ontology
+from usep.ontology.loader import load_ontology
 
 ROOT = Path(__file__).resolve().parents[1] / "ontology"
 PACKS = sorted((yaml.safe_load(p.read_text())["id"], str(yaml.safe_load(p.read_text())["version"]))

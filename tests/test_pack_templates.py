@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from usep.core.errors import OntologyLoadError
-from usep.ontology_runtime import load_ontology
+from usep.ontology import load_ontology
 
 ROOT = Path(__file__).resolve().parents[1] / "ontology"
 sys.path.insert(0, str(ROOT / "tools"))

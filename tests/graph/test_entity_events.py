@@ -7,14 +7,14 @@ import pytest
 from tests.fake_s3 import FakeS3
 from tests.pipeline.helpers import BUCKET, ONT, PINS, TENANT, jira, published, raw_event
 from usep.adapters.s3.event_bus import S3EventBus
-from usep.adapters.s3.object_store import S3ObjectStore
+from usep.adapters.s3.snapshot_store import S3SnapshotStore
 from usep.graph import GraphNode, KnowledgeGraph
 from usep.graph.adapters.graphify import write_graphify_restricted
 from usep.graph.entity_events import build_graph
 from usep.graph.export_filter import restrict_for_export
 from usep.ontology.bundle import OntologyBundle
 from usep.ontology.view import OntologyView
-from usep.ontology_runtime import load_ontology
+from usep.ontology import load_ontology
 from usep.pipeline.topics import register_schemas
 from usep.pipeline.worker import AcquisitionWorker
 from usep.ports.event_bus import SchemaRegistry
@@ -27,7 +27,7 @@ def run(*issues):
     s3 = FakeS3()
     reg = SchemaRegistry()
     register_schemas(reg, BUNDLE.domains)
-    w = AcquisitionWorker(S3EventBus(s3, BUCKET, reg, partitions=4), S3ObjectStore(s3, BUCKET), lambda: BUNDLE)
+    w = AcquisitionWorker(S3EventBus(s3, BUCKET, reg, partitions=4), S3SnapshotStore(s3, BUCKET), lambda: BUNDLE)
     for key, raw in issues:
         w.handle(raw_event(s3, "jira", key, raw))
     return [e for d in BUNDLE.domains for e in published(s3, f"entity.{d}")]

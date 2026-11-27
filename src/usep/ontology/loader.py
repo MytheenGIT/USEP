@@ -20,7 +20,7 @@ import yaml
 from usep.core.errors import OntologyLoadError
 from usep.ontology.model import (
     LEVEL_ORDER, Attribute, Concept, Mapping_, OntologyBundle, OntologyRelease, PackInfo, Policy, Relationship,
-    Template,
+    System, Template,
 )
 from usep.ontology.release import digest_files
 
@@ -146,26 +146,78 @@ class _Loader:
                 self.bad("core", f"shape file missing: {rel}")
         return mf, common, vocab_raw, domains, concepts_raw, rels_raw, policies_raw
 
+    def template(self, path: Path, where: str, name: str | None = None, pack_id: str = "") -> Template:
+        t = self.read(path, where)
+        name = name or t.get("name", path.stem)
+        lim = t.get("limits", {})
+        depth, fan = lim.get("max_depth", 99), lim.get("fanout_cap", 10**9)
+        steps = tuple(s.get("cypher", "") for s in t.get("steps", []))
+        if depth > MAX_DEPTH or fan > MAX_FANOUT:
+            self.bad(where, f"limits exceed depth {MAX_DEPTH} / fan-out {MAX_FANOUT}")
+        for i, q in enumerate(steps):
+            if "tenant_id" not in q:
+                self.bad(where, f"step {i} does not filter on tenant_id (ADR-10)")
+            if "{{access_predicate}}" not in q:
+                self.bad(where, f"step {i} has no access predicate inside the match (ADR-06)")
+            if not re.search(r"\bLIMIT\b", q):
+                self.bad(where, f"step {i} has no LIMIT")
+        return Template(name, depth, fan, steps, pack_id)
+
     def templates(self, mf: dict) -> dict[str, Template]:
         out: dict[str, Template] = {}
         tdir = (self.root / "core" / mf.get("templates_dir", "../templates")).resolve()
         for path in sorted(tdir.glob("*.yml")):
-            t = self.read(path, f"templates/{path.name}")
-            name, lim = t.get("name", path.stem), t.get("limits", {})
-            depth, fan = lim.get("max_depth", 99), lim.get("fanout_cap", 10**9)
-            steps = tuple(s.get("cypher", "") for s in t.get("steps", []))
-            where = f"templates/{path.name}"
-            if depth > MAX_DEPTH or fan > MAX_FANOUT:
-                self.bad(where, f"limits exceed depth {MAX_DEPTH} / fan-out {MAX_FANOUT}")
-            for i, q in enumerate(steps):
-                if "tenant_id" not in q:
-                    self.bad(where, f"step {i} does not filter on tenant_id (ADR-10)")
-                if "{{access_predicate}}" not in q:
-                    self.bad(where, f"step {i} has no access predicate inside the match (ADR-06)")
-                if not re.search(r"\bLIMIT\b", q):
-                    self.bad(where, f"step {i} has no LIMIT")
-            out[name] = Template(name, depth, fan, steps)
+            t = self.template(path, f"templates/{path.name}")
+            out[t.name] = t
         return out
+
+    def pack_templates(self, entry: dict, out: dict[str, Template]) -> None:
+        """Templates a pinned pack adds (D2). Additive: a name already taken is an error, never an override."""
+        pmf, pdir = entry["mf"], entry["dir"]
+        where = f"pack {pmf.get('id')}"
+        prefix = PACK_DIRS.get(pmf.get("level", ""), "?") + "_"
+        for rel in (pmf.get("files", {}) or {}).get("templates", []) or []:
+            path = pdir / rel
+            name = path.stem
+            if not path.is_file():
+                self.bad(where, f"template file missing: {rel}")
+                continue
+            if not name.startswith(prefix):
+                self.bad(where, f"template {name} must start with {prefix}")
+            if name in out:
+                self.bad(where, f"template {name} already defined (additive only)")
+                continue
+            out[name] = self.template(path, f"{where}/{rel}", name, pmf.get("id", ""))
+
+
+def _all_attrs(concepts: dict[str, Concept], cid: str) -> list[Attribute]:
+    """A concept's own attributes plus those of its parents (a subclass adds, never removes)."""
+    out, cur, seen = [], concepts.get(cid), set()
+    while cur is not None and cur.id not in seen:
+        seen.add(cur.id)
+        out += cur.attributes
+        cur = concepts.get(cur.parent) if cur.parent else None
+    return out
+
+
+def resolve_pins(root: str | Path, pack_ids: Sequence[str]) -> list[PackPin]:
+    """Pins at the versions the checkout holds, for callers that name packs by id only (a local profile)."""
+    index: dict[str, str] = {}
+    for d in PACK_DIRS.values():
+        base = Path(root) / "packs" / d
+        for pdir in sorted(p for p in base.iterdir() if p.is_dir()) if base.is_dir() else []:
+            if (pdir / "pack.yml").is_file():
+                data = _read(pdir / "pack.yml")
+                index.setdefault(str(data.get("id")), str(data.get("version")))
+    missing = [i for i in pack_ids if i not in index]
+    if missing:
+        raise OntologyLoadError([f"pinned pack not found: {i}" for i in missing])
+    return [PackPin(i, index[i]) for i in pack_ids]
+
+
+def _as_tuple(v: Any) -> tuple:
+    """A relationship end is a list of concepts; a bare string is one concept, not a list of characters."""
+    return (v,) if isinstance(v, str) else tuple(v)
 
 
 def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow_reference_only: bool = False,
@@ -231,6 +283,11 @@ def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow
         for name, ext in (entry.get("vocabularies", {}).get("extends") or {}).items():
             base_vals = vocab.get(name, ())
             vocab[name] = base_vals + tuple(v for v in ext.get("add", []) if v not in base_vals)
+        for term in entry.get("vocabularies", {}).get("terms") or []:   # a pack's own vocabulary, for its own concepts
+            if term["id"] in vocab:
+                L.bad(where, f"vocabulary {term['id']} already defined (additive only)")
+                continue
+            vocab[term["id"]] = tuple(term.get("values", []))
 
     # ---- attributes
     def attrs(items: list[dict], where: str) -> tuple[Attribute, ...]:
@@ -243,7 +300,7 @@ def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow
                 if values is None:
                     L.bad(where, f"attribute {a['name']}: values_ref {ref} not found")
             out.append(Attribute(a["name"], a.get("type", "string"), bool(a.get("required")), bool(a.get("multi")),
-                                 values))
+                                 values, ref.split(".", 1)[-1] if ref else None))
         return tuple(out)
 
     common_req = attrs(common.get("node", {}).get("required"), "core/common-attributes")
@@ -255,10 +312,10 @@ def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow
         if c["id"] in concepts:
             L.bad("core/concepts", f"duplicate concept {c['id']}")
         concepts[c["id"]] = Concept(c["id"], c.get("domain"), "core", None, bool(c.get("role_only")),
-                                    attrs(c.get("attributes"), f"core/concepts/{c['id']}"))
+                                    attrs(c.get("attributes"), f"core/concepts/{c['id']}"), str(c.get("description", "")))
     rels: dict[str, Relationship] = {}
     for r in rels_raw.get("relationships", []):
-        rels[r["id"]] = Relationship(r["id"], tuple(r["from"]), tuple(r["to"]))
+        rels[r["id"]] = Relationship(r["id"], _as_tuple(r["from"]), _as_tuple(r["to"]), "core", bool(r.get("same_type")))
     policies = [Policy(p["id"], p["effect"], "core", p.get("when", {}), p.get("approvals", {}))
                 for p in policies_raw.get("policies", [])]
 
@@ -276,13 +333,13 @@ def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow
                 L.bad(where, f"{cid}: subclass_of {parent} is unknown")
             parent_domain = concepts[parent].domain if parent in concepts else None
             concepts[cid] = Concept(cid, c.get("domain", parent_domain), level, parent, False,
-                                    attrs(c.get("attributes"), f"{where}/{cid}"))
+                                    attrs(c.get("attributes"), f"{where}/{cid}"), str(c.get("description", "")), pmf["id"])
             owner[cid] = pmf["id"]
         for r in (e.get("concepts") or {}).get("relationships", []) or []:
             if r["id"] in rels:
                 L.bad(where, f"relationship {r['id']} already defined (additive only)")
                 continue
-            rels[r["id"]] = Relationship(r["id"], tuple(r["from"]), tuple(r["to"]), level)
+            rels[r["id"]] = Relationship(r["id"], _as_tuple(r["from"]), _as_tuple(r["to"]), level, bool(r.get("same_type")))
         for p in (e.get("policies") or {}).get("policies", []):
             if p.get("effect") not in ALLOWED_POLICY_EFFECTS:
                 L.bad(where, f"policy {p.get('id')} has effect {p.get('effect')!r}: policies only tighten (CC-17)")
@@ -294,23 +351,39 @@ def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow
             if t not in concepts:
                 L.bad(f"relationship {r.id}", f"endpoint type {t} is not a concept")
 
-    # ---- mappings, precedence, glossary
+    # ---- mappings, precedence, glossary, systems
     mappings: list[Mapping_] = []
+    on_unmapped: dict[str, str] = {}
     precedence: dict[str, Any] = {}
+    source_priority: tuple[str, ...] = ()
     glossary: dict[str, str] = {}
     workflow: dict[str, Any] = {}
+    systems: dict[str, System] = {}
+    common_names = {a.name for a in (*common_req, *common_opt)}
     for e in packs_data:
         pid, where = e["mf"]["id"], f"pack {e['mf']['id']}"
         for m in e["mappings"]:
             sysname = m.get("source_system")
+            if m.get("on_unmapped"):
+                if m["on_unmapped"] not in ("quarantine", "evidence"):
+                    L.bad(where, f"{sysname}: on_unmapped must be quarantine or evidence")
+                else:
+                    on_unmapped[sysname] = m["on_unmapped"]              # a more specific pack wins
             for row in m.get("mappings", []):
                 ent, rel = row.get("entity"), row.get("relationship")
                 evidence_only = "entity" in row and ent is None and not rel     # text kept as evidence, no entity
                 if not evidence_only and bool(ent) == bool(rel):
                     L.bad(where, f"{sysname}/{row.get('source_object')}: needs exactly one of entity or relationship")
                     continue
+                if row.get("role") not in (None, "carrier", "unmodelled", "evidence"):
+                    L.bad(where, f"{sysname}/{row.get('source_object')}: unknown role {row.get('role')}")
                 if ent and ent not in concepts:
                     L.bad(where, f"{sysname}/{row['source_object']}: entity {ent} is not a concept")
+                elif ent:
+                    allowed = {a.name for a in _all_attrs(concepts, ent)} | common_names
+                    for key in (row.get("fields") or {}):
+                        if key not in allowed:
+                            L.bad(where, f"{sysname}/{row['source_object']}: field {key} is not an attribute of {ent}")
                 if rel:
                     if rel not in rels:
                         L.bad(where, f"{sysname}/{row['source_object']}: relationship {rel} is unknown")
@@ -321,16 +394,32 @@ def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow
                     pid, sysname, row["source_object"],
                     {k: tuple(v) for k, v in (row.get("when") or {}).items()},
                     ent, rel, row.get("from_entity"), row.get("to_entity"), dict(row.get("fields") or {}),
-                    evidence_only))
+                    evidence_only, e["mf"]["level"], row.get("role")))
         if "workflow" in e:
             workflow.update(e["workflow"])                               # a more specific pack wins
         if "precedence" in e:
             precedence.update(e["precedence"].get("attributes", {}))     # a more specific pack wins (HLD 6.1)
+            if e["precedence"].get("source_system_priority"):
+                source_priority = tuple(str(x) for x in e["precedence"]["source_system_priority"])
         for t in (e.get("glossary") or {}).get("terms", []):
-            if t.get("maps_to") in concepts and t.get("status") != "placeholder":
+            if t.get("maps_to") in concepts and t.get("status") != "placeholder" and not str(t.get("term", "")).startswith("<"):
                 glossary[t["term"]] = t["maps_to"]
+        for row in (e.get("systems") or {}).get("systems", []):
+            sid, core_type = str(row["system_id"]), str(row["core_type"])
+            scope = tuple(str(x) for x in row.get("regulatory_scope") or [])
+            if core_type not in concepts:
+                L.bad(where, f"system {sid} maps to unknown concept {core_type}")
+            elif sid in systems:
+                L.bad(where, f"system {sid} registered twice")
+            elif any(x not in vocab.get("regulatory_scope", ()) for x in scope):
+                L.bad(where, f"system {sid} names a regulatory scope that no pinned pack defines")
+            else:
+                systems[sid] = System(sid, core_type, tuple(str(x) for x in row.get("source_systems") or []), scope,
+                                      str(row.get("status", "")))
 
     templates = L.templates(mf)
+    for e in packs_data:
+        L.pack_templates(e, templates)
 
     if L.problems:
         raise OntologyLoadError(L.problems)
@@ -341,4 +430,4 @@ def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow
         digest=digest_files(L.root, L.files),
     )
     return OntologyBundle(release, domain_ids, common_req, common_opt, vocab, concepts, rels, tuple(policies),
-                          templates, tuple(mappings), precedence, glossary, workflow)
+                          templates, tuple(mappings), precedence, glossary, workflow, systems, on_unmapped, source_priority)

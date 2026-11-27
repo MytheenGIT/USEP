@@ -1,6 +1,6 @@
 """A read-only view of the ontology for labelling and the graph (HLD 6.1: a tenant pins exact pack versions).
 
-There is one loader: `usep.ontology_runtime.load_ontology` (fail closed, every problem listed, the digest of every
+There is one loader: `usep.ontology.load_ontology` (fail closed, every problem listed, the digest of every
 defining file). This module no longer reads YAML. `OntologyBundle.load` calls that loader and reshapes its result into
 the types labelling and the graph use, so the two run-times can never disagree about what a pack defines (D7).
 """
@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from usep.core.config import Config
-from usep.ontology_runtime import load_ontology, resolve_pins
-from usep.ontology_runtime.model import OntologyBundle as RuntimeBundle
+from usep.ontology import load_ontology, resolve_pins
+from usep.ontology.model import OntologyBundle as RuntimeBundle
 
 LEVEL_ORDER = ("industry", "organization", "application", "project")   # least to most specific (HLD 6.1)
 
