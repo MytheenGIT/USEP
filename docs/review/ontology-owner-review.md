@@ -13,6 +13,7 @@ accepts it. Nothing here is published, signed or tenant data. Open points are de
 | D4 | One `source_system` value `git` is shared by GitLab, GitHub and ADO pull requests. Precedence cannot rank one above another. | Lead ontology engineer | Accept for now, or split into `gitlab`, `github`, `ado_git` (touches the mappings and the precedence file). |
 | D5 | Source-id formats: GitLab `<project>!<iid>` (unchanged), GitHub `github:<owner/repo>#<n>`, ADO PR `ado:<project>/<repo>!<id>`, ADO work item `<project>#<id>`, Jira key, ServiceNow `number`. | Platform engineer | Confirm. These become the resolver's identity keys. |
 | D6 | A link from an MR to a Jira Task or Bug is Change to Change. Core `implements` does not allow it, so it is `references`. | Lead ontology engineer | Accept `references`. The resolver may upgrade Change to Requirement or Decision to `implements`. |
+| D7 | Two ontology run-time packages now coexist: `usep.ontology` (bundle, gate, view; used by labelling and the graph projection) and `usep.ontology_runtime` (loader, gate, release events; used by the ingestion pipeline). Both define a bundle and a gate G1 with different APIs, and read the same definitions. Pack mapping field syntax also differs: `git.yml` uses plain attribute names, `jira.yml` dotted paths (the ingestion gate accepts both). | Lead ontology engineer, both package owners | Unify into one loader and one gate, keeping this branch's tests for both as the safety net. Until then do not change one without the other. |
 
 ## 2. What was added, by file
 
