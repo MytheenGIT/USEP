@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MOCK_PASSWORD, MOCK_USER, mockApi } from "../../shared/api/mock";
 import { OntologyDto } from "../../shared/api/types";
-import { allowedValues, conceptsByDomain, driftMessage, glossaryWordsFor, ontologyProblems, relationshipsOf, statusBanners, typeGraphElements, usageCounts, labelUsage } from "./ontologyModel";
+import { allowedValues, conceptsByDomain, driftMessage, glossaryWordsFor, ontologyProblems, relationshipsOf, statusBanners, typeGraphElements, usageCounts, labelUsage, groupLabels } from "./ontologyModel";
 
 async function load() {
   const s = await mockApi.login(MOCK_USER, MOCK_PASSWORD);
@@ -137,5 +137,18 @@ describe("labels", () => {
     const used = labelUsage(await mockApi.getGraph(token, (await mockApi.listConfigurations(token))[0].id));
     expect(used.length).toBeGreaterThan(0);
     for (const u of used) expect(dto.concepts.map((c) => c.id)).toContain(u.concept);
+  });
+});
+
+describe("groupLabels", () => {
+  it("makes one row per concept with its labels in order", () => {
+    expect(groupLabels([
+      { concept: "Change", label: "merge_request", count: 2 }, { concept: "Change", label: "pull_request", count: 1 },
+      { concept: "Team", label: "Squad", count: 1 },
+    ])).toEqual([
+      { concept: "Change", labels: [{ label: "merge_request", count: 2 }, { label: "pull_request", count: 1 }] },
+      { concept: "Team", labels: [{ label: "Squad", count: 1 }] },
+    ]);
+    expect(groupLabels([])).toEqual([]);
   });
 });

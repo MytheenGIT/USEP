@@ -100,3 +100,18 @@ export function labelUsage(graph: GraphDto | null): LabelUse[] {
   }
   return [...counts.values()].sort((a, b) => a.concept.localeCompare(b.concept) || b.count - a.count || a.label.localeCompare(b.label));
 }
+
+export interface LabelGroup { concept: string; labels: { label: string; count: number }[]; }
+
+/** One row per concept: its labels, most used first. */
+export function groupLabels(usage: LabelUse[]): LabelGroup[] {
+  const groups = new Map<string, LabelGroup>();
+  for (const u of usage) {
+    const g = groups.get(u.concept) ?? { concept: u.concept, labels: [] };
+    g.labels.push({ label: u.label, count: u.count });
+    groups.set(u.concept, g);
+  }
+  return [...groups.values()];
+}
+
+export const EFFECT_LABEL: Record<string, string> = { deny: "Deny", require_approval: "Require approval", restrict_to_owners: "Restrict to owners" };
