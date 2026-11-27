@@ -6,7 +6,7 @@ from tests.pipeline.helpers import BUCKET, ONT, TENANT, jira, published, raw_eve
 from usep.adapters.aws_lambda import pipeline_handler as ph
 from usep.adapters.s3.event_bus import S3EventBus
 from usep.core.ids import uuid7
-from usep.ontology_runtime import load_ontology
+from usep.ontology import load_ontology
 from usep.pipeline.topics import register_schemas
 from usep.ports.event_bus import SchemaRegistry
 
@@ -54,7 +54,7 @@ def test_lambda_handles_s3_notification_and_poll(bundle, monkeypatch):
 
 # ---------------------------------------------------------------- ontology release refresh
 def _release_setup(monkeypatch, tenant=TENANT):
-    from usep.ontology_runtime.events import publish_release, register_schemas as reg_onto
+    from usep.ontology.events import publish_release, register_schemas as reg_onto
     monkeypatch.setenv("USEP_BUS_BUCKET", BUCKET)
     monkeypatch.setenv("USEP_BUS_PARTITIONS", "4")
     monkeypatch.setenv("USEP_TENANT_ID", tenant)

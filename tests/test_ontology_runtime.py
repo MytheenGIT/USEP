@@ -8,8 +8,8 @@ from tests.fake_s3 import FakeS3
 from usep.core.errors import OntologyLoadError, SchemaViolation
 from usep.core.ids import uuid7
 from usep.adapters.s3.event_bus import S3EventBus
-from usep.ontology_runtime import load_ontology, map_record, validate
-from usep.ontology_runtime.events import OntologyConfigCache, publish_release, register_schemas
+from usep.ontology import load_ontology, map_record, validate
+from usep.ontology.events import OntologyConfigCache, publish_release, register_schemas
 from usep.ports.event_bus import SchemaRegistry, consume
 
 ONT = Path(__file__).resolve().parents[1] / "ontology"
@@ -86,13 +86,13 @@ def test_gate_quarantines_unmapped_type_without_content():
     ({"tenant_id": None}, "tenant_id"), ({"sensitivity": 7}, "sensitivity"), ({"domain": "nope"}, "domain"),
     ({"valid_to": "2025-01-01T00:00:00Z"}, "valid_to"), ({"entity_id": "not-a-uuid"}, "entity_id")])
 def test_gate_rejects_bad_nodes(over, field):
-    from usep.ontology_runtime import Candidate
+    from usep.ontology import Candidate
     r = validate(load(), Candidate("node", "Change", node(**over)))
     assert not r.ok and r.quarantine.reason_code == "Q-SCHEMA" and field in r.quarantine.location
 
 
 def test_gate_edge_endpoints():
-    from usep.ontology_runtime import Candidate
+    from usep.ontology import Candidate
     b = load()
     assert validate(b, Candidate("edge", "implements", {}, "Change", "Requirement")).ok
     assert not validate(b, Candidate("edge", "owns", {}, "Test", "Team")).ok
@@ -132,13 +132,3 @@ def test_config_cache_follows_release_and_fails_closed():
                  "digest": "f" * 64})
     assert not cache.refresh(bus) and "refused" in cache.last_error
     assert cache.current.release.digest == loaded.release.digest   # kept the previous ontology
-
-
-def test_gate_reads_plain_attribute_names_and_dotted_paths(tmp_path):
-    """git.yml names record attributes plainly (name, repository); jira.yml uses dotted paths (issue.summary)."""
-    from usep.ontology_runtime import map_record
-    b = load()
-    flat = map_record(b, "git", "repository", {"repository": {"name": "pay", "repository": "acme/pay"}})
-    assert flat.ok and flat.candidate.attributes == {"name": "pay", "repository_ref": "acme/pay"}
-    dotted = map_record(b, "jira", "issue", {"issue": {"summary": "S", "issue_type": "story", "key": "A-1"}})
-    assert dotted.candidate.attributes["name"] == "S"

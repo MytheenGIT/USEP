@@ -24,7 +24,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-from usep.ontology_runtime.model import OntologyBundle
+from usep.ontology.model import OntologyBundle
 from usep.pipeline.normalize import Record
 
 # Branch names run on ("ABC-43-add-bus", "bugfix-ABC-12"), so a dash may border a key; letters and digits may not.

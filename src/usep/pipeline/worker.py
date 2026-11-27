@@ -19,8 +19,8 @@ from typing import Any, Callable
 
 from usep.core.errors import PipelineError
 from usep.core.ids import to_iso, utc_now_iso
-from usep.ontology_runtime.gate import Candidate, Q_SCHEMA, Quarantine
-from usep.ontology_runtime.model import OntologyBundle
+from usep.ontology.gate import Candidate, Q_SCHEMA, Quarantine
+from usep.ontology.model import OntologyBundle
 from usep.pipeline.acl import from_connector, merge as merge_acl
 from usep.pipeline.classify import ClassificationPolicy, classify
 from usep.pipeline.egress import EgressPolicy, decide as decide_egress

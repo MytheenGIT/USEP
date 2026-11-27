@@ -2,7 +2,7 @@
 
 
 from tests.pipeline.helpers import ONT, edges, jira, published, raw_event
-from usep.ontology_runtime import load_ontology
+from usep.ontology import load_ontology
 
 
 

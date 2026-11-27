@@ -5,7 +5,7 @@ import json
 from tests.fake_s3 import FakeS3
 from tests.pipeline.helpers import (BUCKET, edges, published, raw_event)
 from usep.adapters.s3.event_bus import S3EventBus
-from usep.adapters.s3.object_store import S3ObjectStore
+from usep.adapters.s3.snapshot_store import S3SnapshotStore
 from usep.pipeline.topics import register_schemas
 from usep.pipeline.worker import AcquisitionWorker
 from usep.ports.event_bus import SchemaRegistry
@@ -40,7 +40,7 @@ def test_page_documents_service_by_repo_url_only_on_known_hosts(bundle):
     reg = SchemaRegistry()
     register_schemas(reg, bundle.domains)
     bus = S3EventBus(s3, BUCKET, reg, partitions=4)
-    w = AcquisitionWorker(bus, S3ObjectStore(s3, BUCKET), lambda: bundle, repo_hosts=("gitlab.example.com",))
+    w = AcquisitionWorker(bus, S3SnapshotStore(s3, BUCKET), lambda: bundle, repo_hosts=("gitlab.example.com",))
     body = ('<p>Code: <a href="https://gitlab.example.com/pay/checkout/-/tree/main">repo</a> '
             'and <a href="https://github.com/other/thing">x</a>; refs ABC-5</p>')
     page = {"id": "21", "title": "ADR 9", "version": {"number": 1}, "body": {"storage": {"value": body}},

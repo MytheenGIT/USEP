@@ -49,21 +49,19 @@ python -m pytest ontology/tests -q
 
 ## How the code uses these files
 
-One loader, `usep.ontology_runtime.load_ontology`, reads this folder at run time. `src/usep/ontology/` (labelling and the graph) is a read-only view over that loader's result, not a second reader. Nothing writes a definition.
+One loader, `usep.ontology.load_ontology`, reads this folder at run time. `usep.ontology.bundle` and `usep.ontology.view` (labelling and the graph) are a read-only view over that loader's result, not a second reader. Nothing writes a definition.
 
 - **Config** (`config/local.yaml`): `ontology.dir`, `ontology.packs` (the exact packs a tenant pins, by id), `ontology.allow_reference_packs`, `ontology.require_signed`. With `ontology.dir` unset the gate is off and nothing is pinned.
-- **Loader** (`ontology_runtime/loader.py`): loads the core and the pinned packs and fails closed: a missing pack, a pack that needs a different core, a `reference_only` pack without permission, two packs at one level defining one concept, or a mapping to an unknown concept or attribute. It also computes a digest of every defining file (line endings normalised).
+- **Loader** (`ontology/loader.py`): loads the core and the pinned packs and fails closed: a missing pack, a pack that needs a different core, a `reference_only` pack without permission, two packs at one level defining one concept, or a mapping to an unknown concept or attribute. It also computes a digest of every defining file (line endings normalised).
 - **Systems** (`systems.yml` in an application pack): each registered system must map to a known core type, be registered once, and name only regulatory scopes that a pinned pack defines. Nothing reads the scope at run time yet (OI-63).
-- **Gate G1** (`ontology_runtime/gate.py`, run by the pipeline after the cheap checks and before linking): the app pack mapping turns a record's `kind` into a core concept; required attributes and enumerated values are checked. A record that fails is quarantined as `Q-SCHEMA`. A source object with no mapping follows the mapping file's `on_unmapped` (`quarantine` for Jira, `evidence` for Git and Confluence).
+- **Gate G1** (`ontology/gate.py`, run by the pipeline after the cheap checks and before linking): the app pack mapping turns a record's `kind` into a core concept; required attributes and enumerated values are checked. A record that fails is quarantined as `Q-SCHEMA`. A source object with no mapping follows the mapping file's `on_unmapped` (`quarantine` for Jira, `evidence` for Git and Confluence).
 - **Pins**: every context package carries `ontology_version` (the core version) and an `ontology` block (core, each pack id, level and version, and the digest). The seal covers it, and a different pin never reuses a cached package.
 
 Pack CI (`tools/check_ontology.py`) still decides whether a pack is allowed to exist (additive only, policies only tighten). The loader trusts a pack that passed it. The run-time validator reads the YAML, not the Turtle shapes, so rdflib stays out of the run-time path.
 
 Signing and the registry (C-06, C-07) are built in `src/usep/registry/` (ADR-20, proposed): signed immutable releases, a trust store, per-tenant pins, `scripts/registry.py`, a release workflow and IaC. Not yet exercised: the IaC and workflow have never run, and no production signing key exists. Dotted source paths map at any depth. Still open: the project pack's state translation (`state_tables.py`) beyond the reference rows.
 
-## Ingestion run-time (`src/usep/ontology_runtime/`)
-
-A second run-time loader, used by the ingestion pipeline (`src/usep/pipeline/`). It sits beside `src/usep/ontology/` above, which serves labelling and the graph projection. Both read the same definitions; they overlap (bundle, gate G1) and should be unified, which is a decision for the owners of each (see `docs/review/ontology-owner-review.md`).
+## Run-time package (`src/usep/ontology/`)
 
 The files above are definitions. The run-time package loads and applies them. It reads the same YAML; pack CI (`tools/check_ontology.py`) checks the Turtle shapes.
 

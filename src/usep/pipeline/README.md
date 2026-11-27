@@ -6,9 +6,9 @@ S3 and AWS Lambda sit in `usep/adapters/`.
 ```
 usep/
   ports/            EventBus, ObjectStore (interfaces)
-  adapters/s3/      S3EventBus (ADR-19), S3ObjectStore
+  adapters/s3/      S3EventBus (ADR-19), S3SnapshotStore
   adapters/aws_lambda/pipeline_handler.py   S3-notification and poll entry point
-  ontology_runtime/ loader, bundle, gate G1 (map_record, validate), release events (a second loader exists in ontology/, used by labelling)
+  ontology/         loader, bundle, gate G1 (map_record, validate)
   pipeline/
     worker.py       AcquisitionWorker: the flow below, publishing and writing evidence/quarantine
     normalize/      one module per source: parse(raw, ref) -> [Record]; registry in __init__.py

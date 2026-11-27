@@ -39,11 +39,11 @@ from typing import Any
 from urllib.parse import unquote_plus
 
 from usep.adapters.s3.event_bus import S3EventBus
-from usep.adapters.s3.object_store import S3ObjectStore
+from usep.adapters.s3.snapshot_store import S3SnapshotStore
 from usep.core.errors import PipelineError
-from usep.ontology_runtime import load_ontology
-from usep.ontology_runtime.events import OntologyConfigCache
-from usep.ontology_runtime.events import register_schemas as register_ontology_schemas
+from usep.ontology import load_ontology
+from usep.ontology.events import OntologyConfigCache
+from usep.ontology.events import register_schemas as register_ontology_schemas
 from usep.pipeline.policy_config import load_runtime_policy
 from usep.pipeline.sources_config import load_acl_mappings
 from usep.pipeline.topics import RAW_FAMILIES, register_schemas
@@ -102,7 +102,7 @@ def build(s3_client: Any | None = None, bundle_loader: Any | None = None) -> tup
     bucket = _env("USEP_BUS_BUCKET")
     bus = S3EventBus(s3_client, bucket, registry, os.environ.get("USEP_BUS_PREFIX", "bus"),
                      int(os.environ.get("USEP_BUS_PARTITIONS", "16")))
-    store = S3ObjectStore(s3_client, os.environ.get("USEP_STORE_BUCKET") or bucket)
+    store = S3SnapshotStore(s3_client, os.environ.get("USEP_STORE_BUCKET") or bucket)
     group = os.environ.get("USEP_CONSUMER_GROUP", "c02-acquisition")
     tenant = os.environ.get("USEP_TENANT_ID", "")
     cache = OntologyConfigCache(tenant, f"{group}-ontology", loader, initial=bundle) if tenant else None

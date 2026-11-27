@@ -1,6 +1,6 @@
 """Ontology mapping for one canonical record: application-pack mapping, project-pack state translation, gate G1.
 
-`map_record` and `validate` are the gate in usep.ontology_runtime.gate. This module adds the one translation the mappings
+`map_record` and `validate` are the gate in usep.ontology.gate. This module adds the one translation the mappings
 leave to the project pack: a source status to a core state (Jira 'In Review' to change_state in_review, a merge
 request state to change_state, and a requirement's status). A status with no rule is quarantined (Q-STATE), never guessed (project-pack workflow.yml).
 """
@@ -9,8 +9,8 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from usep.core.ids import uuid7
-from usep.ontology_runtime.gate import Candidate, GateResult, Quarantine, map_record, validate
-from usep.ontology_runtime.model import OntologyBundle
+from usep.ontology.gate import Candidate, GateResult, Quarantine, map_record, validate
+from usep.ontology.model import OntologyBundle
 from usep.pipeline.state_tables import STATE_TABLES
 
 Q_STATE = "Q-STATE"

@@ -6,9 +6,10 @@
     python scripts/demo_local.py --out demo_out  # dump every object the flow wrote (raw/, bus/, evidence/, quarantine/)
     python scripts/demo_local.py --only jira     # one source
 
-What runs for real: the connector Lambda path (SyncService, S3 snapshot writer, S3 event publisher, cursor) with a
-stand-in connector that returns the dummy payloads, then the pipeline Lambda path (poll mode), over an in-memory S3.
-What is faked: the source APIs and S3 itself. Payloads: scripts/sample_data/dummy.json. Each record says what it should do.
+What runs for real: the pipeline Lambda path (poll mode: normalize, redact, classify, map, gate G1, link, evidence), over an
+in-memory S3. What is stand-in: the connectors' output. The dummy payloads are landed by the S3 snapshot writer and raw event
+publisher (snapshot first, then an event that only references it); no source API is called, and `main`'s encrypted raw writer
+(usep.ingestion) is not in this path. Payloads: scripts/sample_data/dummy.json. Each record says what it should do.
 """
 from __future__ import annotations
 
@@ -35,39 +36,30 @@ _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 FakeS3 = _mod.FakeS3
 
-import lambda_handler as lh  # noqa: E402  (services/connectors)
-from common.connector_base import ScopeFetch  # noqa: E402
-from common.source_document import SourceDocument, SourceType  # noqa: E402
-from config import Settings  # noqa: E402
+from common.checksum import payload_checksum  # noqa: E402  (services/connectors)
+from common.interfaces.raw_event_publisher import RawEvent  # noqa: E402
+from common.s3.raw_event_publisher import S3RawEventPublisher  # noqa: E402
+from common.s3.raw_payload_writer import S3RawPayloadWriter  # noqa: E402
 from usep.adapters.aws_lambda import pipeline_handler as ph  # noqa: E402
 from usep.core.ids import uuid7  # noqa: E402
-from usep.ontology_runtime import load_ontology  # noqa: E402
+from usep.ontology import load_ontology  # noqa: E402
 
 TENANT, BUCKET = str(uuid7()), "demo"
 PINS = ["app.app-reference@0.1.0", "org.org-reference@0.1.0", "project.project-reference@0.1.0"]
 
 
-class StandIn:
-    """A connector that returns dummy payloads instead of calling a source API."""
-
-    def __init__(self, source: str, items: list[dict]) -> None:
-        self.source, self._items = SourceType(source), items
-
-    @property
-    def scopes(self) -> list[str]:
-        return ["demo"]
-
-    async def fetch_scope(self, scope, cursor):
-        docs = [SourceDocument(source=self.source, source_type="dummy", source_object_id=i["id"], scope=scope,
-                               source_version="2026-01-01T00:00:00.000Z", acl=i.get("acl", {}),
-                               source_url=f"https://dummy.invalid/{i['id']}", retrieved_at=datetime.now(UTC),
-                               raw_payload=i["raw"], title=i["id"]) for i in self._items]
-        return ScopeFetch(documents=docs)
-
-
-class NoClient:
-    async def aclose(self) -> None:
-        pass
+async def land(source: str, items: list[dict], s3) -> int:
+    """What a connector hands the pipeline: each raw payload stored as an immutable snapshot, then a `raw.<source>` event that
+    carries only a reference to it (snapshot first, event second). The payloads are the dummy ones; no source API is called."""
+    writer = S3RawPayloadWriter(s3, BUCKET)
+    publisher = S3RawEventPublisher(s3, BUCKET, TENANT, partitions=4)
+    for i in items:
+        ref = await writer.write(source, i["id"], i["raw"])
+        await publisher.publish(RawEvent(
+            source=source, source_type="dummy", source_ref=i["id"], source_url=f"https://dummy.invalid/{i['id']}", snapshot_ref=ref,
+            checksum=payload_checksum(i["raw"]), retrieved_at=datetime.now(UTC), scope="demo",
+            source_version="2026-01-01T00:00:00.000Z", acl=i.get("acl", {})))
+    return len(items)
 
 
 def main() -> int:
@@ -82,12 +74,11 @@ def main() -> int:
         data = {args.only: data[args.only]}
     s3 = FakeS3()
 
-    # ---- stage 1: connectors (the Lambda code path)
-    settings = Settings(tenant_id=TENANT, s3={"bucket": BUCKET, "bus_partitions": 4})
-    print("== C-01 connectors ==")
+    # ---- stage 1: what the connectors hand over (stand-in output, landed by the S3 snapshot writer and raw event publisher)
+    print("== C-01 connectors (stand-in output) ==")
     for source, items in data.items():
-        res = asyncio.run(lh.run(source, settings, s3, lambda s, _st, items=items: (NoClient(), StandIn(s, items))))
-        print(f"  {source:<11} {res['documents']} documents -> raw snapshots + raw.{source} events")
+        n = asyncio.run(land(source, items, s3))
+        print(f"  {source:<11} {n} documents -> raw snapshots + raw.{source} events")
 
     # ---- stage 2: pipeline (poll mode drains raw.<family> from offsets)
     import os
