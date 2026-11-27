@@ -1,5 +1,9 @@
 """Jira connector: one scope per JQL query.
 
+The admin gives JQL queries, project keys, or both. Each project key becomes the query for that
+whole project, so several projects are several scopes with a cursor each. With neither, there are no
+scopes: nothing is read, and the service refuses to start with Jira selected (``Settings.source_problems``).
+
 Incremental fetch adds ``updated >= "<cursor>"`` to the query. JQL date
 literals have minute precision and are read in the API user's time zone,
 so the UTC cursor is converted to that zone first. Because ``>=`` on a
@@ -21,7 +25,9 @@ import structlog
 
 from common.binary_store import BinaryStore
 from common.client_base import PayloadTooLarge
-from common.connector_base import ObjectError, ScopeFetch
+from common.client_base import error_detail
+from common.connector_base import ObjectError, ScopeCheck, ScopeFetch, SourceCheck
+from common.scopes import jira_project_scope
 from common.source_document import SourceType, hash_payload
 from common.timeutil import parse_ts, to_utc_iso
 from jira.adf import adf_to_markdown
@@ -41,6 +47,12 @@ def split_order_by(jql: str) -> tuple[str, str]:
     return jql[: match.start()].strip(), jql[match.start() :].strip()
 
 
+def build_scopes(jql: str, jql_queries: list[str], project_keys: list[str]) -> list[str]:
+    """Every query to run: the free-form JQL queries, then one per project key, without repeats."""
+    candidates = [*jql_queries, *([jql] if jql.strip() else []), *(jira_project_scope(k) for k in project_keys)]
+    return list(dict.fromkeys(q.strip() for q in candidates if q.strip()))
+
+
 class JiraConnector:
     source = SourceType.JIRA
 
@@ -48,7 +60,6 @@ class JiraConnector:
         self,
         client: JiraClient,
         base_url: str,
-        jql: str = "order by updated asc",
         jql_queries: list[str] | None = None,
         base_url_for_links: str | None = None,
         page_size: int = 50,
@@ -57,7 +68,7 @@ class JiraConnector:
         attachment_max_bytes: int = 1_048_576,
     ) -> None:
         self._client = client
-        self._queries = [q for q in (jql_queries or []) if q.strip()] or [jql]
+        self._queries = list(dict.fromkeys(q.strip() for q in (jql_queries or []) if q.strip()))
         self._base_url = (base_url_for_links or base_url).rstrip("/")
         self._page_size = page_size
         self._binary_store = binary_store
@@ -69,6 +80,21 @@ class JiraConnector:
     @property
     def scopes(self) -> list[str]:
         return list(self._queries)
+
+    async def check(self) -> SourceCheck:
+        """Credentials, then every query run for one issue (Jira rejects a bad JQL or an unknown project)."""
+        try:
+            await self._client.get_myself()
+        except Exception as exc:  # noqa: BLE001 -- reported, not raised
+            return SourceCheck(ok=False, detail=f"cannot sign in: {error_detail(exc)}")
+        results = []
+        for scope in self._queries:
+            try:
+                await self._client.search_issues(await self.build_jql(scope, None), max_results=1, fields=["summary"])
+                results.append(ScopeCheck(scope=scope, ok=True, detail="query accepted"))
+            except Exception as exc:  # noqa: BLE001
+                results.append(ScopeCheck(scope=scope, ok=False, detail=error_detail(exc)))
+        return SourceCheck(ok=all(r.ok for r in results), detail="signed in", scopes=results)
 
     # ----- JQL -------------------------------------------------------------
 

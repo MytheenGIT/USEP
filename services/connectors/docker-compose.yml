@@ -1,3 +1,7 @@
+# Local stack: Postgres for the indexes and the audit trail, and the ingestion service.
+# Raw objects land as encrypted files in ./output/raw (git-ignored) until USEP_INGESTION_RAW_STORE=s3 is set in .env.
+#   cp .env.example .env   # fill in the values, then:
+#   docker compose up --build
 services:
   postgres:
     image: postgres:16
@@ -16,7 +20,9 @@ services:
       retries: 10
 
   connectors:
-    build: .
+    build:
+      context: ../..
+      dockerfile: services/connectors/Dockerfile
     env_file:
       - path: .env
         required: false

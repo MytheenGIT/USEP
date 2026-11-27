@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>USEP ingestion and console: what was built and why</title>
+<style>
+  :root {
+    --bg:#f4f6fa; --surface:#fff; --text:#0f172a; --muted:#526071; --border:#e2e8f0;
+    --accent:#2554d8; --accent-soft:#e8eefc;
+    --ok:#166534; --ok-soft:#dcfce7; --warn:#92400e; --warn-soft:#fef3c7; --bad:#b42318; --bad-soft:#fee4e2;
+    --shadow:0 1px 2px rgb(15 23 42/6%),0 4px 16px rgb(15 23 42/5%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0b1017; --surface:#131a23; --text:#e6ebf2; --muted:#9aa8b8; --border:#263241; --accent:#7aa2ff; --accent-soft:#1b2a4a;
+      --ok:#86efac; --ok-soft:#14301f; --warn:#fcd34d; --warn-soft:#3a2a0c; --bad:#fca5a5; --bad-soft:#3b1714; --shadow:none; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 24px 64px; }
+  h1 { font-size:1.7rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 { font-size:1.15rem; margin:36px 0 12px; display:flex; align-items:center; gap:10px; }
+  h2 .n { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--surface); font-size:13px; font-weight:700; }
+  p { margin:0 0 10px; } .muted { color:var(--muted); } .small { font-size:13px; }
+  .lead { font-size:1.05rem; max-width:80ch; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:18px 20px; }
+  .grid { display:grid; gap:14px; grid-template-columns:repeat(4,1fr); } @media (max-width:820px){ .grid { grid-template-columns:1fr 1fr; } }
+  .stat .k { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .stat .v { font-size:1.35rem; font-weight:700; margin:2px 0; } .stat .d { font-size:13px; color:var(--muted); }
+  .tag { display:inline-block; padding:1px 9px; border-radius:99px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .t-ok { background:var(--ok-soft); color:var(--ok); } .t-warn { background:var(--warn-soft); color:var(--warn); }
+  .t-bad { background:var(--bad-soft); color:var(--bad); } .t-info { background:var(--accent-soft); color:var(--accent); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--border); }
+  th { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  tr:last-child td { border-bottom:0; } td:first-child { font-weight:600; }
+  .flow { display:grid; grid-template-columns:repeat(6,1fr); gap:22px; }
+  .flow .box { position:relative; border:1px solid var(--border); background:var(--surface); border-radius:10px; padding:10px 12px; font-size:13px; min-width:0; }
+  .flow .box b { display:block; font-size:14px; margin-bottom:2px; }
+  .flow .box.temp { border-style:dashed; border-color:var(--warn); }
+  .flow .box:not(:last-child)::after { content:"\2192"; position:absolute; right:-18px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:16px; }
+  @media (max-width:900px) { .flow { grid-template-columns:repeat(2,1fr); } .flow .box::after { display:none; } }
+  .checks { display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; margin:0; padding:0; list-style:none; } @media (max-width:820px){ .checks { grid-template-columns:1fr; } }
+  .checks li { padding-left:24px; position:relative; font-size:14px; }
+  .checks li::before { content:"✓"; position:absolute; left:0; color:var(--ok); font-weight:800; }
+  details { border:1px solid var(--border); border-radius:10px; background:var(--surface); margin-bottom:10px; }
+  summary { cursor:pointer; padding:12px 16px; font-weight:600; list-style:none; display:flex; gap:10px; align-items:center; }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:"▸"; color:var(--muted); transition:transform .12s; } details[open] summary::before { transform:rotate(90deg); }
+  details > div { padding:0 16px 14px 36px; font-size:14px; }
+  details ul { margin:6px 0 0; padding-left:18px; } details li { margin-bottom:4px; }
+  .callout { border-left:4px solid var(--warn); background:var(--warn-soft); color:var(--text); border-radius:8px; padding:12px 16px; margin-top:14px; }
+  .callout b { color:var(--warn); }
+  .decide li { margin-bottom:8px; }
+  code { font:12.5px ui-monospace,Menlo,Consolas,monospace; background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:5px; }
+  @media print { body { background:#fff; } .card,details { box-shadow:none; } details > div { display:block; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>USEP ingestion layer and admin console</h1>
+  <div class="meta">What was built, and why &middot; 26 Nov 2026 &middot; PoC modules 1 (UI and configuration) and 2 (ingestion) &middot; mapped to the architecture reference and decisions register</div>
+
+  <p class="lead"><b>In one line:</b> a read-only layer that pulls Jira, GitLab, Confluence and Figma into one provenance-preserving format, plus an admin console that configures it, tests each connection, and shows a first knowledge graph. It is built and tested, but <b>not yet run against live sources</b>.</p>
+
+  <div class="grid" style="margin-top:18px">
+    <div class="card stat"><div class="k">Built</div><div class="v">4 connectors</div><div class="d">Jira, GitLab, Confluence, Figma, plus console API and UI</div></div>
+    <div class="card stat"><div class="k">Tests</div><div class="v">63 + 23</div><div class="d">backend + UI, all passing. Full flow also run in a browser with fake source data</div></div>
+    <div class="card stat"><div class="k">Live data</div><div class="v"><span class="tag t-warn">Not yet</span></div><div class="d">Jira is blocked by a 401 on the account (needs the Atlassian admin)</div></div>
+    <div class="card stat"><div class="k">Needs a decision</div><div class="v"><span class="tag t-bad">Figma</span></div><div class="d">No live Figma use before the DPIA is signed (ADR-025, O-05)</div></div>
+  </div>
+
+  <h2><span class="n">1</span>How it fits together</h2>
+  <div class="card">
+    <div class="flow">
+      <div class="box"><b>Sources</b>Jira, GitLab, Confluence, Figma (read-only)</div>      <div class="box"><b>Connectors</b>Normalise, keep provenance and raw payload</div>      <div class="box"><b>Sync service</b>Cursor, schedule, manual run, audit event</div>      <div class="box temp"><b>Local JSON files</b>Temporary stand-in for Kafka and S3 evidence</div>      <div class="box"><b>Console API</b>Login, configurations, test connection, graph</div>      <div class="box"><b>Console UI</b>Four-step form, status, graph</div>
+    </div>
+    <p class="muted small" style="margin:10px 0 0">Dashed box = temporary. Connectors never write facts (C-01, ADR-05): they only produce documents; the pipeline and fabric writer are later modules.</p>
+  </div>
+
+  <h2><span class="n">2</span>What was built, and why</h2>
+  <div class="card" style="padding:6px 8px">
+    <table>
+      <thead><tr><th style="width:21%">Part</th><th>What it does</th><th style="width:34%">Why / reference</th></tr></thead>
+      <tbody>
+        <tr><td>Connectors</td><td>Pull each source over REST. Every document keeps its source, object ID, link, retrieval time and the untouched raw payload. Comments, history, diffs, labels and hierarchy stay as separate fields.</td><td>C-01. Provenance is needed for citations; structured parts are kept because the pipeline (module 3) chunks from them.</td></tr>
+        <tr><td>Sync service and scheduler</td><td>Incremental sync with a resume cursor, on a schedule or on demand. One failing source never stops the others.</td><td>C-01, module 2.</td></tr>
+        <tr><td>Interfaces and stubs</td><td>Superseded: the service now uses the foundation's cursor manager, raw payload writer (encrypted objects in a file store or S3), audit trail and run snapshots. See <code>ingestion-open-decisions.html</code> for what is still a development stand-in.</td><td>Those pieces (S3 evidence, Kafka, audit) belong to other components; the real ones plug in without changing this code.</td></tr>
+        <tr><td>Console API</td><td>Single admin login (8-hour sessions), create and read configurations, per-connector <b>Test connection</b>, graph endpoint.</td><td>Module 1, ADR-026. Lives in the connectors service only because <code>services/gateway</code> (C-12, Sprint 5) does not exist yet.</td></tr>
+        <tr><td>Console UI</td><td>Sign-in, four-step connector form, per-source status, graph and table view, light and dark theme.</td><td>Module 1. Every connector is optional (an admin may have no Jira or no Figma); one that is switched on must be complete. At least one must be on.</td></tr>
+        <tr><td>Provisional graph</td><td>Rule-based: Jira issue &rarr; Requirement, merge request &rarr; Change, an MR that names an issue key <i>implements</i> it.</td><td>A placeholder so the UI shows something real. It is not the ontology projection.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">3</span>Rules from the standards that were applied</h2>
+  <div class="card">
+    <ul class="checks">
+      <li>Typed tokens are write-only: never stored, returned, logged or written to disk</li>
+      <li>Typed server addresses must be https; private and internal addresses blocked</li>
+      <li>Project keys and similar entries strictly validated (no query injection)</li>
+      <li><code>tenant_id</code> on every configuration, checked on every read</li>
+      <li>Fails closed: no admin credentials set means nobody can sign in</li>
+      <li>Login rate-limited; raw sync and results endpoints now require sign-in</li>
+      <li>Audit events for login, logout, create, process, connection test, graph read</li>
+      <li>UUID v7 IDs, UTC timestamps, typed errors with a trace ID and no stack traces</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">4</span>Where it differs from the HLD, LLD or standards</h2>
+  <p class="muted small">Each deviation lists an exit and a proposed owner role, as the standards require. Owners and exits are proposals for you to confirm.</p>
+  <div class="card" style="padding:6px 8px">
+    <table>
+      <thead><tr><th style="width:4%">#</th><th style="width:30%">Difference</th><th>Why for now</th><th style="width:30%">Proposed exit / owner</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Raw data goes to local JSON files, not Kafka and S3 evidence</td><td>Evidence snapshot rules and key management are undecided (O-01, O-04).</td><td>Replace the writer stub after O-01 and O-04. Platform lead with governance lead.</td></tr>
+        <tr><td>2</td><td>Graph is a provisional JSON view, not the Neo4j projection; concept mapping is hard-coded</td><td>Pipeline, fabric writer and projectors are Sprint 3 and later.</td><td>Move mapping into the app pack (ADR-034) and build through the fabric writer (ADR-05, ADR-019). Lead ontology engineer.</td></tr>
+        <tr><td>3</td><td>Audit is log-only, not hash-chained or durable</td><td>C-16 is Sprint 6; an interface is in place.</td><td>Swap in the C-16 writer behind the same interface. Sprint 6.</td></tr>
+        <tr><td>4</td><td><b>Jira pull has no 6-month window</b></td><td>Limited by project only. This is a gap against the spec (default 6 months, user-configurable).</td><td>Add a default window and a configurable field. Connector owner, Sprint 3.</td></tr>
+        <tr><td>5</td><td>Library set not yet confirmed: FastAPI, SQLAlchemy 2 with asyncpg, APScheduler, structlog, truststore</td><td>The standards want one ADR confirming the set (O-17).</td><td>Single ADR. Platform lead, Sprint 1.</td></tr>
+        <tr><td>6</td><td>Tokens held in memory for one run</td><td>Vault credential design is not decided (ADR-036, O-18).</td><td>Vault-backed storage once ADR-036 is accepted. Security architect.</td></tr>
+        <tr><td>7</td><td>Console API sits in <code>services/connectors</code></td><td>The gateway (C-12) does not exist yet.</td><td>Move the routes to <code>services/gateway</code> in Sprint 5.</td></tr>
+        <tr><td>8</td><td>A Postgres table for sync-run bookkeeping</td><td>Operational data, not facts. Needs confirmation that this is allowed under ADR-05.</td><td>Confirm, or move behind the fabric writer. Semantic architect.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">5</span>Decisions needed from you</h2>
+  <div class="card">
+    <ol class="decide" style="margin:0; padding-left:20px">
+      <li><b>Figma:</b> now blocked in the console and in the service until <code>USEP_INGESTION_FIGMA_DPIA_APPROVED=true</code> (ADR-025, O-05). Confirm who records that approval.</li>
+      <li><b>Graph and failures:</b> a configuration is <code>ready</code> only if every source the admin switched on was read; one failure of those means no graph. Keep this, or allow a partial graph with a visible warning? (Sources that were not switched on never count.)</li>
+      <li><b>Jira window:</b> approve adding the default 6-month window (row 4).</li>
+      <li><b>Library ADR:</b> who writes the single ADR confirming the framework set (row 5)?</li>
+      <li><b>Gmail-style UI:</b> does "like Gmail" mean matching how it works (search, labels with counts, bulk actions, shortcuts) or how it looks? Interaction parity is recommended.</li>
+    </ol>
+  </div>
+
+  <h2><span class="n">6</span>Status and housekeeping</h2>
+  <details open>
+    <summary>Verification <span class="tag t-ok">63 + 23 tests pass</span></summary>
+    <div><ul>
+      <li>Backend: 63 tests (models, sync service, console API, URL guard, connection check). UI: 23 tests (validation, form model, router, graph model).</li>
+      <li>The full flow ran in a browser against the real API: sign-in, Test connection, submit, status, graph. The source data was faked.</li>
+      <li><b>Not verified:</b> reading from real Jira, GitLab, Confluence or Figma. The ontology and evals checks from the &ldquo;before every push&rdquo; list were not run.</li>
+    </ul></div>
+  </details>
+  <details>
+    <summary>Where the code is <span class="tag t-warn">partly uncommitted</span></summary>
+    <div><ul>
+      <li>Connectors are committed once, on branch <code>ingestion-layer-connectors</code> (initial codebase). The committed config has no credentials.</li>
+      <li>The console API and the reworked UI are uncommitted in the working tree on <code>ontology-ui-graphify</code>.</li>
+      <li>Still to do per the standards: a build record, Jira-key branch and commit names, and a pull request using the template.</li>
+    </ul></div>
+  </details>
+  <details>
+    <summary>Not built yet <span class="tag t-info">out of scope for now</span></summary>
+    <div><ul>
+      <li>Normalising and chunking, embeddings, retrieval and the Ask tab (modules 3 to 5).</li>
+      <li>Delivery metrics, ontology and token-consumption views in the UI; Azure DevOps and S3 source configuration.</li>
+      <li>Persisting documents to Postgres and Neo4j; durable audit; SSO instead of the single admin.</li>
+    </ul></div>
+  </details>
+
+  <p class="muted small" style="margin-top:28px">Section references come from the repository&rsquo;s architecture reference, decisions register and open items. The full HLD and LLD text was not available when this was written, so check section numbers against the source documents.</p>
+</div>
+</body>
+</html>

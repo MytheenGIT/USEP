@@ -11,8 +11,8 @@ async def test_one_job_per_source_and_scope(cursor_manager, raw_payload_writer, 
     service = SyncService(
         connectors={"jira": FakeConnector(SourceType.JIRA, [], scopes=["project = A", "project = B"])},
         cursor_manager=cursor_manager,
-        raw_payload_writer=raw_payload_writer,
-        audit_writer=audit_writer,
+        writer_factory=lambda _run_id, _audit: raw_payload_writer,
+        audit_writer_factory=lambda _run_id: audit_writer,
     )
     scheduler = IngestionScheduler(service, SchedulerSettings(jira_interval_minutes=15))
     scheduler.start()
@@ -28,8 +28,8 @@ async def test_scope_interval_override(cursor_manager, raw_payload_writer, audit
     service = SyncService(
         connectors={"jira": FakeConnector(SourceType.JIRA, [], scopes=["project = A", "project = B"])},
         cursor_manager=cursor_manager,
-        raw_payload_writer=raw_payload_writer,
-        audit_writer=audit_writer,
+        writer_factory=lambda _run_id, _audit: raw_payload_writer,
+        audit_writer_factory=lambda _run_id: audit_writer,
     )
     settings = SchedulerSettings(jira_interval_minutes=30, scope_interval_minutes={"jira:project = A": 5})
     scheduler = IngestionScheduler(service, settings)

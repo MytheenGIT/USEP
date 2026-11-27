@@ -1,17 +1,18 @@
-"""The raw payload writer. Matches the connectors branch's `RawPayloadWriter`
-Protocol exactly: `write(source, source_object_id, raw_payload) -> str`.
+"""The raw payload writer: `write(source, source_object_id, raw_payload) -> WriteResult`.
 
-That three-argument signature has no room for `object_type`, `scope_id`, or
+The three-argument signature has no room for `object_type`, `scope_id`, or
 `checkpoint`, which the write algorithm needs (object-key format, the published
-event). Per agreed shape (option A, pending connector-owner confirmation — see
-docs/plans/ASSUMPTIONS.md), the caller passes them in `raw_payload["_usep"]`:
-`{"object_type": str, "scope_id": str, "checkpoint": str}`. This key is stripped
+event). The caller passes them in `raw_payload["_usep"]`:
+`{"object_type": str, "scope_id": str, "checkpoint": str}`, plus optional `source_version`,
+`extracted_at` and `acl` (the source's permission attributes), which go on the published event
+and not into the stored object. This key is stripped
 before canonicalizing/hashing, so a metadata-only change never bumps the content
 hash. `tenant_id` and `run_id` are bound at construction, not passed per call.
 """
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -29,6 +30,7 @@ from usep.ingestion.ports.quarantine import QuarantinePort
 from usep.ingestion.ports.raw_index import RawIndexPort
 from usep.ingestion.raw.crypto import encrypt, generate_data_key, pack
 from usep.ingestion.sensitive.detector import detect as _default_detect
+from usep.ingestion.sensitive.detector import payload_text
 
 SCHEMA_VERSION = "1.0"
 _ENVELOPE_KEY = "_usep"
@@ -49,7 +51,7 @@ class EnvelopeError(ValueError):
     """Raised when `raw_payload["_usep"]` is missing or incomplete."""
 
 
-def _extract_envelope(raw_payload: dict[str, Any]) -> tuple[dict[str, Any], str, str, str]:
+def _extract_envelope(raw_payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     envelope = raw_payload.get(_ENVELOPE_KEY)
     if not isinstance(envelope, dict):
         raise EnvelopeError(f"raw_payload is missing the {_ENVELOPE_KEY!r} envelope")
@@ -57,7 +59,7 @@ def _extract_envelope(raw_payload: dict[str, Any]) -> tuple[dict[str, Any], str,
     if missing:
         raise EnvelopeError(f"{_ENVELOPE_KEY!r} envelope is missing required field(s): {missing}")
     stripped = {k: v for k, v in raw_payload.items() if k != _ENVELOPE_KEY}
-    return stripped, envelope["object_type"], envelope["scope_id"], envelope["checkpoint"]
+    return stripped, envelope
 
 
 class Outcome:
@@ -99,17 +101,17 @@ class RawPayloadWriter:
         self._run_id = run_id
         self._detect = detector
 
-    async def write(self, source: str, source_object_id: str, raw_payload: dict[str, Any]) -> str:
-        """Matches `RawPayloadWriter` exactly: always returns a string, never
-        raises for a content- or storage-level failure (one object's failure
+    async def write(self, source: str, source_object_id: str, raw_payload: dict[str, Any]) -> WriteResult:
+        """Returns a `WriteResult` (written, skipped_unchanged, quarantined or failed);
+        never raises for a content- or storage-level failure (one object's failure
         never fails the run) — only `EnvelopeError` is raised, for a caller
         contract violation (`_usep` missing/incomplete), not a data-quality one.
-        On quarantine or internal failure, returns a `quarantined://`/`failed://`
-        sentinel reference rather than the real object key.
+        The caller must treat `failed` as unresolved and not move its cursor past it
+        (LLD Table 1: checkpoint only after publish is acknowledged).
         """
         now = self._clock.now()
         try:
-            stripped, object_type, scope_id, checkpoint = _extract_envelope(raw_payload)
+            stripped, envelope = _extract_envelope(raw_payload)
         except EnvelopeError:
             await self._audit.record(
                 AuditEvent(
@@ -127,26 +129,26 @@ class RawPayloadWriter:
                 now=now,
                 source=source,
                 object_id=source_object_id,
-                object_type=object_type,
-                scope_id=scope_id,
-                checkpoint=checkpoint,
+                object_type=envelope["object_type"],
+                scope_id=envelope["scope_id"],
+                checkpoint=envelope["checkpoint"],
                 raw_payload=stripped,
+                envelope=envelope,
             )
         except Exception as exc:  # noqa: BLE001 - one object's failure never fails the run
-            await self._audit.record(
-                AuditEvent(
-                    source=source,
-                    action="object.failed",
-                    status="failed",
-                    at=now,
-                    details={"object_id": source_object_id, "exception_type": type(exc).__name__},
+            with contextlib.suppress(Exception):  # a broken audit sink must not hide the failure itself
+                await self._audit.record(
+                    AuditEvent(
+                        source=source,
+                        action="object.failed",
+                        status="failed",
+                        at=now,
+                        details={"object_id": source_object_id, "exception_type": type(exc).__name__},
+                    )
                 )
-            )
-            return f"failed://{type(exc).__name__}"
+            return WriteResult(Outcome.FAILED, reason=type(exc).__name__)
 
-        if result.outcome == Outcome.QUARANTINED:
-            return f"quarantined://{result.reason}"
-        return result.object_key or ""
+        return result
 
     async def _write(
         self,
@@ -158,6 +160,7 @@ class RawPayloadWriter:
         scope_id: str,
         checkpoint: str,
         raw_payload: dict[str, Any],
+        envelope: dict[str, Any],
     ) -> WriteResult:
         tenant_id = self._tenant_id
         run_id = self._run_id
@@ -187,7 +190,7 @@ class RawPayloadWriter:
         digest = content_hash(canonical)
 
         # Step 3: sensitive scan before any write or publish.
-        detection = self._detect(canonical.decode("utf-8", errors="replace"))
+        detection = self._detect(payload_text(raw_payload))
         if detection.matched:
             reason_code = "Q-PII" if "Q-PII" in detection.counts else "Q-SECRET"
             await self._quarantine.quarantine(
@@ -225,16 +228,15 @@ class RawPayloadWriter:
 
         key = object_key(tenant_id, source, scope_id, object_type, object_id, digest)
 
+        aad = key.encode("utf-8") + str(tenant_id).encode("utf-8")
+        just_inserted = False
         if ref is None:
-            # Step 5: generate a data key, encrypt, wrap.
+            # Step 5: generate a data key and wrap it. The index row is written FIRST and holds the
+            # wrapped key, so the key an object was encrypted with can never be lost or overwritten
+            # by a crash or by a second writer racing on the same object.
             data_key = generate_data_key()
-            aad = key.encode("utf-8") + str(tenant_id).encode("utf-8")
-            encrypted = encrypt(canonical, data_key, aad=aad)
             wrapped_dek, kek_id = await self._key_store.wrap(tenant_id, data_key)
-
-            # Step 6: put the ciphertext, insert the index row.
-            await self._object_store.put(key, pack(encrypted))
-            ref = RawObjectRef(
+            new_ref = RawObjectRef(
                 tenant_id=tenant_id,
                 source=source,
                 object_type=object_type,
@@ -249,7 +251,20 @@ class RawPayloadWriter:
                 wrapped_dek=wrapped_dek,
                 kek_id=kek_id,
             )
-            await self._raw_index.insert_if_absent(ref)
+            just_inserted = await self._raw_index.insert_if_absent(new_ref)
+            if just_inserted:
+                ref = new_ref
+            else:  # another writer got there first: use its row and its key
+                ref = await self._raw_index.find(tenant_id, source, object_type, object_id, digest)
+        if ref is None or ref.wrapped_dek is None:
+            raise RuntimeError("raw object was erased or its index row is missing")
+        if not just_inserted:
+            data_key = await self._key_store.unwrap(tenant_id, ref.wrapped_dek, ref.kek_id)
+
+        # Step 6: put the ciphertext, unless it is already there (a retry after a crash, or a racing
+        # writer). Any writer encrypts with the key in the index row, so every copy decrypts.
+        if just_inserted or not await self._object_store.exists(key):
+            await self._object_store.put(key, pack(encrypt(canonical, data_key, aad=aad)))
 
         # Step 7: publish the reference-only event. event_id is deterministic, so a
         # retried publish after a lost ack reuses the same idempotency key.
@@ -265,6 +280,9 @@ class RawPayloadWriter:
             content_hash=digest,
             run_id=run_id,
             checkpoint=checkpoint,
+            source_version=envelope.get("source_version"),
+            extracted_at=envelope.get("extracted_at"),
+            source_acl=envelope.get("acl") or {},
         )
         await self._event_bus.publish_raw(event)
         await self._raw_index.mark_published(ref)

@@ -51,9 +51,16 @@ class _Bucket:
             candidates.append(max((self.penalized_until - now).total_seconds(), 0.0))
         return max(candidates)
 
-    def consume(self, now: datetime) -> None:
-        self._refill(now)
-        self.tokens = max(self.tokens - 1, 0.0)
+    def reserve(self, now: datetime) -> float:
+        """Take one token now and return how long the caller must wait before using it.
+        The balance may go negative, so callers that arrive together queue up one after
+        another instead of all waking at once and sending a burst."""
+        wait = self.wait_seconds(now)
+        self.tokens -= 1
+        if self.tokens < 0:
+            deficit = -self.tokens / self.rate_per_second if self.rate_per_second > 0 else float("inf")
+            wait = max(wait, deficit)
+        return wait
 
 
 class RateLimiter:
@@ -86,6 +93,9 @@ class RateLimiter:
             backfill_rate, backfill_capacity, backfill_capacity, now
         )
 
+    def is_configured(self, key: RateLimitKey) -> bool:
+        return key in self._buckets
+
     def _bucket(self, key: RateLimitKey) -> _Bucket:
         if key not in self._buckets:
             # Conservative default (1 req/s) for an unconfigured key, so a caller that
@@ -100,11 +110,9 @@ class RateLimiter:
     async def acquire(self, key: RateLimitKey) -> float:
         """Wait for a token and any active penalty to expire, then consume one.
         Returns the number of seconds actually slept (0 if none)."""
-        bucket = self._bucket(key)
-        wait = bucket.wait_seconds(self._clock.now())
+        wait = self._bucket(key).reserve(self._clock.now())
         if wait > 0:
             await asyncio.sleep(wait)
-        bucket.consume(self._clock.now())
         return wait
 
     def penalize(self, key: RateLimitKey, duration_seconds: float) -> None:

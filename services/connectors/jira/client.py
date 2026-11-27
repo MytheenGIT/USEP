@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from common.client_base import BaseAPIClient
+from common.client_base import BaseAPIClient, ClientRuntime
 
 DEFAULT_FIELDS = [
     "summary",
@@ -37,10 +37,11 @@ class JiraClient(BaseAPIClient):
         api_token: str,
         timeout: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
+        runtime: ClientRuntime | None = None,
     ) -> None:
         token = base64.b64encode(f"{email}:{api_token}".encode()).decode()
         headers = {"Authorization": f"Basic {token}", "Accept": "application/json"}
-        super().__init__(base_url=base_url, headers=headers, timeout=timeout, transport=transport)
+        super().__init__(base_url=base_url, headers=headers, timeout=timeout, transport=transport, runtime=runtime)
 
     async def get_myself(self) -> dict[str, Any]:
         """The API user; its ``timeZone`` is the zone JQL date literals are read in."""

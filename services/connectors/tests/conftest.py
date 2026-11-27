@@ -6,8 +6,8 @@ import pytest
 
 from common.connector_base import ObjectError, ScopeFetch
 from common.interfaces.audit_writer import AuditEvent, AuditWriter
-from common.interfaces.cursor_manager import InMemoryCursorManager
-from common.interfaces.raw_payload_writer import NullRawPayloadWriter
+from usep.ingestion.cursor.manager import CursorManager
+from usep.ingestion.raw.writer import Outcome, WriteResult
 from common.source_document import SourceDocument, SourceType
 
 
@@ -65,16 +65,53 @@ def make_source_document(
     )
 
 
-@pytest.fixture
-def cursor_manager() -> InMemoryCursorManager:
-    return InMemoryCursorManager()
+class InMemoryCursorStore:
+    def __init__(self) -> None:
+        self.values: dict[str, str] = {}
+
+    async def get_cursor(self, source: str) -> str | None:
+        return self.values.get(source)
+
+    async def set_cursor(self, source: str, cursor: str) -> None:
+        self.values[source] = cursor
+
+
+class RecordingWriter:
+    """Stands in for the foundation's RawPayloadWriter: records calls, returns a chosen outcome."""
+
+    def __init__(self, outcome: str = Outcome.WRITTEN) -> None:
+        self.outcome = outcome
+        self.calls: list[tuple[str, str, dict]] = []
+
+    async def write(self, source: str, source_object_id: str, raw_payload: dict) -> WriteResult:
+        self.calls.append((source, source_object_id, raw_payload))
+        return WriteResult(self.outcome, object_key=f"raw/{source}/{source_object_id}", reason="test")
 
 
 @pytest.fixture
-def raw_payload_writer() -> NullRawPayloadWriter:
-    return NullRawPayloadWriter()
+def cursor_store() -> InMemoryCursorStore:
+    return InMemoryCursorStore()
+
+
+@pytest.fixture
+def cursor_manager(cursor_store: InMemoryCursorStore) -> CursorManager:
+    return CursorManager(cursor_store, overlap_seconds=0)
+
+
+@pytest.fixture
+def raw_payload_writer() -> RecordingWriter:
+    return RecordingWriter()
 
 
 @pytest.fixture
 def audit_writer() -> RecordingAuditWriter:
     return RecordingAuditWriter()
+
+
+@pytest.fixture(autouse=True)
+def _no_ingestion_settings_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A developer's real USEP_INGESTION_* variables must not change what the tests see."""
+    import os
+
+    for name in [n for n in os.environ if n.startswith("USEP_INGESTION_")]:
+        monkeypatch.delenv(name)

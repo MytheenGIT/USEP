@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from common.client_base import BaseAPIClient
+from common.client_base import BaseAPIClient, ClientRuntime
 
 EXPORT_BATCH = 50
 
@@ -18,8 +18,9 @@ class FigmaClient(BaseAPIClient):
         access_token: str,
         timeout: float = 60.0,
         transport: httpx.AsyncBaseTransport | None = None,
+        runtime: ClientRuntime | None = None,
     ) -> None:
-        super().__init__(base_url=base_url, headers={"X-Figma-Token": access_token}, timeout=timeout, transport=transport)
+        super().__init__(base_url=base_url, headers={"X-Figma-Token": access_token}, timeout=timeout, transport=transport, runtime=runtime)
 
     async def get_file(self, file_key: str, depth: int | None = None) -> dict[str, Any]:
         """Document tree. ``depth=1`` returns only file metadata and the page list (cheap change check)."""

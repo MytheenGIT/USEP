@@ -30,8 +30,10 @@ SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
 }
 
 # ---- personal data (Q-PII) ---------------------------------------------------------
-CARD_CANDIDATE_RE = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
-AADHAAR_CANDIDATE_RE = re.compile(r"(?<!\d)[2-9]\d{11}(?!\d)")
+# Not preceded by a digit or "digit." and not followed by ".digit": long decimals such as
+# 0.6431372549019608 are not card or Aadhaar numbers.
+CARD_CANDIDATE_RE = re.compile(r"(?<!\d)(?<!\d\.)(?:\d[ -]?){13,19}(?!\d)(?!\.\d)")
+AADHAAR_CANDIDATE_RE = re.compile(r"(?<!\d)(?<!\d\.)[2-9]\d{11}(?!\d)(?!\.\d)")
 PAN_RE = re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b")
 SSN_CANDIDATE_RE = re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
 

@@ -98,3 +98,29 @@ def test_result_never_carries_the_matched_text() -> None:
     for value in result.counts.values():
         assert isinstance(value, int)
     assert FAKE_GITLAB_PAT not in repr(result)
+
+
+def test_payload_text_skips_numbers_and_keys() -> None:
+    from usep.ingestion.sensitive.detector import payload_text
+
+    payload = {"r": 0.6431372549019608, "ts": 1764158400000, "name": "Frame", "tags": ["a", {"b": "c"}]}
+    assert payload_text(payload).split("\n") == ["Frame", "a", "c"]
+
+
+def test_figma_style_decimals_and_timestamps_are_not_personal_data() -> None:
+    import json
+    import random
+
+    from usep.ingestion.sensitive.detector import payload_text
+
+    rng = random.Random(1)
+    doc = {"children": [{"r": rng.random(), "g": rng.random(), "t": 1764158400000 + i} for i in range(300)]}
+    assert not detect(payload_text(doc)).matched
+    # Even as text, a decimal fraction is not read as a card or Aadhaar number.
+    assert not detect(json.dumps([{"r": rng.random()} for _ in range(300)])).matched
+
+
+def test_card_number_inside_a_string_value_is_still_found() -> None:
+    from usep.ingestion.sensitive.detector import payload_text
+
+    assert detect(payload_text({"description": f"pay with {TEST_VISA_CARD}."})).counts == {"Q-PII": 1}

@@ -1,4 +1,8 @@
-"""GitLab connector: one scope per configured repository.
+"""GitLab connector: one scope per repository.
+
+The admin can list repositories, ask for every repository the token's user is a member of, or both.
+Discovered repositories are scopes by numeric project id (a rename does not change it) and are
+refreshed by ``refresh_scopes``; one that is also listed explicitly is not read twice.
 
 A scope can be a numeric project id, a ``group/project`` path or a
 repository URL. Every list (MRs, commits, notes, diffs) is paged to the
@@ -14,11 +18,18 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
 
-from common.connector_base import ObjectError, ScopeFetch
+import structlog
+
+from common.client_base import error_detail
+from common.connector_base import ObjectError, ScopeCheck, ScopeFetch, SourceCheck
+from common.scopes import repo_path_from_link
 from common.source_document import SourceType
 from common.timeutil import to_utc_iso
 from gitlab.client import GitLabClient
 from gitlab.models import GitLabApproval, GitLabCommit, GitLabDiff, GitLabDocument, GitLabNote
+
+
+logger = structlog.get_logger(__name__)
 
 
 def project_ref_from_scope(scope: str) -> str:
@@ -26,27 +37,66 @@ def project_ref_from_scope(scope: str) -> str:
     value = scope.strip()
     if value.isdigit():
         return value
-    if "://" in value:
-        value = urlparse(value).path
-    value = value.strip("/")
-    value = value.split("/-/", 1)[0]
-    if value.endswith(".git"):
-        value = value[:-4]
-    return value
+    return repo_path_from_link(value)
 
 
 class GitLabConnector:
     source = SourceType.GITLAB
 
-    def __init__(self, client: GitLabClient, project_ids: list[str], page_size: int = 100, mr_concurrency: int = 4) -> None:
+    def __init__(
+        self,
+        client: GitLabClient,
+        project_ids: list[str],
+        page_size: int = 100,
+        mr_concurrency: int = 4,
+        all_member_projects: bool = False,
+        max_member_projects: int = 500,
+    ) -> None:
         self._client = client
-        self._scopes = [p for p in project_ids if str(p).strip()]
+        self._explicit = list(dict.fromkeys(str(p).strip() for p in project_ids if str(p).strip()))
         self._page_size = page_size
         self._mr_concurrency = max(1, mr_concurrency)
+        self._all_member_projects = all_member_projects
+        self._max_member_projects = max_member_projects
+        self._discovered: list[str] = []
 
     @property
     def scopes(self) -> list[str]:
-        return list(self._scopes)
+        return [*self._explicit, *self._discovered]
+
+    async def refresh_scopes(self) -> None:
+        """Find every project the token's user is a member of. A failure keeps the previous list."""
+        if not self._all_member_projects:
+            return
+        projects = await self._client.list_member_projects(self._max_member_projects)
+        listed = {project_ref_from_scope(s).lower() for s in self._explicit}
+        self._discovered = [
+            str(p["id"])
+            for p in projects
+            if str(p["id"]) not in listed and str(p.get("path_with_namespace", "")).lower() not in listed
+        ]
+        if len(projects) >= self._max_member_projects:
+            logger.warning("gitlab.member_projects_truncated", limit=self._max_member_projects)
+        logger.info("gitlab.member_projects", discovered=len(self._discovered), listed=len(self._explicit))
+
+    async def check(self) -> SourceCheck:
+        """The token works, then every listed repository can be opened. Discovered ones are only counted:
+        the token's membership list is what produced them, and opening each of up to hundreds would be a lot of calls."""
+        try:
+            await self._client.get_current_user()
+            await self.refresh_scopes()
+        except Exception as exc:  # noqa: BLE001
+            return SourceCheck(ok=False, detail=f"cannot use the token: {error_detail(exc)}")
+        results = []
+        for scope in self._explicit:
+            try:
+                project = await self._client.get_project(project_ref_from_scope(scope))
+                results.append(ScopeCheck(scope=scope, ok=True, detail=project.get("path_with_namespace", "found")))
+            except Exception as exc:  # noqa: BLE001
+                results.append(ScopeCheck(scope=scope, ok=False, detail=error_detail(exc)))
+        ok = all(r.ok for r in results)
+        found = f"{len(self._discovered)} more found from membership" if self._all_member_projects else "signed in"
+        return SourceCheck(ok=ok, detail=found, scopes=results)
 
     def _normalize_mr(
         self,
