@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from usep.ontology.export import to_dto
-from usep.ontology_runtime import load_ontology, resolve_pins
+from usep.ontology import load_ontology, resolve_pins
 
 ROOT = Path(__file__).resolve().parents[1] / "ontology"
 PACKS = ["industry.banking-reference", "org.org-reference", "app.app-reference", "project.project-reference"]

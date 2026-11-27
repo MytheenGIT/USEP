@@ -11,7 +11,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from usep.ontology_runtime.model import OntologyBundle
+from usep.ontology.model import OntologyBundle
 from usep.registry.client import PINS, RELEASES, RegistryClient
 from usep.registry.errors import RegistryError
 from usep.registry.release import Release, canonical

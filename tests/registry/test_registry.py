@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 from tests.fake_s3 import FakeS3
 from usep.core.errors import OntologyLoadError
-from usep.ontology_runtime import load_ontology, resolve_pins
+from usep.ontology import load_ontology, resolve_pins
 from usep.registry import Ed25519Signer, KmsSigner, Registry, RegistryClient, RegistryError, TrustStore
 from usep.registry.release import all_pack_ids, build_core_release, build_pack_release, canonical
 from usep.registry.signing import ECDSA, TrustedKey, sign_body

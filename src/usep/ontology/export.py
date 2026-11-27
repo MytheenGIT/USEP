@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from usep.ontology_runtime.model import OntologyBundle
+from usep.ontology.model import OntologyBundle
 
 
 def to_dto(b: OntologyBundle) -> dict[str, Any]:

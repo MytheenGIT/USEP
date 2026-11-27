@@ -11,7 +11,7 @@ from tests.registry.test_registry import PINS, publish_all, trust_for
 from usep.adapters.aws_lambda import pipeline_handler as ph
 from usep.adapters.s3.event_bus import S3EventBus
 from usep.core.errors import PipelineError
-from usep.ontology_runtime.events import publish_release, register_schemas
+from usep.ontology.events import publish_release, register_schemas
 from usep.pipeline.topics import register_schemas as register_topics
 from usep.ports.event_bus import SchemaRegistry
 from usep.registry import Ed25519Signer, Registry

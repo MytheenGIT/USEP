@@ -92,7 +92,7 @@ def main():
             if a.announce_bucket:
                 import boto3
                 from usep.adapters.s3.event_bus import S3EventBus
-                from usep.ontology_runtime.events import publish_release, register_schemas
+                from usep.ontology.events import publish_release, register_schemas
                 from usep.ports.event_bus import SchemaRegistry
                 sr = SchemaRegistry()
                 register_schemas(sr)

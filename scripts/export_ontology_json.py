@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from usep.ontology.export import to_dto  # noqa: E402
-from usep.ontology_runtime import load_ontology, resolve_pins  # noqa: E402
+from usep.ontology import load_ontology, resolve_pins  # noqa: E402
 
 PACKS = ["industry.banking-reference", "org.org-reference", "app.app-reference", "project.project-reference"]
 out = Path(sys.argv[1])

@@ -84,7 +84,8 @@ def _forbidden(obj: Any, path: str = "") -> Iterable[str]:
 
 class _Loader:
     def __init__(self, root: Path, pins: Sequence[PackPin], allow_reference_only: bool, allow_unsigned: bool,
-                 supported_core: str | None):
+                 supported_core: str | None, signed_ids: Iterable[str] = ()):
+        self.signed_ids = frozenset(signed_ids)
         self.root = root.resolve()
         self.pins = list(pins)
         self.allow_reference_only = allow_reference_only
@@ -111,9 +112,10 @@ class _Loader:
         mf = self.read(pack_dir / "pack.yml", where)
         if mf.get("additive_only") is not True:
             self.bad(where, "additive_only must be true")
-        if mf.get("signed") is True and not mf.get("signature_ref"):
+        verified = mf.get("id") in self.signed_ids              # the registry checked a signature over these exact files
+        if mf.get("signed") is True and not mf.get("signature_ref") and not verified:
             self.bad(where, "signed pack has no signature_ref")
-        if mf.get("signed") is not True and not self.allow_unsigned:
+        if mf.get("signed") is not True and not verified and not self.allow_unsigned:
             self.bad(where, "pack is unsigned and unsigned packs are not allowed")
         if mf.get("status") not in {"draft", "candidate", "published"}:
             self.bad(where, f"unknown status {mf.get('status')!r}")
@@ -121,7 +123,7 @@ class _Loader:
 
     def info(self, mf: dict) -> PackInfo:
         return PackInfo(id=mf.get("id", "?"), level=mf.get("level", "?"), version=str(mf.get("version", "")),
-                        status=mf.get("status", "?"), signed=mf.get("signed") is True,
+                        status=mf.get("status", "?"), signed=mf.get("signed") is True or mf.get("id") in self.signed_ids,
                         reference_only=mf.get("reference_only") is True)
 
     def vocab_values(self, items: list) -> tuple:
@@ -221,10 +223,14 @@ def _as_tuple(v: Any) -> tuple:
 
 
 def load_ontology(root: str | Path, pins: Sequence[PackPin | str] = (), *, allow_reference_only: bool = False,
-                  allow_unsigned: bool = True, supported_core: str | None = None) -> OntologyBundle:
-    """Load the core and exactly the pinned packs. Raises OntologyLoadError with every problem found."""
+                  allow_unsigned: bool = True, supported_core: str | None = None,
+                  signed_ids: Iterable[str] = ()) -> OntologyBundle:
+    """Load the core and exactly the pinned packs. Raises OntologyLoadError with every problem found.
+
+    `signed_ids` names the packs (and the core, id `core`) whose signature the registry client has verified over the files
+    in `root`; only the registry client passes it. A Git checkout never has verified packs."""
     L = _Loader(Path(root), [p if isinstance(p, PackPin) else PackPin.parse(p) for p in pins],
-                allow_reference_only, allow_unsigned, supported_core)
+                allow_reference_only, allow_unsigned, supported_core, signed_ids)
     mf, common, vocab_raw, domains, concepts_raw, rels_raw, policies_raw = L.load_core()
     core_version = str(mf.get("version", ""))
     core_info = L.info(mf)

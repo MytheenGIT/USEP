@@ -15,8 +15,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from usep.ontology_runtime.loader import PackPin, load_ontology, satisfies
-from usep.ontology_runtime.model import OntologyBundle
+from usep.ontology.loader import PackPin, load_ontology, satisfies
+from usep.ontology.model import OntologyBundle
 from usep.registry.errors import RegistryError
 from usep.registry.release import canonical, check_body_against_bundle, sha256
 from usep.registry.signing import TrustStore
