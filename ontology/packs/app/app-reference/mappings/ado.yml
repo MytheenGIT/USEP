@@ -1,0 +1,14 @@
+# Azure DevOps work items. Pull requests use the git mapping (source_system git). Rules are proposals (P).
+# Type names are lower-cased by the parser. Backlog types differ by process template (Agile, Scrum, CMMI, Basic).
+source_system: ado
+mappings:
+  - source_object: work_item
+    when: {work_item_type: [epic, feature, user story, product backlog item, requirement]}
+    entity: Requirement
+    fields: {name: work_item.title, source_id: work_item.id}
+  - source_object: work_item
+    when: {work_item_type: [task, bug, issue, change request]}
+    entity: Change
+    fields: {name: work_item.title, source_id: work_item.id}
+unmapped_policy: "A work item type with no mapping goes to quarantine with reason code 'unmapped type'. It is never dropped."
+permissions: "Area and project permissions are not harvested yet. acl_state stays unknown, which means owners only."

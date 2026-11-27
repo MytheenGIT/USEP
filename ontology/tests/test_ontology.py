@@ -272,3 +272,39 @@ def test_template_unknown_label_fails(tmp_path):
     def m(t):
         t["steps"][1]["cypher"] = t["steps"][1]["cypher"].replace("(t:Team", "(t:Spaceship")
     assert any("unknown node label" in e for e in template_errors(tmp_path, m))
+
+
+# ---- application-pack relationships (references, documents) and the workflow tables ----
+def _typed(data, name, cls):
+    data.add((EX[name], RDF.type, USEP[cls]))
+    return EX[name]
+
+
+@pytest.mark.parametrize("rel,frm,to,bad", [
+    ("references", "Change", "Change", False), ("references", "Decision", "Incident", False),
+    ("references", "Person", "Change", True), ("references", "Change", "Person", True),
+    ("documents", "Decision", "Service", False), ("documents", "Service", "Service", True),
+    ("documents", "Decision", "Team", True),
+])
+def test_pack_relationship_endpoints(data, shapes, rel, frm, to, bad):
+    a, b = _typed(data, "x-from", frm), _typed(data, "x-to", to)
+    data.add((a, USEP[rel], b))
+    _, text = co.conforms(data, shapes)
+    assert (rel in text) == bad                      # the new nodes are incomplete on purpose; only this rule is in question
+
+
+def test_every_pack_relationship_has_endpoint_shapes():
+    rep = co.Report()
+    co.check_shapes(rep, co.check_core(co.Report()))
+    assert rep.errors == []
+
+
+def test_workflow_table_mapping_outside_its_vocabulary_fails(tmp_path):
+    errs = run_pack(tmp_path, level="project",
+                    workflow={"servicenow_incident_severity": [{"source_state": "1", "severity": "sev9"}]})
+    assert any("unknown severity" in e for e in errs)
+
+
+def test_unknown_workflow_table_fails(tmp_path):
+    errs = run_pack(tmp_path, level="project", workflow={"jira_typo_table": [{"source_state": "x", "status": "open"}]})
+    assert any("unknown workflow table" in e for e in errs)

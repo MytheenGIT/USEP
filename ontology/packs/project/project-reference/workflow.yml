@@ -12,3 +12,61 @@ requirement_status:
   - {source_state: "Open",         status: draft}
   - {source_state: "Approved",     status: approved}
   - {source_state: "Closed",       status: implemented}
+# Merge request states to change_state (proposal P, added with the GitLab connector). Core GitLab MR states are
+# opened, closed, locked, merged; a squad replaces these with its own meaning of "released".
+pull_request_workflow:
+  - {source_state: "opened",       change_state: in_review}
+  - {source_state: "merged",       change_state: released}
+  - {source_state: "closed",       change_state: rejected}
+
+# ---- Added with the Jira incident, ServiceNow, ADO and GitHub connectors. All proposals (P): a squad replaces them.
+# Jira issues of type incident: priority name to severity, workflow state to incident_status.
+jira_incident_severity:
+  - {source_state: "Highest", severity: sev1}
+  - {source_state: "High",    severity: sev2}
+  - {source_state: "Medium",  severity: sev3}
+  - {source_state: "Low",     severity: sev4}
+  - {source_state: "Lowest",  severity: sev4}
+jira_incident_status:
+  - {source_state: "To Do",       status: open}
+  - {source_state: "In Progress", status: mitigated}
+  - {source_state: "Done",        status: resolved}
+# ServiceNow stores codes. These are the out-of-the-box codes; an instance that customised them must override this.
+servicenow_incident_severity:      # from incident.priority
+  - {source_state: "1", severity: sev1}
+  - {source_state: "2", severity: sev2}
+  - {source_state: "3", severity: sev3}
+  - {source_state: "4", severity: sev4}
+  - {source_state: "5", severity: sev4}
+servicenow_incident_status:        # from incident.state: 1 New, 2 In Progress, 3 On Hold, 6 Resolved, 7 Closed
+  - {source_state: "1", status: open}
+  - {source_state: "2", status: open}
+  - {source_state: "3", status: open}
+  - {source_state: "6", status: resolved}
+  - {source_state: "7", status: closed}
+servicenow_change_workflow:        # from change_request.state: -5 New, -4 Assess, -3 Authorize, -2 Scheduled, -1 Implement, 0 Review, 3 Closed, 4 Canceled
+  - {source_state: "-5", change_state: proposed}
+  - {source_state: "-4", change_state: in_review}
+  - {source_state: "-3", change_state: in_review}
+  - {source_state: "-2", change_state: approved}
+  - {source_state: "-1", change_state: in_progress}
+  - {source_state: "0",  change_state: in_review}
+  - {source_state: "3",  change_state: released}
+  - {source_state: "4",  change_state: rejected}
+# Azure DevOps process states (Agile, Scrum and Basic names together).
+ado_workitem_workflow:
+  - {source_state: "New",      change_state: proposed}
+  - {source_state: "To Do",    change_state: proposed}
+  - {source_state: "Active",   change_state: in_progress}
+  - {source_state: "Doing",    change_state: in_progress}
+  - {source_state: "Resolved", change_state: in_review}
+  - {source_state: "Closed",   change_state: released}
+  - {source_state: "Done",     change_state: released}
+  - {source_state: "Removed",  change_state: rejected}
+ado_requirement_status:
+  - {source_state: "New",      status: draft}
+  - {source_state: "Active",   status: approved}
+  - {source_state: "Resolved", status: implemented}
+  - {source_state: "Closed",   status: implemented}
+  - {source_state: "Done",     status: implemented}
+  - {source_state: "Removed",  status: withdrawn}

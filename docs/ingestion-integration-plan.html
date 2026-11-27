@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingestion framework: gap analysis and integration plan</title>
+<style>
+  :root { --bg:#f4f6fa; --surface:#fff; --text:#0f172a; --muted:#526071; --border:#e2e8f0; --accent:#2554d8; --accent-soft:#e8eefc;
+    --ok:#166534; --ok-soft:#dcfce7; --warn:#92400e; --warn-soft:#fef3c7; --bad:#b42318; --bad-soft:#fee4e2; --code:#f1f5f9; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0b1017; --surface:#131a23; --text:#e6ebf2; --muted:#9aa8b8; --border:#263241; --accent:#7aa2ff; --accent-soft:#1b2a4a;
+    --ok:#86efac; --ok-soft:#14301f; --warn:#fcd34d; --warn-soft:#3a2a0c; --bad:#fca5a5; --bad-soft:#3b1714; --code:#0f151d; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 24px 72px; }
+  h1 { font-size:1.7rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 { font-size:1.15rem; margin:38px 0 12px; display:flex; gap:10px; align-items:center; }
+  h2 .n { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--surface); font-size:13px; font-weight:700; flex:none; }
+  h3 { font-size:1rem; margin:0 0 6px; }
+  p { margin:0 0 10px; } .muted { color:var(--muted); } .small { font-size:13px; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px; }
+  .grid4 { display:grid; gap:14px; grid-template-columns:repeat(4,1fr); } .grid3 { display:grid; gap:14px; grid-template-columns:repeat(3,1fr); } .grid2 { display:grid; gap:14px; grid-template-columns:1fr 1fr; }
+  @media (max-width:860px) { .grid4,.grid3,.grid2 { grid-template-columns:1fr 1fr; } } @media (max-width:560px) { .grid4,.grid3,.grid2 { grid-template-columns:1fr; } }
+  .stat .k { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .stat .v { font-size:1.25rem; font-weight:700; margin:2px 0; } .stat .d { font-size:13px; color:var(--muted); }
+  .tag { display:inline-block; padding:1px 9px; border-radius:99px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .t-ok { background:var(--ok-soft); color:var(--ok); } .t-warn { background:var(--warn-soft); color:var(--warn); } .t-bad { background:var(--bad-soft); color:var(--bad); } .t-info { background:var(--accent-soft); color:var(--accent); }
+  .verdict { border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:8px; padding:14px 18px; font-size:15px; }
+  .verdict b { color:var(--accent); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { text-align:left; vertical-align:top; padding:9px 12px; border-bottom:1px solid var(--border); }
+  th { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  tr:last-child td { border-bottom:0; } td:first-child { font-weight:600; }
+  code { font:12.5px ui-monospace,Menlo,Consolas,monospace; background:var(--code); padding:1px 6px; border-radius:5px; }
+  pre { margin:0; background:var(--code); border:1px solid var(--border); border-radius:10px; padding:14px 16px; overflow:auto; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+  pre .c { color:var(--muted); }
+  details { border:1px solid var(--border); border-radius:10px; background:var(--surface); margin-bottom:10px; }
+  summary { cursor:pointer; padding:12px 16px; font-weight:600; list-style:none; display:flex; gap:10px; align-items:center; }
+  summary::-webkit-details-marker { display:none; } summary::before { content:"\25B8"; color:var(--muted); } details[open] summary::before { content:"\25BE"; }
+  details > div { padding:0 16px 14px 16px; font-size:14px; }
+  ul { margin:6px 0 0; padding-left:20px; } li { margin-bottom:4px; }
+  .layers { display:grid; gap:12px; grid-template-columns:repeat(4,1fr); } @media (max-width:860px) { .layers { grid-template-columns:1fr 1fr; } }
+  .layer { border:1px solid var(--border); border-top:4px solid var(--accent); border-radius:10px; background:var(--surface); padding:12px 14px; font-size:13.5px; }
+  .layer h3 { font-size:.95rem; } .layer .own { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:22px; } @media (max-width:860px) { .flow { grid-template-columns:1fr 1fr; } .flow .box::after { display:none; } }
+  .flow .box { position:relative; border:1px solid var(--border); background:var(--surface); border-radius:10px; padding:10px 12px; font-size:13px; }
+  .flow .box b { display:block; font-size:14px; margin-bottom:2px; } .flow .box.gap { border-style:dashed; border-color:var(--bad); }
+  .flow .box:not(:last-child)::after { content:"\2192"; position:absolute; right:-18px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:16px; }
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:14px; } @media (max-width:860px) { .split { grid-template-columns:1fr; } }
+  .split h3 { display:flex; gap:8px; align-items:center; }
+  @media print { body { background:#fff; } details > div { display:block; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Ingestion framework: gap analysis and integration plan</h1>
+<div class="meta"><code>ingestion-layer-connectors</code> (connectors) + <code>feature/ingestion-foundation</code> (Prasanth) &middot; 26 Nov 2026 &middot; based on reading both branches' code, not on running them against live systems</div>
+
+<div class="verdict"><b>Bottom line:</b> the two branches do not conflict at the file level, and Prasanth's cursor, raw-writer and audit ports were written to match my interfaces, so a first end-to-end hookup is small. The real work is behind that: my connectors need a transport layer, per-source cursor handling and raw-object mapping, and the foundation needs a few contract changes (cursor scope and lane, writer outcomes, a connector contract, dev adapters). You are right that the connector side needs more changes, but three items on your list are not accurate (see section 9).</div>
+
+<div class="grid4" style="margin-top:18px">
+  <div class="card stat"><div class="k">File conflicts</div><div class="v"><span class="tag t-ok">None</span></div><div class="d">No file is changed on both branches since the merge base</div></div>
+  <div class="card stat"><div class="k">Interfaces that already match</div><div class="v">3 of 5</div><div class="d">Cursor store, raw writer and audit match. Config and secrets do not.</div></div>
+  <div class="card stat"><div class="k">Most urgent gap</div><div class="v"><span class="tag t-bad">Writer envelope</span></div><div class="d">The foundation writer rejects my payloads: it requires an <code>_usep</code> envelope my sync service never sends</div></div>
+  <div class="card stat"><div class="k">Effort (estimate)</div><div class="v">3&ndash;5 weeks</div><div class="d">Two people in parallel; 32&ndash;46 person-days in total (section 8)</div></div>
+</div>
+
+<h2><span class="n">1</span>How the connectors plug into the foundation</h2>
+<div class="card">
+  <div class="flow">
+    <div class="box"><b>Orchestrator</b>Picks scope and lane, asks the cursor manager where to start</div>
+    <div class="box"><b>Connector</b>Source calls, pagination, mapping to raw objects and documents</div>
+    <div class="box"><b>Runtime</b>Rate limit, retry, back-off, classify responses</div>
+    <div class="box"><b>Raw writer</b>Scan, hash, encrypt, store, publish a reference event</div>
+    <div class="box"><b>Cursor manager</b>Advances only after every object is resolved</div>
+  </div>
+  <p class="muted small" style="margin:10px 0 0">Every box except the connector exists in the foundation branch as code and ports. What is missing is the glue: the connector contract, the orchestrator that drives these steps, and real adapters behind the ports (only Vault exists).</p>
+</div>
+
+<h2><span class="n">2</span>What has to change in my connector branch</h2>
+<div class="card" style="padding:6px 8px">
+<table>
+<thead><tr><th style="width:17%">Area</th><th style="width:27%">Today (verified in code)</th><th>Required</th><th style="width:9%">Size</th></tr></thead>
+<tbody>
+<tr><td>Retries and rate limits</td><td>None. <code>BaseAPIClient.get_json</code> calls <code>raise_for_status()</code>, so one 429 or 5xx fails the whole sync.</td><td>Send every request through the foundation's <code>call_with_retry</code> with a rate-limit key and <code>RetryPolicy</code>. Needs an HTTP transport adapter that turns an httpx response into <code>SendOutcome</code>.</td><td><span class="tag t-warn">M</span></td></tr>
+<tr><td>Pagination</td><td>Mixed. Jira follows <code>nextPageToken</code>. Confluence loops by offset. <b>GitLab reads page 1 only</b> (50 merge requests), and commits, notes and diffs are unpaginated.</td><td>Use <code>paginate_cursor</code>, <code>paginate_offset</code> and <code>paginate_link_header</code>. This also fixes the GitLab truncation bug.</td><td><span class="tag t-warn">M</span></td></tr>
+<tr><td>Cursors</td><td>Each connector keeps the newest timestamp string as the cursor. Confluence and Figma fetch <b>everything</b> and filter client-side. The Jira cursor is pasted into JQL as <code>updated &gt;= '&lt;iso&gt;'</code>.</td><td>Take the start point from the foundation cursor manager (it applies the overlap). Add a per-source cursor codec: Jira needs JQL's <code>yyyy-MM-dd HH:mm</code> format (to be verified against Jira), GitLab takes ISO in <code>updated_after</code>, Confluence should filter server-side, Figma compares <code>lastModified</code>.</td><td><span class="tag t-bad">L</span></td></tr>
+<tr><td>Raw storage</td><td><code>SyncService</code> calls <code>write(source, id, raw_payload)</code> with no envelope. <code>JsonFileSink</code> writes whole documents to disk <b>unscanned and unencrypted</b>. GitLab's <code>raw_payload</code> is only the merge request; commits, notes, approvals and diffs sit in nested models.</td><td>Build the <code>_usep</code> envelope (<code>object_type</code>, <code>scope_id</code>, <code>checkpoint</code>). Emit one raw object per fetched API object (issue, comment page, changelog, commit...) so evidence is complete. Remove <code>JsonFileSink</code> from any non-dev path.</td><td><span class="tag t-bad">L</span></td></tr>
+<tr><td>Config and secrets</td><td><code>USEP_INGESTION_*</code> settings hold tokens as plain strings. The console API keeps typed tokens in memory.</td><td>Per-source <code>token_ref</code> (<code>env:</code> or <code>vault:</code>) resolved per call through <code>SecretResolverPort</code>, never cached. Console typed tokens must go through the same resolver (ADR-036) or stay clearly dev-only.</td><td><span class="tag t-warn">M</span></td></tr>
+<tr><td>Contract and models</td><td>Already has a <code>SourceConnector</code> Protocol and a <code>SourceDocument</code> base class with source-specific subclasses.</td><td>Extend the Protocol (scopes, batches, enumerate for reconciliation) and move the <code>SourceDocument</code> base into the foundation <code>domain</code> package.</td><td><span class="tag t-warn">M</span></td></tr>
+<tr><td>Reconciliation</td><td>None.</td><td>Add <code>enumerate(scope)</code> per source returning object id &rarr; version, which <code>reconcile_scope</code> needs for deletes and moved records.</td><td><span class="tag t-warn">M</span></td></tr>
+<tr><td>Orchestration</td><td><code>SyncService</code> fetches everything, then writes, then sets the cursor unconditionally. APScheduler runs one interval job per source. No lanes, no backfill window.</td><td>Rebuild on <code>CursorManager.start_batch / advance</code> (advance only after all outcomes resolve), live and backfill lanes, the 6-month default window as the first backfill, and the connector state machine. Keep APScheduler as the trigger.</td><td><span class="tag t-bad">L</span></td></tr>
+<tr><td>Packaging</td><td>Top-level modules named <code>gitlab</code>, <code>config</code>, <code>api</code>, <code>common</code>, <code>db</code>.</td><td>Move under <code>usep.ingestion.connectors.*</code>. A top-level <code>gitlab</code> package collides with the PyPI <code>python-gitlab</code> module name, and the foundation's import-linter rules need connectors inside the <code>usep</code> package.</td><td><span class="tag t-warn">M</span></td></tr>
+</tbody></table></div>
+
+<h2><span class="n">3</span>Duplicated functionality</h2>
+<div class="card" style="padding:6px 8px">
+<table>
+<thead><tr><th style="width:18%">Item</th><th>Connector branch</th><th>Foundation branch</th><th style="width:26%">Resolution</th></tr></thead>
+<tbody>
+<tr><td>Audit event</td><td><code>AuditEvent</code> + <code>AuditWriter</code></td><td><code>AuditEvent</code> + <code>AuditPort</code> (identical fields and <code>record</code> signature)</td><td>Keep the foundation's; delete mine.</td></tr>
+<tr><td>Cursor interface</td><td><code>CursorManager</code> Protocol (<code>get_cursor</code>, <code>set_cursor</code>)</td><td><code>CursorStorePort</code> (same two methods) and a <b>different class also called</b> <code>CursorManager</code></td><td>Same contract, name clash. Rename mine to <code>CursorStore</code>; use his manager on top.</td></tr>
+<tr><td>Raw writer</td><td><code>RawPayloadWriter</code> Protocol, <code>NullRawPayloadWriter</code> stub</td><td>Concrete <code>RawPayloadWriter</code> implementing the same signature</td><td>Replace my stub with his writer.</td></tr>
+<tr><td>Raw persistence</td><td><code>JsonFileSink</code> (whole documents as JSON files)</td><td>Writer + object store + raw index (encrypted, scanned, deduplicated)</td><td>Remove mine from production paths. A local-filesystem object store covers dev.</td></tr>
+<tr><td>Settings</td><td><code>config.py</code>, prefix <code>USEP_INGESTION_</code>, plain-text tokens</td><td><code>usep.core.config.Settings</code>, prefix <code>USEP_</code>, references only</td><td>One settings tree. Add per-source models to his; retire mine.</td></tr>
+<tr><td>Pagination</td><td>Jira loop in the client, Confluence loop in the connector</td><td><code>paginate_cursor / offset / link_header</code></td><td>Replace mine with his helpers.</td></tr>
+<tr><td>Retry, rate limit</td><td colspan="2">Not duplicated: my branch has none. The foundation fills a gap rather than overlapping.</td><td>Adopt his.</td></tr>
+<tr><td>Scheduling</td><td>APScheduler per-source intervals</td><td>Only a <code>poll_interval_s</code> setting; no scheduler</td><td>Keep mine, drive it from his setting.</td></tr>
+</tbody></table></div>
+
+<h2><span class="n">4</span>Missing interfaces and contracts</h2>
+<p class="muted small">None of these exist on either branch today. They are what the two layers must agree on before the refactor, ideally in one short ADR.</p>
+<details open><summary>Connector contract <span class="tag t-bad">foundation to define, connectors to implement</span></summary><div>
+<pre><span class="c"># ports/connector.py (proposed)</span>
+class Connector(Protocol):
+    source: str
+    async def scopes(self, ctx: RunContext) -&gt; list[Scope]: ...
+    def fetch(self, ctx: RunContext, scope: Scope, since: str | None, lane: Lane) -&gt; AsyncIterator[FetchedBatch]: ...
+    async def enumerate(self, ctx: RunContext, scope: Scope) -&gt; dict[str, str]:   <span class="c"># object_id -&gt; version, for reconciliation</span>
+        ...
+    cursor_codec: CursorCodec                                                       <span class="c"># opaque cursor &lt;-&gt; source query value</span>
+
+@dataclass
+class FetchedBatch:
+    raw_objects: list[RawObject]      <span class="c"># object_type, object_id, payload: what the raw writer stores</span>
+    documents: list[SourceDocument]   <span class="c"># normalised view for later stages</span>
+    next_checkpoint: str | None</pre></div></details>
+<details><summary>Cursor store must carry scope and lane <span class="tag t-bad">foundation</span></summary><div>
+<p>His domain defines a cursor per (tenant, source, scope, lane), but <code>CursorStorePort</code> only takes <code>source</code>. With several Jira projects or GitLab repositories, one cursor per source would let a fast project hide a slow one's changes. Change the port to <code>get_cursor(source, scope_id, lane)</code> and <code>set_cursor(source, scope_id, lane, cursor)</code>.</p></div></details>
+<details><summary>Writer outcome and a typed envelope <span class="tag t-warn">foundation</span></summary><div>
+<ul>
+<li><code>RawPayloadWriter.write()</code> returns only a string (<code>quarantined://</code> or <code>failed://</code> sentinels). <code>CursorManager.advance</code> needs real outcomes. Expose <code>write_result() -&gt; WriteResult</code> and keep <code>write()</code> as a thin wrapper.</li>
+<li>Replace the magic <code>raw_payload["_usep"]</code> dict with a typed <code>RawEnvelope</code> argument. His own docstring says the dict form is "pending connector-owner confirmation" and refers to <code>docs/plans/ASSUMPTIONS.md</code>, which is not committed on any branch. Confirm this decision in writing.</li>
+</ul></div></details>
+<details><summary>HTTP transport port and run context <span class="tag t-warn">foundation defines, adapter implements</span></summary><div>
+<ul>
+<li><code>HttpTransportPort.send(request) -&gt; SendOutcome</code>, implemented in <code>adapters/httpx</code>. His runtime deliberately imports no httpx, so the adapter is where httpx lives. This keeps connectors vendor-free and testable with a fake transport.</li>
+<li><code>RunContext</code>: tenant id, run id and trace id, lane, clock, observer, rate limiter and secret resolver, passed to every connector call.</li>
+</ul></div></details>
+<details><summary>Credential, registry, orchestrator <span class="tag t-warn">shared</span></summary><div>
+<ul>
+<li><b>Credentials:</b> per-source settings models with <code>*_ref</code> fields (his Settings says per-source keys were deferred to "the connector work", which is this work).</li>
+<li><b>Registry:</b> <code>ConnectorRegistry.register(source, factory)</code>, so adding a connector does not touch the orchestrator.</li>
+<li><b>Orchestrator:</b> a <code>SyncRunner</code> that owns scope selection, lane, cursor start and advance, the state machine (his <code>transition()</code> exists but nothing calls it) and reconciliation. No branch owns this today.</li>
+<li><b>Dev adapters:</b> local-filesystem object store, in-memory raw index, local key store, log event bus. Only the Vault adapter is real, so nothing can be run end to end yet.</li>
+</ul></div></details>
+
+<h2><span class="n">5</span>Recommended architecture</h2>
+<div class="layers">
+  <div class="layer"><h3>Connector layer</h3><div class="own">Owner: connector developer</div><ul><li>Source endpoints and auth header shape</li><li>Pagination <i>choice</i> (which helper)</li><li>Cursor codec, scope discovery, enumerate</li><li>Mapping to raw objects and <code>SourceDocument</code></li><li>No retries, no sleeping, no storage, no secrets</li></ul></div>
+  <div class="layer"><h3>Runtime layer</h3><div class="own">Owner: foundation</div><ul><li>Rate limit per tenant, source, account, lane</li><li>Retry, back-off, <code>Retry-After</code>, defer and dead letter</li><li>Response classification</li><li>Pagination helpers, observer events</li><li>Imports no vendor SDK</li></ul></div>
+  <div class="layer"><h3>Storage layer</h3><div class="own">Owner: foundation</div><ul><li>Raw writer: scan, hash, encrypt, dedupe, publish reference</li><li>Ports: object store, raw index, key store, event bus, quarantine, cursor store</li><li>Adapters: S3, Postgres, Kafka, KMS, plus dev ones</li></ul></div>
+  <div class="layer"><h3>Orchestration</h3><div class="own">Owner: shared, decide in phase 0</div><ul><li>Scheduling and manual trigger</li><li>Lane, window, backfill</li><li>Cursor start and advance rule</li><li>Connector state machine, reconciliation</li><li>Audit and run result</li></ul></div>
+</div>
+<p class="muted small" style="margin-top:10px"><b>Dependency rule:</b> connectors depend on domain, ports and runtime only, never on storage adapters or on each other. The orchestrator depends on everything through ports. Configuration and secrets are cross-cutting: they are resolved at the composition root and by the runtime transport, never inside connector logic.</p>
+
+<h2><span class="n">6</span>Proposed merged structure</h2>
+<div class="card" style="padding:0"><pre>src/usep/
+  core/                     config, ids, clock, errors, models              <span class="c">(foundation, unchanged)</span>
+  ingestion/
+    domain/                 cursor, raw_object, events, connector_state
+                            source_document.py                              <span class="c">(moved from my branch)</span>
+                            envelope.py                                     <span class="c">(new: typed RawEnvelope, WriteResult)</span>
+    ports/                  audit, cursor_store*, object_store, raw_index, event_bus,
+                            key_store, quarantine, secrets
+                            http_transport.py  connector.py                 <span class="c">(new)</span>
+    runtime/                backoff, http, retry, pagination, rate_limiter, observer, redaction
+    cursor/                 manager, reconcile
+    raw/                    writer*, crypto
+    sensitive/              detector, patterns, settings_guard
+    orchestration/                                                          <span class="c">(new)</span>
+      runner.py             SyncRunner: scope, lane, start/advance, state machine, reconcile
+      registry.py           ConnectorRegistry
+      scheduler.py          APScheduler trigger                             <span class="c">(from my branch)</span>
+    connectors/                                                             <span class="c">(from my branch, refactored)</span>
+      jira/        client.py  connector.py  cursor_codec.py  mapping.py  models.py
+      gitlab/      ...
+      confluence/  ...
+      figma/       ...
+  adapters/
+    vault/  httpx/  localfs/  s3/  kafka/  postgres/  kms/                  <span class="c">(vault exists; httpx and localfs first)</span>
+
+services/connectors/        FastAPI app, composition root, console_api      <span class="c">(deployable service; moves to services/gateway later)</span>
+tests/                      fakes/  unit/ingestion/  contract/connectors/   <span class="c">(contract tests run every connector against the same fakes)</span>
+
+* changed: cursor_store gains scope and lane; writer gains write_result and a typed envelope</pre></div>
+<p class="muted small" style="margin-top:8px">This follows the repository standards: shared domain code in <code>src/usep</code>, vendors only in <code>adapters/&lt;tech&gt;</code>, one folder per deployable service under <code>services/</code>, no new top-level folders.</p>
+
+<h2><span class="n">7</span>Who changes what</h2>
+<div class="split">
+  <div class="card"><h3>My branch <span class="tag t-info">ingestion-layer-connectors</span></h3>
+    <ul>
+      <li>Refactor four clients to call through the transport and <code>call_with_retry</code></li>
+      <li>Replace pagination loops; fix the GitLab single-page bug</li>
+      <li>Per-source cursor codecs; server-side Confluence filtering</li>
+      <li>Raw-object mapping: one raw object per fetched API object, with the <code>_usep</code> envelope fields</li>
+      <li><code>enumerate()</code> for each source</li>
+      <li>Move packages under <code>usep.ingestion.connectors</code>; rename my <code>CursorManager</code> Protocol</li>
+      <li><code>token_ref</code> settings; drop <code>JsonFileSink</code> from production paths</li>
+      <li>Contract tests for each connector</li>
+    </ul></div>
+  <div class="card"><h3>Prasanth's branch <span class="tag t-info">feature/ingestion-foundation</span></h3>
+    <ul>
+      <li>Cursor port with scope and lane</li>
+      <li>Writer <code>write_result()</code> and typed envelope; confirm the contract in writing</li>
+      <li><code>Connector</code>, <code>RunContext</code>, <code>HttpTransportPort</code> contracts and the registry</li>
+      <li>Move the <code>SourceDocument</code> base into <code>domain</code></li>
+      <li>Per-source settings models with <code>*_ref</code></li>
+      <li>Dev adapters (localfs, in-memory index, log bus, local key store) and the httpx transport adapter</li>
+      <li>Orchestrator (or agree I build it on his pieces)</li>
+      <li>Real S3, Postgres, Kafka and KMS adapters (later, off the critical path)</li>
+    </ul></div>
+</div>
+
+<h2><span class="n">8</span>Effort and risks</h2>
+<p class="muted small">Estimates are my judgement from reading the code, in person-days for someone who knows it. Treat them as a range, not a commitment. Real velocity on this repo has not been measured.</p>
+<div class="grid2">
+<div class="card" style="padding:6px 8px"><table>
+<thead><tr><th>Work</th><th style="width:30%">Person-days</th></tr></thead>
+<tbody>
+<tr><td>Phase 0: agree the contracts (workshop plus one ADR)</td><td>2</td></tr>
+<tr><td>Foundation changes (contracts, dev adapters, settings)</td><td>6&ndash;10</td></tr>
+<tr><td>Connector refactor (four connectors)</td><td>16&ndash;22</td></tr>
+<tr><td>Orchestrator, lanes, reconciliation, state machine</td><td>4&ndash;6</td></tr>
+<tr><td>Integration tests and live verification</td><td>4&ndash;6</td></tr>
+<tr><td><b>Total</b></td><td><b>32&ndash;46</b></td></tr>
+</tbody></table>
+<p class="muted small" style="margin:8px 12px">Real S3, Postgres, Kafka and KMS adapters add roughly 8&ndash;12 more and are not needed to start. With two people in parallel: about 3&ndash;5 weeks.</p></div>
+
+<div class="card" style="padding:6px 8px"><table>
+<thead><tr><th>Phase</th><th>Done when</th></tr></thead>
+<tbody>
+<tr><td>0. Contracts</td><td>ADR signed by both; cursor, envelope, connector contract fixed</td></tr>
+<tr><td>1. Merge order</td><td>Foundation merged to main first; connectors rebased on it (no file conflicts)</td></tr>
+<tr><td>2. Vertical slice</td><td>One connector (against a fake transport) runs through runtime, writer and cursor to a local object store</td></tr>
+<tr><td>3. Remaining connectors</td><td>All four pass the same contract tests</td></tr>
+<tr><td>4. Orchestration</td><td>Backfill (6-month window), live lane, reconcile, state transitions</td></tr>
+<tr><td>5. Secrets and console</td><td>Typed tokens go through the resolver; console uses the new runner</td></tr>
+</tbody></table></div>
+</div>
+
+<h3 style="margin-top:20px">Risks before merging</h3>
+<div class="card" style="padding:6px 8px"><table>
+<thead><tr><th style="width:4%">#</th><th style="width:26%">Risk</th><th>Why it matters</th><th style="width:24%">Mitigation</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Silent contract breaks</td><td>Wiring his writer into my <code>SyncService</code> as-is raises <code>EnvelopeError</code> inside the write loop, and the whole sync fails.</td><td>Contract tests in phase 0; envelope built in one place.</td></tr>
+<tr><td>2</td><td>Cursor keyed per source only</td><td>Multi-scope sources (many Jira projects) can skip changes.</td><td>Add scope and lane before any connector depends on the port.</td></tr>
+<tr><td>3</td><td>Nothing runs end to end</td><td>Only a Vault adapter exists; storage, index, key store and bus are fakes in tests. Real behaviour (S3 latency, Kafka ordering, KMS) is unproven.</td><td>Local dev adapters first; real adapters tracked as a separate stream.</td></tr>
+<tr><td>4</td><td>Sensitive-data scan false positives</td><td>The writer quarantines any payload that matches a PII or secret pattern. Jira and Confluence text can trigger it. The pattern list is not security-reviewed yet (O-11).</td><td>Tune against real content; count quarantines per source in the audit trail.</td></tr>
+<tr><td>5</td><td>Evidence completeness</td><td>Today GitLab raw payloads omit commits, notes, approvals and diffs; Jira changelog may be truncated. The raw store would hold partial evidence.</td><td>One raw object per API object; check counts against the source.</td></tr>
+<tr><td>6</td><td>Packaging and dependency drift</td><td>Two dependency sets (mine: FastAPI, SQLAlchemy, APScheduler, truststore; his: hatch package, optional extras). Top-level names such as <code>gitlab</code> can collide with PyPI packages.</td><td>One root <code>pyproject</code> with extras; move code under <code>usep.*</code>.</td></tr>
+<tr><td>7</td><td>Secrets model conflict</td><td>His rule: resolve a secret per call and cache nothing. My console keeps typed tokens in memory for a run. ADR-036 is not written.</td><td>Keep the console path dev-only until ADR-036; use references elsewhere.</td></tr>
+<tr><td>8</td><td>Live behaviour unverified</td><td>No connector has read a live source (Jira returns 401 for my account). Figma must not touch live data before the DPIA (ADR-025).</td><td>Fake-transport contract tests now; live runs once access and DPIA allow.</td></tr>
+</tbody></table></div>
+
+<h2><span class="n">9</span>Corrections to the starting assumptions, and what I did not verify</h2>
+<div class="grid2">
+<div class="card"><h3>Not accurate on my side</h3><ul>
+<li><b>"Remove connector retry logic":</b> there is none. The foundation adds retries rather than replacing mine.</li>
+<li><b>"Return a standard <code>SourceDocument</code>":</b> already true; every connector returns a <code>SourceDocument</code> subclass. What is missing is hosting the base class in the foundation.</li>
+<li><b>"Implement a common <code>BaseConnector</code>":</b> a <code>SourceConnector</code> Protocol exists. It needs extending (scopes, batches, enumerate), not creating.</li>
+</ul></div>
+<div class="card"><h3>Underestimated on the foundation side</h3><ul>
+<li>It needs more than a registry, a contract and hooks: cursor scope and lane, writer outcomes, an orchestrator, dev adapters and the HTTP transport adapter.</li>
+<li>It is not yet runnable end to end.</li>
+</ul></div>
+</div>
+<details style="margin-top:12px"><summary>What I did not verify</summary><div><ul>
+<li>I did not run the foundation's test suite (99 test functions) or my own against it, and did not wire the two together.</li>
+<li>The Jira JQL date-format claim is from my knowledge of JQL, not tested against a Jira instance. I confirmed only that the foundation's overlap function returns ISO timestamps with a <code>T</code> and an offset.</li>
+<li><code>docs/plans/ASSUMPTIONS.md</code> and the "Phase 1 plan" sections his code cites are not in the repository, so some of his design decisions are known only from code comments.</li>
+<li>Effort numbers are estimates, not measurements.</li>
+</ul></div></details>
+
+</div>
+</body>
+</html>

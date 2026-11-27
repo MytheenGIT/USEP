@@ -1,0 +1,35 @@
+{
+  "_note": "Synthetic payloads in each source's real API shape. Every name, key and URL is made up. Some records are wrong on purpose (see 'expect').",
+  "jira": [
+    {"id": "ABC-1", "expect": "Requirement (Open -> draft)", "raw": {"key": "ABC-1", "fields": {"summary": "Pay by card", "description": "Customers pay by card", "status": {"name": "Open"}, "priority": {"name": "High"}, "issuetype": {"name": "Story"}, "labels": [], "updated": "2026-01-02T10:00:00.000+0000", "project": {"key": "ABC"}, "issuelinks": []}}},
+    {"id": "ABC-2", "expect": "Change (In Review -> in_review), implements ABC-1 edge, secret redacted, sensitivity 3", "raw": {"key": "ABC-2", "fields": {"summary": "Add card form", "description": "use key AKIAABCDEFGHIJKLMNOP and password: hunter2xx", "status": {"name": "In Review"}, "priority": {"name": "Medium"}, "issuetype": {"name": "Task"}, "labels": ["frontend"], "updated": "2026-01-03T10:00:00.000+0000", "project": {"key": "ABC"}, "issuelinks": [{"type": {"outward": "implements", "inward": "is implemented by"}, "outwardIssue": {"key": "ABC-1"}}]}}},
+    {"id": "ABC-3", "expect": "Incident (priority High -> sev2, In Progress -> mitigated)", "raw": {"key": "ABC-3", "fields": {"summary": "Checkout down", "description": "", "status": {"name": "In Progress"}, "priority": {"name": "High"}, "issuetype": {"name": "Incident"}, "labels": [], "updated": "2026-01-04T10:00:00.000+0000", "project": {"key": "ABC"}, "issuelinks": []}}},
+    {"id": "ABC-4", "expect": "QUARANTINE Q-UNMAPPED (issue type Spike)", "raw": {"key": "ABC-4", "fields": {"summary": "Try a thing", "description": "", "status": {"name": "Open"}, "priority": {"name": "Low"}, "issuetype": {"name": "Spike"}, "labels": [], "updated": "2026-01-05T10:00:00.000+0000", "project": {"key": "ABC"}, "issuelinks": []}}},
+    {"id": "ABC-5", "expect": "QUARANTINE Q-STATE (status Blocked has no rule)", "raw": {"key": "ABC-5", "fields": {"summary": "Stuck work", "description": "", "status": {"name": "Blocked"}, "priority": {"name": "Low"}, "issuetype": {"name": "Task"}, "labels": [], "updated": "2026-01-06T10:00:00.000+0000", "project": {"key": "ABC"}, "issuelinks": []}}},
+    {"id": "ABC-6", "expect": "Change, security level Finance -> known ACL, owners only, sensitivity 2", "raw": {"key": "ABC-6", "fields": {"summary": "Payout report", "description": "", "status": {"name": "Done"}, "priority": {"name": "Low"}, "issuetype": {"name": "Task"}, "labels": [], "updated": "2026-01-07T10:00:00.000+0000", "project": {"key": "ABC"}, "security": {"name": "Finance"}, "issuelinks": []}}}
+  ],
+  "gitlab": [
+    {"id": "5!7", "expect": "Change (merged -> released) + references ABC-2 (title), ABC-3 (branch)", "raw": {"iid": 7, "project_id": 5, "title": "ABC-2 add card form", "description": "Fixes the form", "state": "merged", "source_branch": "bugfix/ABC-3-hotfix", "target_branch": "main", "updated_at": "2026-02-01T00:00:00Z", "labels": []}}
+  ],
+  "github": [
+    {"id": "github:acme/pay", "expect": "Service (repository), private -> owners only", "raw": {"full_name": "acme/pay", "name": "pay", "html_url": "https://github.com/acme/pay", "private": true, "updated_at": "2026-04-01T00:00:00Z", "description": "payments service"}},
+    {"id": "github:acme/pay#5", "expect": "Change (open -> in_review) + references ABC-1", "raw": {"number": 5, "title": "ABC-1 card payments", "body": "details", "state": "open", "merged_at": null, "updated_at": "2026-04-02T00:00:00Z", "labels": [{"name": "Backend"}], "head": {"ref": "feature/cards"}, "base": {"ref": "main", "repo": {"full_name": "acme/pay", "private": true}}}}
+  ],
+  "confluence": [
+    {"id": "101", "expect": "Decision (label adr) + documents edge to the gitlab.example.com repo + references ABC-1", "raw": {"id": "101", "title": "ADR 9: use S3 as the bus", "version": {"number": 2, "when": "2026-03-01T00:00:00.000Z"}, "body": {"storage": {"value": "<p>See <a href=\"https://gitlab.example.com/pay/checkout/-/tree/main\">repo</a>. Related: ABC-1.</p>"}}, "metadata": {"labels": {"results": [{"name": "adr"}]}}, "ancestors": [{"id": "1"}]}},
+    {"id": "102", "expect": "evidence only (no label), refs recorded", "raw": {"id": "102", "title": "Meeting notes", "version": {"number": 1, "when": "2026-03-02T00:00:00.000Z"}, "body": {"storage": {"value": "<p>Discussed ABC-3. Contact jane.doe@example.com</p>"}}, "metadata": {"labels": {"results": []}}}}
+  ],
+  "servicenow": [
+    {"id": "INC0010001", "expect": "Incident (priority 1 -> sev1, state 6 -> resolved)", "raw": {"sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "number": "INC0010001", "short_description": "Payments failing", "description": "", "state": "6", "priority": "1", "sys_updated_on": "2026-05-01 10:30:00"}},
+    {"id": "CHG0030001", "expect": "Change (state -1 -> in_progress)", "raw": {"sys_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "number": "CHG0030001", "short_description": "Deploy card form", "description": "", "state": "-1", "priority": "3", "sys_updated_on": "2026-05-02 09:00:00"}},
+    {"id": "INC0010002", "expect": "QUARANTINE Q-STATE (state 99 has no rule)", "raw": {"sys_id": "cccccccccccccccccccccccccccccccc", "number": "INC0010002", "short_description": "Odd state", "description": "", "state": "99", "priority": "2", "sys_updated_on": "2026-05-03 09:00:00"}}
+  ],
+  "ado": [
+    {"id": "Pay#1", "expect": "Requirement (User Story, Active -> approved)", "raw": {"id": 1, "fields": {"System.TeamProject": "Pay", "System.WorkItemType": "User Story", "System.Title": "Refund flow", "System.State": "Active", "System.Description": "<div>Refund <b>in app</b></div>", "System.Tags": "Backend; Q2", "System.ChangedDate": "2026-06-01T08:00:00.123Z"}}},
+    {"id": "Pay#2", "expect": "QUARANTINE Q-UNMAPPED (Test Case)", "raw": {"id": 2, "fields": {"System.TeamProject": "Pay", "System.WorkItemType": "Test Case", "System.Title": "Refund works", "System.State": "New", "System.ChangedDate": "2026-06-02T08:00:00.000Z"}}},
+    {"id": "ado:Pay/svc!12", "expect": "Change (completed -> released) + references ABC-3 (branch)", "raw": {"pullRequestId": 12, "title": "Refund API", "status": "completed", "creationDate": "2026-06-01T00:00:00Z", "closedDate": "2026-06-02T00:00:00Z", "sourceRefName": "refs/heads/feature/ABC-3-refund", "repository": {"name": "svc", "project": {"name": "Pay"}}}}
+  ],
+  "figma": [
+    {"id": "FILEKEY1", "expect": "evidence only (design text)", "raw": {"name": "Checkout v2", "version": "9", "lastModified": "2026-07-01T00:00:00Z", "document": {"children": [{"type": "FRAME", "children": [{"type": "TEXT", "characters": "Pay now"}]}]}}}
+  ]
+}
