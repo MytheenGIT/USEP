@@ -7,7 +7,7 @@ Status: proposal for the platform lead and each owner. Owners are the roles in `
 
 | Interface | Where | What it gives |
 |---|---|---|
-| Loader | `usep.ontology_runtime.load_ontology(root, pins)`, `resolve_pins(root, ids)` | The one reader of the ontology. Fails closed, lists every problem. Returns concepts, relationships, vocabularies, mappings, policies, templates (core and pack), systems, glossary, precedence and a release digest. |
+| Loader | `usep.ontology.load_ontology(root, pins)`, `resolve_pins(root, ids)` | The one reader of the ontology. Fails closed, lists every problem. Returns concepts, relationships, vocabularies, mappings, policies, templates (core and pack), systems, glossary, precedence and a release digest. |
 | Version pin | `bundle.release` (`core_version`, packs, `digest`) | What every event and package must carry so a run can finish under the version it started with. |
 | Release event | topic `ontology.release` | Switches the pipeline among versions shipped in its package only. |
 | Events out of the pipeline | topics `raw.*`, `entity.<domain>`, `evidence.<family>`, `quarantine` (schemas in `src/usep/pipeline/topics.py`) | Node and edge candidates, evidence pointers, quarantined records. |
