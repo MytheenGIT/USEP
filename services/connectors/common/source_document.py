@@ -27,6 +27,9 @@ class SourceType(StrEnum):
     GITLAB = "gitlab"
     CONFLUENCE = "confluence"
     FIGMA = "figma"
+    GITHUB = "github"
+    SERVICENOW = "servicenow"
+    ADO = "ado"
 
 
 def hash_payload(payload: Any) -> str:

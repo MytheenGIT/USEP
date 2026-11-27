@@ -5,3 +5,5 @@ pyyaml==6.0.3
 rdflib==7.6.0
 pyshacl==0.40.2
 pytest==9.1.1
+boto3==1.44.12
+ruff==0.17.6

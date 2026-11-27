@@ -47,6 +47,19 @@ python ontology/tools/check_ontology.py
 python -m pytest ontology/tests -q
 ```
 
+## Run-time package (`src/usep/ontology/`)
+
+The files above are definitions. The run-time package loads and applies them. It reads the same YAML; pack CI (`tools/check_ontology.py`) checks the Turtle shapes.
+
+- **Loader (`load_ontology(root, pins)`)**: reads the core and the pinned packs from a checkout. It collects every problem and raises one `OntologyLoadError`, so no partial ontology is ever returned (fail closed). It refuses a pack that is not pinned or not found, a wrong version, a reference-only pack (unless `allow_reference_only`), a pack needing another core version, a pack that redefines or removes a term, and a policy that would loosen access. A pin looks like `app.app-reference@0.1.0`.
+- **Bundle (`OntologyBundle`)**: immutable. Concepts, relationships, vocabularies, mappings, policies, templates, precedence, glossary, the project pack's `workflow`, and a `release` (core version, pack versions, SHA-256 digest of every defining file). The digest lets a run say which ontology it used.
+- **Gate G1 (`gate.py`)**: `map_record` selects the application-pack mapping for a source object (no match: `Q-UNMAPPED`); `validate` checks required attributes, vocabulary values, temporal validity and edge endpoint types (failure: `Q-SCHEMA`). A failure becomes a quarantine entry with a reason code and field names, never content.
+- **State translation**: the mappings leave one step to the project pack, turning a source state into a core state (`src/usep/pipeline/state_tables.py` says which source field feeds which attribute and which table translates it). No rule means `Q-STATE`.
+- **Release events (`events.py`)**: an `ontology.release` event carries versions and the digest, not definitions. A consumer reloads from its own checkout and switches only if its digest matches. The pipeline Lambda does this at most every `USEP_ONTOLOGY_REFRESH_SECONDS`; a release it cannot load is refused and the current ontology stays.
+- **Used by**: the acquisition pipeline (`src/usep/pipeline/`), which calls the loader once per container and the gate per record. The ingestion flow is described in the root `README.md`.
+
+Pack relationships and shapes: the application pack adds `references` and `documents` (`packs/app/app-reference/concepts.yml`, shapes in `shapes/packs/application/`). Pack CI requires endpoint shapes for application-pack relationships and validates every project-pack state table against the core vocabularies.
+
 ## What is a source fact and what is a proposal
 
 - **From the sources:** concept names, relationship type names, the seven domains, the pack levels and what each adds,
@@ -62,6 +75,8 @@ python -m pytest ontology/tests -q
 ## Open points
 
 - Where a pack keeps its own shapes. The Roadmap layout has one `shapes/` folder; this repo puts core shapes at the
-  root and leaves room for `shapes/packs/<level>/<pack>.ttl` (OI-49).
+  root and pack shapes under `shapes/packs/<level>/<pack>.ttl` (the application pack's are there; OI-49).
+- Pack-level query templates are not supported yet (loader, check and golden set know only the eight core ones).
+- Proposals awaiting the owner are listed in `docs/review/ontology-owner-review.md`.
 - Where the engineering domain fragment lives (OI-18) and whether the pilot needs a project pack (OI-19).
 - Pack signing: `signed: false` and `signature_ref: null` until C-07 exists. Nothing here is published.

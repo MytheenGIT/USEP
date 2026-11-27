@@ -8,3 +8,4 @@ asyncpg==0.32.0
 apscheduler==3.11.3
 structlog==26.1.0
 truststore==0.10.5
+boto3==1.44.12

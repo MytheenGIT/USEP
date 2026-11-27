@@ -22,6 +22,8 @@ import structlog
 from common.connector_base import ObjectError, ScopeFetch, SourceConnector, next_cursor
 from common.interfaces.audit_writer import AuditEvent, AuditWriter
 from common.interfaces.cursor_manager import CursorManager
+from common.checksum import payload_checksum
+from common.interfaces.raw_event_publisher import NullRawEventPublisher, RawEvent, RawEventPublisher
 from common.interfaces.raw_payload_writer import RawPayloadWriter
 from common.json_file_sink import JsonFileSink
 from common.source_document import SourceDocument
@@ -50,6 +52,7 @@ class SyncService:
         audit_writer: AuditWriter,
         sync_run_repository: SyncRunRepository | None = None,
         json_sink: JsonFileSink | None = None,
+        raw_event_publisher: RawEventPublisher | None = None,
     ) -> None:
         self._connectors = connectors
         self._cursor_manager = cursor_manager
@@ -58,6 +61,7 @@ class SyncService:
         self._sync_run_repository = sync_run_repository
         self._json_sink = json_sink
         self._locks: dict[tuple[str, str], asyncio.Lock] = {}
+        self._raw_event_publisher = raw_event_publisher or NullRawEventPublisher()
 
     @property
     def available_sources(self) -> list[str]:
@@ -95,13 +99,30 @@ class SyncService:
             logger.warning("audit_writer.record_failed", source=source, action=action, error=str(exc))
 
     async def _land_raw(self, run_id: str, fetched: ScopeFetch, scope: str) -> ScopeFetch:
-        """Write raw payloads; a failed write becomes an object error so the cursor won't pass it."""
+        """Make each raw payload durable, then announce it. A failure at either step becomes an object error, so the
+        cursor will not pass that object.
+
+        Order matters (ingestion diagram, B): the snapshot must exist before its event is published, because the event
+        carries only a reference to it. A retry repeats both steps safely: snapshots are keyed by checksum (writing the
+        same payload again is a no-op) and consumers are idempotent (the bus delivers at least once).
+        """
         landed: list[SourceDocument] = []
         errors = list(fetched.errors)
         for document in fetched.documents:
             try:
-                await self._raw_payload_writer.write(
+                snapshot_ref = await self._raw_payload_writer.write(
                     document.source.value, document.source_object_id, document.raw_payload
+                )
+                await self._raw_event_publisher.publish(
+                    RawEvent(
+                        source=document.source.value,
+                        source_type=document.source_type,
+                        source_ref=document.source_object_id,
+                        source_url=document.source_url,
+                        snapshot_ref=snapshot_ref,
+                        checksum=payload_checksum(document.raw_payload),
+                        retrieved_at=document.retrieved_at,
+                    )
                 )
                 landed.append(document)
             except Exception as exc:
@@ -110,7 +131,7 @@ class SyncService:
                         scope=scope,
                         object_id=document.source_object_id,
                         source_version=document.source_version,
-                        error=f"raw payload write failed: {exc}",
+                        error=f"raw landing failed: {exc}",
                     )
                 )
         return ScopeFetch(documents=landed, errors=errors)

@@ -1,0 +1,20 @@
+# Endpoint rules for the relationship types the application pack adds (ontology/packs/app/app-reference/concepts.yml).
+# Proposals (P), mirrored from the pack's from/to lists. They live with the pack, not the core: the core's twelve
+# relationship types are fixed by HLD 6 Table 9. Placeholder namespace, as in the core shapes.
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix usep: <https://usep.invalid/ontology/core#> .
+
+# references: Change, Requirement, Decision -> Change, Requirement, Decision, Incident
+usep:ReferencesFrom a sh:NodeShape ; sh:targetSubjectsOf usep:references ;
+    sh:or ( [sh:class usep:Change] [sh:class usep:Requirement] [sh:class usep:Decision] ) ;
+    sh:message "references must start at a Change, Requirement or Decision" .
+usep:ReferencesTo a sh:NodeShape ; sh:targetObjectsOf usep:references ;
+    sh:or ( [sh:class usep:Change] [sh:class usep:Requirement] [sh:class usep:Decision] [sh:class usep:Incident] ) ;
+    sh:message "references must point at a Change, Requirement, Decision or Incident" .
+
+# documents: Decision -> Service, Application, API
+usep:DocumentsFrom a sh:NodeShape ; sh:targetSubjectsOf usep:documents ; sh:class usep:Decision ;
+    sh:message "documents must start at a Decision" .
+usep:DocumentsTo a sh:NodeShape ; sh:targetObjectsOf usep:documents ;
+    sh:or ( [sh:class usep:Service] [sh:class usep:Application] [sh:class usep:API] ) ;
+    sh:message "documents must point at a Service, Application or API" .

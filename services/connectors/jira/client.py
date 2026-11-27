@@ -26,6 +26,7 @@ DEFAULT_FIELDS = [
     "updated",
     "comment",
     "attachment",
+    "issuelinks",       # read by the ontology pipeline to draw implements/relates edges (C-02)
 ]
 
 

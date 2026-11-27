@@ -24,6 +24,16 @@ CORE_CONCEPTS = {"Capability", "Application", "Service", "API", "DataAsset", "Te
                  "Change", "Incident", "Decision", "Policy", "Control", "Environment", "Release", "Test"}
 CORE_RELATIONSHIPS = {"owns", "depends_on", "exposes", "consumes", "realizes", "implements", "tests",
                       "deployed_to", "governed_by", "caused_by", "decided_in", "supersedes"}
+# Project-pack workflow tables: table -> (target attribute, core vocabulary it must stay inside).
+# Mirrors usep.pipeline.state_tables, which says which source field feeds each table.
+WORKFLOW_META = {"source_system"}
+WORKFLOW_TABLES = {
+    "issue_workflow": ("change_state", "change_state"), "pull_request_workflow": ("change_state", "change_state"),
+    "servicenow_change_workflow": ("change_state", "change_state"), "ado_workitem_workflow": ("change_state", "change_state"),
+    "requirement_status": ("status", "requirement_status"), "ado_requirement_status": ("status", "requirement_status"),
+    "jira_incident_severity": ("severity", "incident_severity"), "servicenow_incident_severity": ("severity", "incident_severity"),
+    "jira_incident_status": ("status", "incident_status"), "servicenow_incident_status": ("status", "incident_status"),
+}
 MAX_DEPTH, MAX_FANOUT = 3, 200                      # config.context.max_depth, config.context.fanout_cap (LLD 4)
 RUNTIME_PARAMS = {"reached_ids", "fanout_cap"}      # supplied by the context engine, not the caller
 
@@ -185,12 +195,17 @@ def check_pack(rep: Report, level: str, pack_dir: Path, core: dict, seen_terms: 
     wfile = pack_dir / "workflow.yml"
     if wfile.exists():
         data = load(wfile)
-        states = set(core["vocab"]["change_state"]["values"])
-        for row in data.get("issue_workflow", []):
-            rep.expect(row["change_state"] in states, where, f"workflow maps to unknown change_state {row['change_state']}")
-        req = set(core["vocab"]["requirement_status"]["values"])
-        for row in data.get("requirement_status", []):
-            rep.expect(row["status"] in req, where, f"workflow maps to unknown requirement status {row['status']}")
+        for table, rows in data.items():
+            if table in WORKFLOW_META or not isinstance(rows, list):
+                continue
+            if table not in WORKFLOW_TABLES:
+                rep.fail(where, f"unknown workflow table {table} (add it to WORKFLOW_TABLES and pipeline/state_tables.py)")
+                continue
+            attr, vocab = WORKFLOW_TABLES[table]
+            allowed = set(core["vocab"][vocab]["values"])
+            for row in rows:
+                rep.expect(row.get(attr) in allowed, where,
+                           f"workflow {table} maps to unknown {attr} {row.get(attr)}")
     return mf
 
 
@@ -251,7 +266,11 @@ def check_shapes(rep: Report, core: dict):
         rep.expect(str(USEP[cid]) in targeted, "shapes", f"no shape targets core concept {cid}")
     subj = {str(o) for o in g.objects(None, SH.targetSubjectsOf)}
     obj = {str(o) for o in g.objects(None, SH.targetObjectsOf)}
-    for rid in core["rel_ids"]:
+    # Application packs only: the industry packs' relationship rules are not specified yet (the retail reference pack
+    # does not load; see docs/review/ontology-owner-review.md).
+    pack_rels = {r["id"] for f in sorted((ROOT / "packs" / "app").glob("*/concepts.yml"))
+                 for r in load(f).get("relationships", []) or []}
+    for rid in core["rel_ids"] | pack_rels:
         rep.expect(str(USEP[rid]) in subj, "shapes", f"no start-type shape for relationship {rid}")
         rep.expect(str(USEP[rid]) in obj, "shapes", f"no end-type shape for relationship {rid}")
     return g

@@ -1,0 +1,14 @@
+# Application-pack relationship types for cross-system links (proposals P, from the GitLab/Jira/Confluence design notes).
+# They live in the pack, not the core: the core's 12 relationship types are fixed by HLD 6 Table 9 and pack CI
+# (check_ontology.py) rejects a different core set. A pack may add relationship types (HLD 6.1).
+# Both are created by deterministic rules (src/usep/pipeline/links.py), which name the method and confidence on each edge.
+concepts: []
+relationships:
+  - id: references
+    from: [Change, Requirement, Decision]
+    to: [Change, Requirement, Decision, Incident]
+    description: "The source cites the target by its key (Jira key in an MR title, branch or description; key in a page). Weaker than implements: it says 'mentions', not 'delivers'. The resolver may upgrade a Change-to-Requirement reference to implements."
+  - id: documents
+    from: [Decision]
+    to: [Service, Application, API]
+    description: "A decision record or page describes the target, found by its repository URL"

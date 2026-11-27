@@ -1,0 +1,12 @@
+# ServiceNow connector mapping (Table API: incident, change_request). Rules are proposals (P).
+# Severity, incident status and change_state come from the project pack's servicenow_* tables, not from this file.
+source_system: servicenow
+mappings:
+  - source_object: incident
+    entity: Incident
+    fields: {name: incident.short_description, source_id: incident.number}
+  - source_object: change_request
+    entity: Change
+    fields: {name: change_request.short_description, source_id: change_request.number}
+unmapped_policy: "A table with no mapping goes to quarantine with reason code 'unmapped type'. It is never dropped."
+permissions: "ServiceNow ACLs are instance rules and are not harvested yet. acl_state stays unknown, which means owners only."

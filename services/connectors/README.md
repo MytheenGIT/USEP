@@ -60,6 +60,14 @@ logging_setup.py  structlog configuration
 main.py         FastAPI app factory
 ```
 
+Seven sources are built: jira, gitlab, github, confluence, figma, servicenow and ado (folders `github/`,
+`servicenow/`, `ado/` follow the same client/models/connector layout). GitHub covers repositories and pull requests,
+ServiceNow incidents and change requests (Table API), ADO work items and pull requests. Config prefixes are
+`USEP_INGESTION_GITHUB_`, `_SERVICENOW_` and `_ADO_` (see `config.py`). Known limits: ADO pull requests have no updated
+time, so active PRs are re-read each run; ServiceNow ACLs and ADO area permissions are not harvested (acl_state unknown).
+
+> The `github/` folder shadows the third-party `github` (PyGithub) package, like `gitlab/` below. Don't add PyGithub.
+
 > The `gitlab/` folder name shadows the third-party `python-gitlab` package
 > (importable as `gitlab`) if that package is ever added to this service's
 > virtualenv. Don't add `python-gitlab` or `GitPython` (`git`) as a
@@ -180,3 +188,12 @@ docker compose up --build
 This starts Postgres and the API. Put the Jira values in a `.env` file next to `docker-compose.yml`
 (see `config.py` for the variable names). Never commit `.env`. Saved results are written to
 `./output` on the host through a volume.
+
+## Running as AWS Lambda (C-01)
+
+`lambda_handler.handler` runs one source per invocation (`{"source": "jira"}` from EventBridge Scheduler), replacing
+the APScheduler jobs. It uses the same S3 raw store, cursor store and event bus as the service, and raises when a sync
+fails so Lambda and its Errors alarm see it. `USEP_INGESTION_S3_BUCKET` and `USEP_INGESTION_TENANT_ID` are required.
+Tokens come from the Secrets Manager secret named by `USEP_INGESTION_SECRETS_ARN` (JSON of `USEP_INGESTION_*` keys).
+Build with `scripts/build_lambda.sh`; the template is `platform-iac/lambda/template.yaml` (not yet validated).
+The downstream worker is `usep.pipeline` (C-02, below the connectors in the data flow): see `src/usep/pipeline`.
