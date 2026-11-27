@@ -1,0 +1,25 @@
+# Pack query template (D2, proposed). The `documents` relationship is defined by this pack, so its query lives here.
+# Cypher text is a proposal (P) until S6 tests run.
+name: app_documents_of
+version: "1.0"
+status: draft
+owner_role: application-architect
+description: "Decisions that document one service, application or API, with the evidence behind each link"
+parameters:
+  - {name: tenant_id, type: uuid, required: true, from: token}
+  - {name: anchor_id, type: uuid, required: true}
+  - {name: as_of,     type: datetime, default: now}
+limits: {max_depth: 1, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06). A decision the requester may not see is pruned, not masked."
+steps:
+  - id: decisions
+    description: "Decision records that document the anchor"
+    cypher: |
+      MATCH (d:Decision {tenant_id: $tenant_id})-[r:documents]->(n:Entity {tenant_id: $tenant_id, entity_id: $anchor_id})
+      WHERE {{access_predicate}}
+        AND r.valid_from <= $as_of AND (r.valid_to IS NULL OR r.valid_to > $as_of)
+      RETURN d.entity_id AS decision_id, d.name AS decision_name, d.status AS status,
+             r.confidence_score AS confidence, r.evidence_ref AS evidence_ref
+      ORDER BY d.name, d.entity_id
+      LIMIT $fanout_cap
+returns: [decisions]

@@ -14,4 +14,5 @@ def build(settings: Settings, binary_store: Any | None = None) -> tuple[JiraClie
     return client, JiraConnector(
         client, base_url=c.base_url, jql=c.jql, jql_queries=c.jql_queries, page_size=c.page_size,
         binary_store=binary_store, download_attachments=c.download_attachments,
-        attachment_max_bytes=c.attachment_max_bytes)
+        attachment_max_bytes=c.attachment_max_bytes,
+        fetch_remote_links=c.fetch_remote_links)

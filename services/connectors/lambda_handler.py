@@ -25,10 +25,12 @@ import structlog
 
 from common.interfaces.audit_writer import StructlogAuditWriter
 from common.s3.cursor_manager import S3CursorManager
+from common.s3.object_index import S3ObjectIndex
 from common.s3.raw_event_publisher import S3RawEventPublisher
 from common.s3.raw_payload_writer import S3RawPayloadWriter
 from common.sync_models import SyncStatus
 from config import Settings
+from reconcile import Reconciler
 from registry import SOURCES, build_source
 from sync_service import SyncService
 
@@ -36,6 +38,10 @@ logger = structlog.get_logger(__name__)
 
 
 class SyncFailed(RuntimeError):
+    pass
+
+
+class ReconcileProblem(RuntimeError):
     pass
 
 
@@ -57,29 +63,56 @@ def build_connector(source: str, settings: Settings):
     return build_source(source, settings)
 
 
-async def run(source: str, settings: Settings, s3_client: Any, connector_factory=build_connector) -> dict[str, Any]:
+MODES = ("sync", "full", "reconcile")
+
+
+def _stores(s3_client: Any, settings: Settings):
+    s3 = settings.s3
+    return (S3CursorManager(s3_client, s3.bucket, s3.cursor_prefix),
+            S3RawPayloadWriter(s3_client, s3.bucket, s3.raw_prefix),
+            S3RawEventPublisher(s3_client, s3.bucket, settings.tenant_id, s3.bus_prefix, s3.bus_partitions),
+            S3ObjectIndex(s3_client, s3.bucket, s3.index_prefix))
+
+
+async def run(source: str, settings: Settings, s3_client: Any, connector_factory=build_connector, mode: str = "sync",
+              scopes: list[str] | None = None) -> dict[str, Any]:
+    """One invocation. Modes:
+      sync       incremental from the stored cursor (default; also the first backfill, capped per run)
+      full       re-read every object in the scope, ignoring the cursor: picks up permission changes the source does not
+                 stamp with an updated time. Never moves the cursor backwards.
+      reconcile  list what the source holds now and tombstone what was landed earlier but is gone.
+    """
     s3 = settings.s3
     if not s3.bucket or not settings.tenant_id:
         raise ValueError("USEP_INGESTION_S3_BUCKET and USEP_INGESTION_TENANT_ID are required")
+    if mode not in MODES:
+        raise ValueError(f"mode must be one of {MODES}")
     client, connector = connector_factory(source, settings)
+    cursors, writer, publisher, index = _stores(s3_client, settings)
     try:
+        if mode == "reconcile":
+            rec = await Reconciler({source: connector}, index, publisher, settings.reconcile_max_missing_fraction
+                                   ).reconcile_source(source, scopes)
+            out = {"source": source, "mode": mode, **rec.as_dict()}
+            if rec.problems:                          # refused or unreadable scopes: make the alarm on Errors see it
+                raise ReconcileProblem(f"{source} reconcile: " + "; ".join(f"{p.scope}: {p.detail}" for p in rec.problems))
+            return out
         service = SyncService(
-            connectors={source: connector},
-            cursor_manager=S3CursorManager(s3_client, s3.bucket, s3.cursor_prefix),
-            raw_payload_writer=S3RawPayloadWriter(s3_client, s3.bucket, s3.raw_prefix),
-            raw_event_publisher=S3RawEventPublisher(s3_client, s3.bucket, settings.tenant_id, s3.bus_prefix,
-                                                    s3.bus_partitions),
-            audit_writer=StructlogAuditWriter(),
+            connectors={source: connector}, cursor_manager=cursors, raw_payload_writer=writer,
+            raw_event_publisher=publisher, audit_writer=StructlogAuditWriter(), object_index=index,
+            initial_cursor=settings.backfill_since or None,
+            max_documents_per_scope=settings.max_documents_per_scope or None,
         )
-        result = await service.sync_source(source)
+        result = await service.sync_source(source, scopes=scopes, full=(mode == "full"))
     finally:
         await client.aclose()
     if result.status == SyncStatus.FAILED:
         raise SyncFailed(f"{source} sync failed: {'; '.join(result.errors)}")
-    # PARTIAL (some objects failed or a scope was skipped) is not raised: the cursor stayed behind the failed objects,
-    # so the next run retries exactly those. The count is returned and logged for alarming.
-    return {"source": source, "status": result.status.value, "documents": result.documents_count,
-            "object_errors": len(result.object_errors), "cursors": result.cursors}
+    # PARTIAL (objects failed, a scope was skipped, or the run cap was reached) is not raised: the cursor stayed behind
+    # the failed objects and behind the cap, so the next run continues exactly there. Counts are returned for alarming.
+    return {"source": source, "mode": mode, "status": result.status.value, "documents": result.documents_count,
+            "object_errors": len(result.object_errors), "truncated_scopes": result.truncated_scopes,
+            "cursors": result.cursors}
 
 
 def handler(event: dict[str, Any], context: Any = None, *, _s3: Any | None = None, _settings: Settings | None = None,
@@ -95,6 +128,8 @@ def handler(event: dict[str, Any], context: Any = None, *, _s3: Any | None = Non
         import boto3
         s3_client = boto3.client("s3", region_name=settings.s3.region or None,
                                  endpoint_url=settings.s3.endpoint_url or None)
-    out = asyncio.run(run(source, settings, s3_client, _connector_factory))
+    scope = (event or {}).get("scope")
+    out = asyncio.run(run(source, settings, s3_client, _connector_factory, mode=(event or {}).get("mode", "sync"),
+                          scopes=[scope] if scope else None))
     logger.info("connector.lambda.done", **out)
     return out

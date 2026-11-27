@@ -22,6 +22,7 @@ import structlog
 from common.connector_base import ObjectError, ScopeFetch, SourceConnector, next_cursor
 from common.interfaces.audit_writer import AuditEvent, AuditWriter
 from common.interfaces.cursor_manager import CursorManager
+from common.interfaces.object_index import InMemoryObjectIndex, ObjectIndex
 from common.checksum import payload_checksum
 from common.interfaces.raw_event_publisher import NullRawEventPublisher, RawEvent, RawEventPublisher
 from common.interfaces.raw_payload_writer import RawPayloadWriter
@@ -53,7 +54,16 @@ class SyncService:
         sync_run_repository: SyncRunRepository | None = None,
         json_sink: JsonFileSink | None = None,
         raw_event_publisher: RawEventPublisher | None = None,
+        object_index: ObjectIndex | None = None,
+        initial_cursor: str | None = None,
+        max_documents_per_scope: int | None = None,
     ) -> None:
+        """``initial_cursor``: where a scope with no stored cursor starts (a backfill start date). None means everything.
+        ``max_documents_per_scope``: land at most this many objects per scope per run, oldest first. The cursor stops at the
+        last one landed, so a large first sync completes over several runs instead of overrunning a Lambda timeout."""
+        self._object_index = object_index or InMemoryObjectIndex()
+        self._initial_cursor = initial_cursor or None
+        self._max_documents = max_documents_per_scope or None
         self._connectors = connectors
         self._cursor_manager = cursor_manager
         self._raw_payload_writer = raw_payload_writer
@@ -139,20 +149,35 @@ class SyncService:
                 )
         return ScopeFetch(documents=landed, errors=errors)
 
-    async def _sync_scope(self, run_id: str, source: str, connector: SourceConnector, scope: str) -> tuple[ScopeFetch, str | None, bool]:
-        """Returns (fetched, new_cursor, scope_failed)."""
+    async def _sync_scope(self, run_id: str, source: str, connector: SourceConnector, scope: str,
+                          full: bool = False) -> tuple[ScopeFetch, str | None, bool, bool]:
+        """Returns (fetched, new_cursor, scope_failed, truncated).
+
+        ``full`` re-reads the whole scope ignoring the cursor, to pick up changes the source does not stamp with an
+        updated time (a permission change). The stored cursor never moves backwards, and the run-size cap is not applied,
+        so a full refresh is never left half done."""
         key = cursor_key(source, scope)
-        cursor = await self._cursor_manager.get_cursor(key)
+        stored = await self._cursor_manager.get_cursor(key)
+        cursor = stored or self._initial_cursor
         try:
-            fetched = await connector.fetch_scope(scope, cursor)
+            fetched = await connector.fetch_scope(scope, None if full else cursor)
         except Exception as exc:  # the scope itself could not be read
             logger.error("sync.scope_failed", source=source, scope=scope, run_id=run_id, error=str(exc))
             await self._audit(source, "sync_scope", SyncStatus.FAILED.value, {"run_id": run_id, "scope": scope, "error": str(exc)})
-            return ScopeFetch(errors=[ObjectError(scope=scope, error=str(exc))]), cursor, True
+            return ScopeFetch(errors=[ObjectError(scope=scope, error=str(exc))]), stored, True, False
+
+        truncated = False
+        if self._max_documents and not full and len(fetched.documents) > self._max_documents:
+            # Oldest first, objects with no version first (so they cannot starve). The cursor then stops at the last
+            # one landed; what was cut is fetched again next run because fetches are ">= cursor".
+            ordered = sorted(fetched.documents, key=lambda d: (d.source_version is not None, d.source_version or ""))
+            fetched = ScopeFetch(documents=ordered[: self._max_documents], errors=fetched.errors)
+            truncated = True
 
         fetched = await self._land_raw(run_id, fetched, scope)
-        new_cursor = next_cursor(cursor, fetched)
-        if new_cursor and new_cursor != cursor:
+        await self._object_index.add(key, {d.source_object_id for d in fetched.documents})
+        new_cursor = next_cursor(stored if full else cursor, fetched)
+        if new_cursor and new_cursor != stored:
             await self._cursor_manager.set_cursor(key, new_cursor)
 
         for error in fetched.errors:
@@ -165,19 +190,21 @@ class SyncService:
         await self._audit(
             source,
             "sync_scope",
-            SyncStatus.PARTIAL.value if fetched.errors else SyncStatus.SUCCESS.value,
+            SyncStatus.PARTIAL.value if fetched.errors or truncated else SyncStatus.SUCCESS.value,
             {
                 "run_id": run_id,
                 "scope": scope,
                 "documents_count": len(fetched.documents),
                 "errors_count": len(fetched.errors),
-                "cursor_before": cursor,
+                "cursor_before": stored,
                 "cursor_after": new_cursor,
+                "full": full,
+                "truncated": truncated,
             },
         )
-        return fetched, new_cursor, False
+        return fetched, new_cursor, False, truncated
 
-    async def sync_source(self, source: str, scopes: list[str] | None = None) -> SyncResult:
+    async def sync_source(self, source: str, scopes: list[str] | None = None, full: bool = False) -> SyncResult:
         connector = self._get_connector(source)
         configured = list(connector.scopes)
         if scopes is not None:
@@ -192,6 +219,7 @@ class SyncService:
         object_errors: list[ObjectError] = []
         cursors: dict[str, str | None] = {}
         skipped: list[str] = []
+        truncated_scopes: list[str] = []
         failed_scopes = 0
 
         for scope in target_scopes:
@@ -201,7 +229,10 @@ class SyncService:
                 skipped.append(scope)
                 continue
             async with lock:
-                fetched, new_cursor, scope_failed = await self._sync_scope(run_id, source, connector, scope)
+                fetched, new_cursor, scope_failed, truncated = await self._sync_scope(
+                    run_id, source, connector, scope, full)
+            if truncated:
+                truncated_scopes.append(scope)
             documents.extend(fetched.documents)
             object_errors.extend(fetched.errors)
             cursors[scope] = new_cursor
@@ -210,7 +241,7 @@ class SyncService:
         attempted = len(target_scopes) - len(skipped)
         if attempted and failed_scopes == attempted:
             status = SyncStatus.FAILED
-        elif object_errors or skipped:
+        elif object_errors or skipped or truncated_scopes:
             status = SyncStatus.PARTIAL
         else:
             status = SyncStatus.SUCCESS
@@ -224,6 +255,7 @@ class SyncService:
             documents=documents,
             cursors=cursors,
             skipped_scopes=skipped,
+            truncated_scopes=truncated_scopes,
             object_errors=object_errors,
             errors=[str(e) for e in object_errors],
         )
@@ -231,7 +263,8 @@ class SyncService:
             source,
             "sync",
             status.value,
-            {"run_id": run_id, "documents_count": result.documents_count, "errors_count": len(object_errors), "skipped_scopes": skipped},
+            {"run_id": run_id, "documents_count": result.documents_count, "errors_count": len(object_errors), "skipped_scopes": skipped,
+             "truncated_scopes": truncated_scopes, "full": full},
         )
         await self._record_run(result)
         logger.info("sync.completed", source=source, run_id=run_id, status=status.value, documents_count=result.documents_count)

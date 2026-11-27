@@ -51,6 +51,7 @@ records. Do not use it as the extractor for ontology data.
   need their own view reading `graph.json`, which keeps the full `metadata`.
 - Negative: the file format is vendor-controlled and lightly documented. The adapter is the single place to
   fix if it changes, and a contract test pins the fields we rely on.
+- Done (code, not accepted): `write_graphify_restricted` runs `restrict_for_export` first. A node is exported only if it is labelled, not owners-only and at most sensitivity 1; edges to dropped nodes go too. Because most records are owners-only until ACLs are harvested, an export of real data is mostly empty today. `usep.graph.entity_events.build_graph` feeds the graph from pipeline `entity.*` events; ends it cannot match to exactly one node are returned as `unresolved`, not guessed. It is a stand-in for the entity resolver, not the resolver.
 - Open: Graphify's traversal ignores our access predicate (ADR-06) and tenant filter (ADR-10). Anything
   served from `graph.json` must be filtered by tenant and permission **before** export, never after. Until
   that is designed, exported graphs are for local, single-tenant, non-restricted data only.

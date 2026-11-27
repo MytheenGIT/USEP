@@ -30,8 +30,6 @@ concepts:
       - {name: scheme_name, type: string, required: true}
       - {name: points_currency, type: string}
 
-relationships:
-  - id: GOVERNED_BY
-    from: DataAsset
-    to: RetailComplianceControl
-    description: "A data asset is governed by a retail compliance control (e.g. customer PII under GDPR)"
+# No pack relationship: the core governed_by already allows DataAsset to Control, and RetailComplianceControl is a Control.
+# (An earlier GOVERNED_BY here shadowed the core relationship in a different case.)
+relationships: []

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 from typing import Any
+
+import httpx
 from urllib.parse import quote
 
 from common.client_base import BaseAPIClient
@@ -12,9 +14,10 @@ API = "api-version=7.1"
 class AdoClient(BaseAPIClient):
     """Azure DevOps Services / Server REST API. base_url is the organization (https://dev.azure.com/<org>)."""
 
-    def __init__(self, organization_url: str, pat: str, timeout: float = 60.0) -> None:
+    def __init__(self, organization_url: str, pat: str, timeout: float = 60.0,
+                 transport: httpx.AsyncBaseTransport | None = None) -> None:
         token = base64.b64encode(f":{pat}".encode()).decode()
-        super().__init__(base_url=organization_url, timeout=timeout,
+        super().__init__(base_url=organization_url, timeout=timeout, transport=transport,
                          headers={"Authorization": f"Basic {token}", "Accept": "application/json"})
 
     @staticmethod

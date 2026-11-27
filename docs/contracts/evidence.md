@@ -32,7 +32,7 @@ the newest `retrieved_at`, then the highest `source_version`.
 - `text`: redacted plain text. Headings are `#` lines and list items are `- ` lines. Jira includes comments; GitLab and
   GitHub include commit messages and human comments or reviews. **Diffs and code are not included.**
 - `labels`: the source's own labels, lower-cased.
-- `refs`: `jira_keys`, `repo_urls` and (Confluence) `parent_id` the text points at. Use them to link chunks to each other.
+- `refs`: `jira_keys`, `repo_urls`, `confluence_page_ids` (Jira remote links, when present) and (Confluence) `parent_id` the text points at. Use them to link chunks to each other.
 - `redaction`: counts by kind, never values.
 - A changed ACL or label set writes a **new** object (the key ends in a hash of the labels), so an old object can be stale.
 

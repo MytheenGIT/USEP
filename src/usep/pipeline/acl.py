@@ -57,6 +57,10 @@ def from_connector(source: str, acl: Mapping[str, Any] | None) -> Acl:
         scope("project", a.get("project"))
         scope("area_path", a.get("area_path"))
         scope("repository", a.get("repository"))
+        vis = str(a.get("visibility") or "").lower()        # project visibility, present on pull requests only
+        if vis in ("private", "public"):
+            principals.append(f"visibility:{vis}")
+            scheme, restricted, known = "ado_project_visibility", vis == "private", True
     elif source == "figma":
         scope("file", a.get("file_key"))
     return Acl(known, scheme, tuple(principals), restricted, tuple(scopes))

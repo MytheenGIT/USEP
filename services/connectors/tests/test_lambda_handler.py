@@ -33,7 +33,8 @@ def test_run_writes_snapshot_event_and_cursor_then_closes_client():
     out = lh.handler({"source": "jira"}, _s3=s3, _settings=settings(), _connector_factory=factory(conn, client))
     doc_version = "2026-01-01T00:00:00.000Z"
     assert out == {"source": "jira", "status": "success", "documents": 1, "object_errors": 0,
-                   "cursors": {"default": doc_version}}
+                   "cursors": {"default": doc_version}, "mode": "sync",
+                   "truncated_scopes": []}
     assert [k for k in s3.objects if k.startswith("raw/jira/ABC-1/")]
     (evk,) = [k for k in s3.objects if k.startswith("bus/raw.jira/")]
     ev = json.loads(s3.objects[evk])

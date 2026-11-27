@@ -30,6 +30,7 @@ class GraphNode:
     valid_to: str | None = None
     sensitivity: int | None = None
     acl_ref: str | None = None
+    owners_only: bool | None = None           # None means not labelled; the export filter treats that as restricted
     confidence: float | None = None           # set only for inferred labels
 
 

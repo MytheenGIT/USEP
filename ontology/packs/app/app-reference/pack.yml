@@ -22,3 +22,6 @@ files:
     - mappings/figma.yml
     - mappings/servicenow.yml
     - mappings/ado.yml
+  templates:
+    - templates/app_references_of.yml
+    - templates/app_documents_of.yml

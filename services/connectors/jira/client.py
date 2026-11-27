@@ -120,5 +120,16 @@ class JiraClient(BaseAPIClient):
             if not batch or page.get("isLast", start >= page.get("total", 0)):
                 return histories
 
+    async def get_remote_links(self, issue_key: str) -> list[dict[str, Any]]:
+        """Remote links on an issue: the native Jira-to-Confluence (and other web) links. A 403 or 404 means the
+        integration user cannot see them or the issue has none; that is an empty list, not a failure."""
+        try:
+            data = await self.get_json(f"/rest/api/3/issue/{issue_key}/remotelink")
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (403, 404):
+                return []
+            raise
+        return data if isinstance(data, list) else []
+
     async def download_attachment(self, content_url: str, max_bytes: int) -> bytes:
         return await self.get_bytes(content_url, max_bytes)

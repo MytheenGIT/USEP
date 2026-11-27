@@ -34,3 +34,17 @@ tables in the project pack. The container, scheduler, API routes and Lambda hand
 ## Tests
 `tests/pipeline/` is one file per concern (`test_jira`, `test_git_sources`, `test_links`, ...) over shared helpers in
 `helpers.py` and fixtures in `conftest.py`. Run from the repo root with `python -m pytest tests`.
+
+## Checking edge precision
+Link rules are trusted only after a human check (about 100 edges per relation type). Copy the bus locally
+(`aws s3 sync s3://<bucket>/bus ./bus`), then:
+
+```bash
+python scripts/edge_precision.py sample ./bus edges_to_review.csv
+python scripts/edge_precision.py score edges_reviewed.csv      # after filling the label column with y or n
+```
+The sample is repeatable and split across methods; the score is precision per relation and per relation and method (`precision.py`).
+
+## From entity events to the graph
+`usep.graph.entity_events.build_graph` turns `entity.*` events into a tenant graph (ends that match no single node are returned as
+unresolved), and `write_graphify_restricted` exports only open, low-sensitivity nodes (ADR-19).

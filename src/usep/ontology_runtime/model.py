@@ -14,6 +14,7 @@ class Attribute:
     required: bool = False
     multi: bool = False
     values: tuple[Any, ...] | None = None        # resolved from values_ref; None = not enumerated
+    values_ref: str | None = None                # the vocabulary's name, when the attribute is enumerated
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,8 @@ class Concept:
     parent: str | None = None                    # pack concepts are subclasses of a core concept
     role_only: bool = False
     attributes: tuple[Attribute, ...] = ()
+    description: str = ""
+    pack_id: str = "core"                        # the pack that defined it
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,7 @@ class Relationship:
     from_types: tuple[str, ...]
     to_types: tuple[str, ...]
     level: str = "core"
+    same_type: bool = False                      # both ends must resolve to one core concept
 
 
 @dataclass(frozen=True)
@@ -49,6 +53,7 @@ class Template:
     max_depth: int
     fanout_cap: int
     steps: tuple[str, ...]
+    pack_id: str = ""                          # empty for a core template
 
 
 @dataclass(frozen=True)
@@ -64,6 +69,8 @@ class Mapping_:
     to_entity: str | None = None
     fields: Mapping[str, str] = field(default_factory=dict)
     evidence_only: bool = False                  # matched, but no entity: the text is kept as evidence only
+    level: str = ""                              # pack level that defined the rule
+    role: str | None = None                      # carrier | unmodelled | evidence, for a record that makes no node
 
 
 @dataclass(frozen=True)
@@ -74,6 +81,16 @@ class PackInfo:
     status: str
     signed: bool
     reference_only: bool
+
+
+@dataclass(frozen=True)
+class System:
+    """A system an application pack registers and maps to a core type (HLD 6 Table 10)."""
+    system_id: str
+    core_type: str
+    source_systems: tuple[str, ...]
+    regulatory_scope: tuple[str, ...]
+    status: str
 
 
 @dataclass(frozen=True)
@@ -106,6 +123,9 @@ class OntologyBundle:
     precedence: Mapping[str, Any]                # org pack: attribute -> ordered sources (placeholder until the workshop)
     glossary: Mapping[str, str]                  # org word -> core concept
     workflow: Mapping[str, Any] = field(default_factory=dict)   # project pack: source states -> core states
+    systems: Mapping[str, System] = field(default_factory=dict)
+    on_unmapped: Mapping[str, str] = field(default_factory=dict)   # source system -> quarantine | evidence
+    source_priority: tuple[str, ...] = ()        # org pack: which source system wins when none is named per attribute
 
     def ancestors(self, concept_id: str) -> tuple[str, ...]:
         """The concept followed by its parents, so a subclass is accepted wherever its parent is."""

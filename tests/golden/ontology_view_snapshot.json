@@ -1,0 +1,4140 @@
+{
+ "banking_stack": {
+  "concepts": {
+   "API": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "protocol": {
+      "multi": false,
+      "name": "protocol",
+      "required": false,
+      "type": "enum",
+      "values_ref": "api_protocol"
+     },
+     "spec_ref": {
+      "multi": false,
+      "name": "spec_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Application": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Capability": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "summary": {
+      "multi": false,
+      "name": "summary",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Change": {
+    "attrs": {
+     "change_state": {
+      "multi": false,
+      "name": "change_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "change_state"
+     },
+     "change_type": {
+      "multi": false,
+      "name": "change_type",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "ComplianceControl": {
+    "attrs": {
+     "control_reference": {
+      "multi": false,
+      "name": "control_reference",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "control_set": {
+      "multi": false,
+      "name": "control_set",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": "Control"
+   },
+   "Control": {
+    "attrs": {
+     "control_set": {
+      "multi": false,
+      "name": "control_set",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "DataAsset": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "regulatory_scope": {
+      "multi": true,
+      "name": "regulatory_scope",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Decision": {
+    "attrs": {
+     "decided_on": {
+      "multi": false,
+      "name": "decided_on",
+      "required": false,
+      "type": "date",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "decision_status"
+     }
+    },
+    "parent": null
+   },
+   "Environment": {
+    "attrs": {
+     "environment_kind": {
+      "multi": false,
+      "name": "environment_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "environment_kind"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Incident": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "severity": {
+      "multi": false,
+      "name": "severity",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_severity"
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_status"
+     }
+    },
+    "parent": null
+   },
+   "PaymentScheme": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     },
+     "scheme_name": {
+      "multi": false,
+      "name": "scheme_name",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": "Policy"
+   },
+   "Person": {
+    "attrs": {
+     "role_name": {
+      "multi": false,
+      "name": "role_name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Policy": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     }
+    },
+    "parent": null
+   },
+   "Release": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "release_state": {
+      "multi": false,
+      "name": "release_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "release_state"
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Requirement": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "requirement_status"
+     }
+    },
+    "parent": null
+   },
+   "Service": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "repository_ref": {
+      "multi": false,
+      "name": "repository_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Team": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Test": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_status"
+     },
+     "test_kind": {
+      "multi": false,
+      "name": "test_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_kind"
+     }
+    },
+    "parent": null
+   }
+  },
+  "core_version": "0.1.0",
+  "mappings": {
+   "ado": {
+    "entries": [
+     [
+      "work_item",
+      {
+       "work_item_type": [
+        "epic",
+        "feature",
+        "user story",
+        "product backlog item",
+        "requirement"
+       ]
+      },
+      "Requirement",
+      null,
+      null,
+      {
+       "name": "work_item.title",
+       "source_id": "work_item.id"
+      },
+      "application"
+     ],
+     [
+      "work_item",
+      {
+       "work_item_type": [
+        "task",
+        "bug",
+        "issue",
+        "change request"
+       ]
+      },
+      "Change",
+      null,
+      null,
+      {
+       "name": "work_item.title",
+       "source_id": "work_item.id"
+      },
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   },
+   "confluence": {
+    "entries": [
+     [
+      "page",
+      {
+       "label": [
+        "adr",
+        "decision"
+       ]
+      },
+      "Decision",
+      null,
+      null,
+      {
+       "name": "page.title",
+       "source_id": "page.id"
+      },
+      "application"
+     ],
+     [
+      "page",
+      {
+       "label": [
+        "requirement"
+       ]
+      },
+      "Requirement",
+      null,
+      null,
+      {
+       "name": "page.title",
+       "source_id": "page.id"
+      },
+      "application"
+     ],
+     [
+      "page",
+      {
+       "label": []
+      },
+      null,
+      null,
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "evidence"
+   },
+   "figma": {
+    "entries": [
+     [
+      "file",
+      {},
+      null,
+      null,
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   },
+   "git": {
+    "entries": [
+     [
+      "repository",
+      {},
+      "Service",
+      null,
+      null,
+      {
+       "name": "name",
+       "repository_ref": "repository"
+      },
+      "application"
+     ],
+     [
+      "team",
+      {},
+      "Team",
+      null,
+      null,
+      {
+       "name": "name"
+      },
+      "application"
+     ],
+     [
+      "adr",
+      {},
+      "Decision",
+      null,
+      null,
+      {
+       "name": "title",
+       "status": "status"
+      },
+      "application"
+     ],
+     [
+      "schema",
+      {},
+      "DataAsset",
+      null,
+      null,
+      {
+       "name": "path"
+      },
+      "application"
+     ],
+     [
+      "codeowners",
+      {},
+      null,
+      null,
+      "carrier",
+      {},
+      "application"
+     ],
+     [
+      "manifest",
+      {},
+      null,
+      null,
+      "carrier",
+      {},
+      "application"
+     ],
+     [
+      "package",
+      {},
+      null,
+      null,
+      "unmodelled",
+      {},
+      "application"
+     ],
+     [
+      "pull_request",
+      {},
+      "Change",
+      null,
+      null,
+      {
+       "change_state": "state (project pack maps this to change_state)",
+       "name": "title",
+       "source_id": "id"
+      },
+      "application"
+     ],
+     [
+      "codeowners_entry",
+      {},
+      null,
+      "owns",
+      null,
+      {},
+      "application"
+     ],
+     [
+      "manifest_dependency",
+      {},
+      null,
+      "depends_on",
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "evidence"
+   },
+   "jira": {
+    "entries": [
+     [
+      "issue",
+      {
+       "issue_type": [
+        "epic",
+        "story"
+       ]
+      },
+      "Requirement",
+      null,
+      null,
+      {
+       "name": "issue.summary",
+       "source_id": "issue.key",
+       "status": "issue.status (project pack maps this)"
+      },
+      "application"
+     ],
+     [
+      "issue",
+      {
+       "issue_type": [
+        "task",
+        "bug",
+        "change"
+       ]
+      },
+      "Change",
+      null,
+      null,
+      {
+       "change_state": "issue.status (project pack maps this)",
+       "name": "issue.summary",
+       "source_id": "issue.key"
+      },
+      "application"
+     ],
+     [
+      "issue",
+      {
+       "issue_type": [
+        "incident"
+       ]
+      },
+      "Incident",
+      null,
+      null,
+      {
+       "name": "issue.summary",
+       "severity": "issue.priority (project pack maps this)",
+       "source_id": "issue.key",
+       "status": "issue.status (project pack maps this)"
+      },
+      "application"
+     ],
+     [
+      "issue_link",
+      {
+       "link_type": [
+        "implements"
+       ]
+      },
+      null,
+      "implements",
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   },
+   "servicenow": {
+    "entries": [
+     [
+      "incident",
+      {},
+      "Incident",
+      null,
+      null,
+      {
+       "name": "incident.short_description",
+       "source_id": "incident.number"
+      },
+      "application"
+     ],
+     [
+      "change_request",
+      {},
+      "Change",
+      null,
+      null,
+      {
+       "name": "change_request.short_description",
+       "source_id": "change_request.number"
+      },
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   }
+  },
+  "packs": [
+   [
+    "industry.banking-reference",
+    "industry",
+    "0.1.0"
+   ],
+   [
+    "org.org-reference",
+    "organization",
+    "0.1.0"
+   ],
+   [
+    "app.app-reference",
+    "application",
+    "0.1.0"
+   ],
+   [
+    "project.project-reference",
+    "project",
+    "0.1.0"
+   ]
+  ],
+  "relationships": [
+   "caused_by",
+   "consumes",
+   "decided_in",
+   "depends_on",
+   "deployed_to",
+   "documents",
+   "exposes",
+   "governed_by",
+   "implements",
+   "owns",
+   "realizes",
+   "references",
+   "supersedes",
+   "tests"
+  ],
+  "systems": {
+   "<system-key>": {
+    "core_type": "Service",
+    "regulatory_scope": [],
+    "source_systems": [
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "status": "placeholder",
+    "system_id": "<system-key>"
+   }
+  },
+  "view": {
+   "common": [
+    "acl_ref",
+    "acl_state",
+    "domain",
+    "entity_id",
+    "name",
+    "owner_ref",
+    "recorded_at",
+    "sensitivity",
+    "source_id",
+    "source_system",
+    "source_version",
+    "summary",
+    "tenant_id",
+    "valid_from",
+    "valid_to"
+   ],
+   "descr": {
+    "API": "An interface a service exposes and others consume",
+    "Application": "A deployable business system made of services",
+    "Capability": "What the enterprise can do, independent of the systems that deliver it",
+    "Change": "A unit of work that alters a system: a ticket, pull request or change record",
+    "ComplianceControl": "A control that belongs to a named control set, such as PCI-DSS",
+    "Control": "A measure that meets a policy or regulation",
+    "DataAsset": "Data held by the enterprise: a database, dataset or topic. Metadata only, never row data (HLD 5.2)",
+    "Decision": "A recorded choice and its reason, such as an ADR",
+    "Environment": "Where software runs",
+    "Incident": "An unplanned event that disrupted a service",
+    "PaymentScheme": "A card or payment network rulebook the organization must follow (HLD 6 Table 10 example)",
+    "Person": "A person, recorded by role only (HLD 6 Table 9). No names or contact details.",
+    "Policy": "A rule that governs behaviour, such as change control for payment systems",
+    "Release": "A versioned set of changes put into an environment",
+    "Requirement": "A stated need a change must satisfy",
+    "Service": "A running unit of software with one owning team",
+    "Team": "A group that owns things and is accountable for them",
+    "Test": "A check that shows a change or service behaves as required"
+   },
+   "domain": {
+    "API": "architecture",
+    "Application": "architecture",
+    "Capability": "business",
+    "Change": "product",
+    "ComplianceControl": "security",
+    "Control": "security",
+    "DataAsset": "platform",
+    "Decision": "architecture",
+    "Environment": "platform",
+    "Incident": "operations",
+    "PaymentScheme": "security",
+    "Person": "business",
+    "Policy": "security",
+    "Release": "product",
+    "Requirement": "product",
+    "Service": "architecture",
+    "Team": "business",
+    "Test": "testing"
+   },
+   "domains": [
+    "business",
+    "architecture",
+    "product",
+    "security",
+    "operations",
+    "platform",
+    "testing"
+   ],
+   "glossary": {},
+   "level": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "ComplianceControl": "industry",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "PaymentScheme": "industry",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "Service": "core",
+    "Team": "core",
+    "Test": "core"
+   },
+   "pack": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "ComplianceControl": "industry.banking-reference",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "PaymentScheme": "industry.banking-reference",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "Service": "core",
+    "Team": "core",
+    "Test": "core"
+   },
+   "precedence": {
+    "change_state": [
+     "jira",
+     "git"
+    ],
+    "criticality": [
+     "cmdb",
+     "confluence"
+    ],
+    "lifecycle_state": [
+     "cmdb",
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "owner_ref": [
+     "cmdb",
+     "git",
+     "confluence"
+    ]
+   },
+   "priority": [
+    "git",
+    "jira",
+    "confluence"
+   ],
+   "rules": {
+    "caused_by": [
+     [
+      "Incident"
+     ],
+     [
+      "Change",
+      "Incident",
+      "Release",
+      "Service"
+     ],
+     false
+    ],
+    "consumes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API",
+      "DataAsset"
+     ],
+     false
+    ],
+    "decided_in": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "Policy",
+      "Requirement",
+      "Service"
+     ],
+     [
+      "Decision"
+     ],
+     false
+    ],
+    "depends_on": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     false
+    ],
+    "deployed_to": [
+     [
+      "Application",
+      "Release",
+      "Service"
+     ],
+     [
+      "Environment"
+     ],
+     false
+    ],
+    "documents": [
+     [
+      "Decision"
+     ],
+     [
+      "API",
+      "Application",
+      "Service"
+     ],
+     false
+    ],
+    "exposes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API"
+     ],
+     false
+    ],
+    "governed_by": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "DataAsset",
+      "Environment",
+      "Release",
+      "Service"
+     ],
+     [
+      "Control",
+      "Policy"
+     ],
+     false
+    ],
+    "implements": [
+     [
+      "Change"
+     ],
+     [
+      "Decision",
+      "Requirement"
+     ],
+     false
+    ],
+    "owns": [
+     [
+      "Team"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Control",
+      "DataAsset",
+      "Environment",
+      "Policy",
+      "Service"
+     ],
+     false
+    ],
+    "realizes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "Capability"
+     ],
+     false
+    ],
+    "references": [
+     [
+      "Change",
+      "Decision",
+      "Requirement"
+     ],
+     [
+      "Change",
+      "Decision",
+      "Incident",
+      "Requirement"
+     ],
+     false
+    ],
+    "supersedes": [
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     true
+    ],
+    "tests": [
+     [
+      "Test"
+     ],
+     [
+      "API",
+      "Application",
+      "Change",
+      "Requirement",
+      "Service"
+     ],
+     false
+    ]
+   }
+  },
+  "vocab": {
+   "acl_state": [
+    "known",
+    "stale",
+    "unknown"
+   ],
+   "api_protocol": [
+    "event",
+    "graphql",
+    "grpc",
+    "other",
+    "rest"
+   ],
+   "change_state": [
+    "approved",
+    "in_progress",
+    "in_review",
+    "proposed",
+    "rejected",
+    "released"
+   ],
+   "criticality": [
+    "tier_1",
+    "tier_2",
+    "tier_3"
+   ],
+   "decision_status": [
+    "accepted",
+    "proposed",
+    "rejected",
+    "superseded"
+   ],
+   "domains": [
+    "architecture",
+    "business",
+    "operations",
+    "platform",
+    "product",
+    "security",
+    "testing"
+   ],
+   "environment_kind": [
+    "development",
+    "production",
+    "staging",
+    "test"
+   ],
+   "incident_severity": [
+    "sev1",
+    "sev2",
+    "sev3",
+    "sev4"
+   ],
+   "incident_status": [
+    "closed",
+    "mitigated",
+    "open",
+    "resolved"
+   ],
+   "lifecycle_state": [
+    "active",
+    "deprecated",
+    "planned",
+    "retired"
+   ],
+   "policy_kind": [
+    "access",
+    "change_control",
+    "data_protection",
+    "operational",
+    "retention"
+   ],
+   "release_state": [
+    "planned",
+    "released",
+    "rolled_back"
+   ],
+   "requirement_status": [
+    "approved",
+    "draft",
+    "implemented",
+    "withdrawn"
+   ],
+   "sensitivity": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "test_kind": [
+    "acceptance",
+    "contract",
+    "integration",
+    "load",
+    "regression",
+    "security",
+    "unit"
+   ],
+   "test_status": [
+    "failing",
+    "flaky",
+    "not_run",
+    "passing"
+   ]
+  }
+ },
+ "core_only": {
+  "concepts": {
+   "API": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "protocol": {
+      "multi": false,
+      "name": "protocol",
+      "required": false,
+      "type": "enum",
+      "values_ref": "api_protocol"
+     },
+     "spec_ref": {
+      "multi": false,
+      "name": "spec_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Application": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Capability": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "summary": {
+      "multi": false,
+      "name": "summary",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Change": {
+    "attrs": {
+     "change_state": {
+      "multi": false,
+      "name": "change_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "change_state"
+     },
+     "change_type": {
+      "multi": false,
+      "name": "change_type",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Control": {
+    "attrs": {
+     "control_set": {
+      "multi": false,
+      "name": "control_set",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "DataAsset": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "regulatory_scope": {
+      "multi": true,
+      "name": "regulatory_scope",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Decision": {
+    "attrs": {
+     "decided_on": {
+      "multi": false,
+      "name": "decided_on",
+      "required": false,
+      "type": "date",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "decision_status"
+     }
+    },
+    "parent": null
+   },
+   "Environment": {
+    "attrs": {
+     "environment_kind": {
+      "multi": false,
+      "name": "environment_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "environment_kind"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Incident": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "severity": {
+      "multi": false,
+      "name": "severity",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_severity"
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_status"
+     }
+    },
+    "parent": null
+   },
+   "Person": {
+    "attrs": {
+     "role_name": {
+      "multi": false,
+      "name": "role_name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Policy": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     }
+    },
+    "parent": null
+   },
+   "Release": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "release_state": {
+      "multi": false,
+      "name": "release_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "release_state"
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Requirement": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "requirement_status"
+     }
+    },
+    "parent": null
+   },
+   "Service": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "repository_ref": {
+      "multi": false,
+      "name": "repository_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Team": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Test": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_status"
+     },
+     "test_kind": {
+      "multi": false,
+      "name": "test_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_kind"
+     }
+    },
+    "parent": null
+   }
+  },
+  "core_version": "0.1.0",
+  "mappings": {},
+  "packs": [],
+  "relationships": [
+   "caused_by",
+   "consumes",
+   "decided_in",
+   "depends_on",
+   "deployed_to",
+   "exposes",
+   "governed_by",
+   "implements",
+   "owns",
+   "realizes",
+   "supersedes",
+   "tests"
+  ],
+  "systems": {},
+  "view": {
+   "common": [
+    "acl_ref",
+    "acl_state",
+    "domain",
+    "entity_id",
+    "name",
+    "owner_ref",
+    "recorded_at",
+    "sensitivity",
+    "source_id",
+    "source_system",
+    "source_version",
+    "summary",
+    "tenant_id",
+    "valid_from",
+    "valid_to"
+   ],
+   "descr": {
+    "API": "An interface a service exposes and others consume",
+    "Application": "A deployable business system made of services",
+    "Capability": "What the enterprise can do, independent of the systems that deliver it",
+    "Change": "A unit of work that alters a system: a ticket, pull request or change record",
+    "Control": "A measure that meets a policy or regulation",
+    "DataAsset": "Data held by the enterprise: a database, dataset or topic. Metadata only, never row data (HLD 5.2)",
+    "Decision": "A recorded choice and its reason, such as an ADR",
+    "Environment": "Where software runs",
+    "Incident": "An unplanned event that disrupted a service",
+    "Person": "A person, recorded by role only (HLD 6 Table 9). No names or contact details.",
+    "Policy": "A rule that governs behaviour, such as change control for payment systems",
+    "Release": "A versioned set of changes put into an environment",
+    "Requirement": "A stated need a change must satisfy",
+    "Service": "A running unit of software with one owning team",
+    "Team": "A group that owns things and is accountable for them",
+    "Test": "A check that shows a change or service behaves as required"
+   },
+   "domain": {
+    "API": "architecture",
+    "Application": "architecture",
+    "Capability": "business",
+    "Change": "product",
+    "Control": "security",
+    "DataAsset": "platform",
+    "Decision": "architecture",
+    "Environment": "platform",
+    "Incident": "operations",
+    "Person": "business",
+    "Policy": "security",
+    "Release": "product",
+    "Requirement": "product",
+    "Service": "architecture",
+    "Team": "business",
+    "Test": "testing"
+   },
+   "domains": [
+    "business",
+    "architecture",
+    "product",
+    "security",
+    "operations",
+    "platform",
+    "testing"
+   ],
+   "glossary": {},
+   "level": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "Service": "core",
+    "Team": "core",
+    "Test": "core"
+   },
+   "pack": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "Service": "core",
+    "Team": "core",
+    "Test": "core"
+   },
+   "precedence": {},
+   "priority": [],
+   "rules": {
+    "caused_by": [
+     [
+      "Incident"
+     ],
+     [
+      "Change",
+      "Incident",
+      "Release",
+      "Service"
+     ],
+     false
+    ],
+    "consumes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API",
+      "DataAsset"
+     ],
+     false
+    ],
+    "decided_in": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "Policy",
+      "Requirement",
+      "Service"
+     ],
+     [
+      "Decision"
+     ],
+     false
+    ],
+    "depends_on": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     false
+    ],
+    "deployed_to": [
+     [
+      "Application",
+      "Release",
+      "Service"
+     ],
+     [
+      "Environment"
+     ],
+     false
+    ],
+    "exposes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API"
+     ],
+     false
+    ],
+    "governed_by": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "DataAsset",
+      "Environment",
+      "Release",
+      "Service"
+     ],
+     [
+      "Control",
+      "Policy"
+     ],
+     false
+    ],
+    "implements": [
+     [
+      "Change"
+     ],
+     [
+      "Decision",
+      "Requirement"
+     ],
+     false
+    ],
+    "owns": [
+     [
+      "Team"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Control",
+      "DataAsset",
+      "Environment",
+      "Policy",
+      "Service"
+     ],
+     false
+    ],
+    "realizes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "Capability"
+     ],
+     false
+    ],
+    "supersedes": [
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     true
+    ],
+    "tests": [
+     [
+      "Test"
+     ],
+     [
+      "API",
+      "Application",
+      "Change",
+      "Requirement",
+      "Service"
+     ],
+     false
+    ]
+   }
+  },
+  "vocab": {
+   "acl_state": [
+    "known",
+    "stale",
+    "unknown"
+   ],
+   "api_protocol": [
+    "event",
+    "graphql",
+    "grpc",
+    "other",
+    "rest"
+   ],
+   "change_state": [
+    "approved",
+    "in_progress",
+    "in_review",
+    "proposed",
+    "rejected",
+    "released"
+   ],
+   "criticality": [
+    "tier_1",
+    "tier_2",
+    "tier_3"
+   ],
+   "decision_status": [
+    "accepted",
+    "proposed",
+    "rejected",
+    "superseded"
+   ],
+   "domains": [
+    "architecture",
+    "business",
+    "operations",
+    "platform",
+    "product",
+    "security",
+    "testing"
+   ],
+   "environment_kind": [
+    "development",
+    "production",
+    "staging",
+    "test"
+   ],
+   "incident_severity": [
+    "sev1",
+    "sev2",
+    "sev3",
+    "sev4"
+   ],
+   "incident_status": [
+    "closed",
+    "mitigated",
+    "open",
+    "resolved"
+   ],
+   "lifecycle_state": [
+    "active",
+    "deprecated",
+    "planned",
+    "retired"
+   ],
+   "policy_kind": [
+    "access",
+    "change_control",
+    "data_protection",
+    "operational",
+    "retention"
+   ],
+   "release_state": [
+    "planned",
+    "released",
+    "rolled_back"
+   ],
+   "requirement_status": [
+    "approved",
+    "draft",
+    "implemented",
+    "withdrawn"
+   ],
+   "sensitivity": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "test_kind": [
+    "acceptance",
+    "contract",
+    "integration",
+    "load",
+    "regression",
+    "security",
+    "unit"
+   ],
+   "test_status": [
+    "failing",
+    "flaky",
+    "not_run",
+    "passing"
+   ]
+  }
+ },
+ "pipeline_packs": {
+  "concepts": {
+   "API": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "protocol": {
+      "multi": false,
+      "name": "protocol",
+      "required": false,
+      "type": "enum",
+      "values_ref": "api_protocol"
+     },
+     "spec_ref": {
+      "multi": false,
+      "name": "spec_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Application": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Capability": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "summary": {
+      "multi": false,
+      "name": "summary",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Change": {
+    "attrs": {
+     "change_state": {
+      "multi": false,
+      "name": "change_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "change_state"
+     },
+     "change_type": {
+      "multi": false,
+      "name": "change_type",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Control": {
+    "attrs": {
+     "control_set": {
+      "multi": false,
+      "name": "control_set",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "DataAsset": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "regulatory_scope": {
+      "multi": true,
+      "name": "regulatory_scope",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Decision": {
+    "attrs": {
+     "decided_on": {
+      "multi": false,
+      "name": "decided_on",
+      "required": false,
+      "type": "date",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "decision_status"
+     }
+    },
+    "parent": null
+   },
+   "Environment": {
+    "attrs": {
+     "environment_kind": {
+      "multi": false,
+      "name": "environment_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "environment_kind"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Incident": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "severity": {
+      "multi": false,
+      "name": "severity",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_severity"
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_status"
+     }
+    },
+    "parent": null
+   },
+   "Person": {
+    "attrs": {
+     "role_name": {
+      "multi": false,
+      "name": "role_name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Policy": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     }
+    },
+    "parent": null
+   },
+   "Release": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "release_state": {
+      "multi": false,
+      "name": "release_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "release_state"
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Requirement": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "requirement_status"
+     }
+    },
+    "parent": null
+   },
+   "Service": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "repository_ref": {
+      "multi": false,
+      "name": "repository_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Team": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Test": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_status"
+     },
+     "test_kind": {
+      "multi": false,
+      "name": "test_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_kind"
+     }
+    },
+    "parent": null
+   }
+  },
+  "core_version": "0.1.0",
+  "mappings": {
+   "ado": {
+    "entries": [
+     [
+      "work_item",
+      {
+       "work_item_type": [
+        "epic",
+        "feature",
+        "user story",
+        "product backlog item",
+        "requirement"
+       ]
+      },
+      "Requirement",
+      null,
+      null,
+      {
+       "name": "work_item.title",
+       "source_id": "work_item.id"
+      },
+      "application"
+     ],
+     [
+      "work_item",
+      {
+       "work_item_type": [
+        "task",
+        "bug",
+        "issue",
+        "change request"
+       ]
+      },
+      "Change",
+      null,
+      null,
+      {
+       "name": "work_item.title",
+       "source_id": "work_item.id"
+      },
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   },
+   "confluence": {
+    "entries": [
+     [
+      "page",
+      {
+       "label": [
+        "adr",
+        "decision"
+       ]
+      },
+      "Decision",
+      null,
+      null,
+      {
+       "name": "page.title",
+       "source_id": "page.id"
+      },
+      "application"
+     ],
+     [
+      "page",
+      {
+       "label": [
+        "requirement"
+       ]
+      },
+      "Requirement",
+      null,
+      null,
+      {
+       "name": "page.title",
+       "source_id": "page.id"
+      },
+      "application"
+     ],
+     [
+      "page",
+      {
+       "label": []
+      },
+      null,
+      null,
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "evidence"
+   },
+   "figma": {
+    "entries": [
+     [
+      "file",
+      {},
+      null,
+      null,
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   },
+   "git": {
+    "entries": [
+     [
+      "repository",
+      {},
+      "Service",
+      null,
+      null,
+      {
+       "name": "name",
+       "repository_ref": "repository"
+      },
+      "application"
+     ],
+     [
+      "team",
+      {},
+      "Team",
+      null,
+      null,
+      {
+       "name": "name"
+      },
+      "application"
+     ],
+     [
+      "adr",
+      {},
+      "Decision",
+      null,
+      null,
+      {
+       "name": "title",
+       "status": "status"
+      },
+      "application"
+     ],
+     [
+      "schema",
+      {},
+      "DataAsset",
+      null,
+      null,
+      {
+       "name": "path"
+      },
+      "application"
+     ],
+     [
+      "codeowners",
+      {},
+      null,
+      null,
+      "carrier",
+      {},
+      "application"
+     ],
+     [
+      "manifest",
+      {},
+      null,
+      null,
+      "carrier",
+      {},
+      "application"
+     ],
+     [
+      "package",
+      {},
+      null,
+      null,
+      "unmodelled",
+      {},
+      "application"
+     ],
+     [
+      "pull_request",
+      {},
+      "Change",
+      null,
+      null,
+      {
+       "change_state": "state (project pack maps this to change_state)",
+       "name": "title",
+       "source_id": "id"
+      },
+      "application"
+     ],
+     [
+      "codeowners_entry",
+      {},
+      null,
+      "owns",
+      null,
+      {},
+      "application"
+     ],
+     [
+      "manifest_dependency",
+      {},
+      null,
+      "depends_on",
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "evidence"
+   },
+   "jira": {
+    "entries": [
+     [
+      "issue",
+      {
+       "issue_type": [
+        "epic",
+        "story"
+       ]
+      },
+      "Requirement",
+      null,
+      null,
+      {
+       "name": "issue.summary",
+       "source_id": "issue.key",
+       "status": "issue.status (project pack maps this)"
+      },
+      "application"
+     ],
+     [
+      "issue",
+      {
+       "issue_type": [
+        "task",
+        "bug",
+        "change"
+       ]
+      },
+      "Change",
+      null,
+      null,
+      {
+       "change_state": "issue.status (project pack maps this)",
+       "name": "issue.summary",
+       "source_id": "issue.key"
+      },
+      "application"
+     ],
+     [
+      "issue",
+      {
+       "issue_type": [
+        "incident"
+       ]
+      },
+      "Incident",
+      null,
+      null,
+      {
+       "name": "issue.summary",
+       "severity": "issue.priority (project pack maps this)",
+       "source_id": "issue.key",
+       "status": "issue.status (project pack maps this)"
+      },
+      "application"
+     ],
+     [
+      "issue_link",
+      {
+       "link_type": [
+        "implements"
+       ]
+      },
+      null,
+      "implements",
+      null,
+      {},
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   },
+   "servicenow": {
+    "entries": [
+     [
+      "incident",
+      {},
+      "Incident",
+      null,
+      null,
+      {
+       "name": "incident.short_description",
+       "source_id": "incident.number"
+      },
+      "application"
+     ],
+     [
+      "change_request",
+      {},
+      "Change",
+      null,
+      null,
+      {
+       "name": "change_request.short_description",
+       "source_id": "change_request.number"
+      },
+      "application"
+     ]
+    ],
+    "on_unmapped": "quarantine"
+   }
+  },
+  "packs": [
+   [
+    "org.org-reference",
+    "organization",
+    "0.1.0"
+   ],
+   [
+    "app.app-reference",
+    "application",
+    "0.1.0"
+   ],
+   [
+    "project.project-reference",
+    "project",
+    "0.1.0"
+   ]
+  ],
+  "relationships": [
+   "caused_by",
+   "consumes",
+   "decided_in",
+   "depends_on",
+   "deployed_to",
+   "documents",
+   "exposes",
+   "governed_by",
+   "implements",
+   "owns",
+   "realizes",
+   "references",
+   "supersedes",
+   "tests"
+  ],
+  "systems": {
+   "<system-key>": {
+    "core_type": "Service",
+    "regulatory_scope": [],
+    "source_systems": [
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "status": "placeholder",
+    "system_id": "<system-key>"
+   }
+  },
+  "view": {
+   "common": [
+    "acl_ref",
+    "acl_state",
+    "domain",
+    "entity_id",
+    "name",
+    "owner_ref",
+    "recorded_at",
+    "sensitivity",
+    "source_id",
+    "source_system",
+    "source_version",
+    "summary",
+    "tenant_id",
+    "valid_from",
+    "valid_to"
+   ],
+   "descr": {
+    "API": "An interface a service exposes and others consume",
+    "Application": "A deployable business system made of services",
+    "Capability": "What the enterprise can do, independent of the systems that deliver it",
+    "Change": "A unit of work that alters a system: a ticket, pull request or change record",
+    "Control": "A measure that meets a policy or regulation",
+    "DataAsset": "Data held by the enterprise: a database, dataset or topic. Metadata only, never row data (HLD 5.2)",
+    "Decision": "A recorded choice and its reason, such as an ADR",
+    "Environment": "Where software runs",
+    "Incident": "An unplanned event that disrupted a service",
+    "Person": "A person, recorded by role only (HLD 6 Table 9). No names or contact details.",
+    "Policy": "A rule that governs behaviour, such as change control for payment systems",
+    "Release": "A versioned set of changes put into an environment",
+    "Requirement": "A stated need a change must satisfy",
+    "Service": "A running unit of software with one owning team",
+    "Team": "A group that owns things and is accountable for them",
+    "Test": "A check that shows a change or service behaves as required"
+   },
+   "domain": {
+    "API": "architecture",
+    "Application": "architecture",
+    "Capability": "business",
+    "Change": "product",
+    "Control": "security",
+    "DataAsset": "platform",
+    "Decision": "architecture",
+    "Environment": "platform",
+    "Incident": "operations",
+    "Person": "business",
+    "Policy": "security",
+    "Release": "product",
+    "Requirement": "product",
+    "Service": "architecture",
+    "Team": "business",
+    "Test": "testing"
+   },
+   "domains": [
+    "business",
+    "architecture",
+    "product",
+    "security",
+    "operations",
+    "platform",
+    "testing"
+   ],
+   "glossary": {},
+   "level": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "Service": "core",
+    "Team": "core",
+    "Test": "core"
+   },
+   "pack": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "Service": "core",
+    "Team": "core",
+    "Test": "core"
+   },
+   "precedence": {
+    "change_state": [
+     "jira",
+     "git"
+    ],
+    "criticality": [
+     "cmdb",
+     "confluence"
+    ],
+    "lifecycle_state": [
+     "cmdb",
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "owner_ref": [
+     "cmdb",
+     "git",
+     "confluence"
+    ]
+   },
+   "priority": [
+    "git",
+    "jira",
+    "confluence"
+   ],
+   "rules": {
+    "caused_by": [
+     [
+      "Incident"
+     ],
+     [
+      "Change",
+      "Incident",
+      "Release",
+      "Service"
+     ],
+     false
+    ],
+    "consumes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API",
+      "DataAsset"
+     ],
+     false
+    ],
+    "decided_in": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "Policy",
+      "Requirement",
+      "Service"
+     ],
+     [
+      "Decision"
+     ],
+     false
+    ],
+    "depends_on": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     false
+    ],
+    "deployed_to": [
+     [
+      "Application",
+      "Release",
+      "Service"
+     ],
+     [
+      "Environment"
+     ],
+     false
+    ],
+    "documents": [
+     [
+      "Decision"
+     ],
+     [
+      "API",
+      "Application",
+      "Service"
+     ],
+     false
+    ],
+    "exposes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API"
+     ],
+     false
+    ],
+    "governed_by": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "DataAsset",
+      "Environment",
+      "Release",
+      "Service"
+     ],
+     [
+      "Control",
+      "Policy"
+     ],
+     false
+    ],
+    "implements": [
+     [
+      "Change"
+     ],
+     [
+      "Decision",
+      "Requirement"
+     ],
+     false
+    ],
+    "owns": [
+     [
+      "Team"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Control",
+      "DataAsset",
+      "Environment",
+      "Policy",
+      "Service"
+     ],
+     false
+    ],
+    "realizes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "Capability"
+     ],
+     false
+    ],
+    "references": [
+     [
+      "Change",
+      "Decision",
+      "Requirement"
+     ],
+     [
+      "Change",
+      "Decision",
+      "Incident",
+      "Requirement"
+     ],
+     false
+    ],
+    "supersedes": [
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     true
+    ],
+    "tests": [
+     [
+      "Test"
+     ],
+     [
+      "API",
+      "Application",
+      "Change",
+      "Requirement",
+      "Service"
+     ],
+     false
+    ]
+   }
+  },
+  "vocab": {
+   "acl_state": [
+    "known",
+    "stale",
+    "unknown"
+   ],
+   "api_protocol": [
+    "event",
+    "graphql",
+    "grpc",
+    "other",
+    "rest"
+   ],
+   "change_state": [
+    "approved",
+    "in_progress",
+    "in_review",
+    "proposed",
+    "rejected",
+    "released"
+   ],
+   "criticality": [
+    "tier_1",
+    "tier_2",
+    "tier_3"
+   ],
+   "decision_status": [
+    "accepted",
+    "proposed",
+    "rejected",
+    "superseded"
+   ],
+   "domains": [
+    "architecture",
+    "business",
+    "operations",
+    "platform",
+    "product",
+    "security",
+    "testing"
+   ],
+   "environment_kind": [
+    "development",
+    "production",
+    "staging",
+    "test"
+   ],
+   "incident_severity": [
+    "sev1",
+    "sev2",
+    "sev3",
+    "sev4"
+   ],
+   "incident_status": [
+    "closed",
+    "mitigated",
+    "open",
+    "resolved"
+   ],
+   "lifecycle_state": [
+    "active",
+    "deprecated",
+    "planned",
+    "retired"
+   ],
+   "policy_kind": [
+    "access",
+    "change_control",
+    "data_protection",
+    "operational",
+    "retention"
+   ],
+   "release_state": [
+    "planned",
+    "released",
+    "rolled_back"
+   ],
+   "requirement_status": [
+    "approved",
+    "draft",
+    "implemented",
+    "withdrawn"
+   ],
+   "sensitivity": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "test_kind": [
+    "acceptance",
+    "contract",
+    "integration",
+    "load",
+    "regression",
+    "security",
+    "unit"
+   ],
+   "test_status": [
+    "failing",
+    "flaky",
+    "not_run",
+    "passing"
+   ]
+  }
+ },
+ "retail_stack": {
+  "concepts": {
+   "API": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "protocol": {
+      "multi": false,
+      "name": "protocol",
+      "required": false,
+      "type": "enum",
+      "values_ref": "api_protocol"
+     },
+     "spec_ref": {
+      "multi": false,
+      "name": "spec_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Application": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Capability": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "summary": {
+      "multi": false,
+      "name": "summary",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Change": {
+    "attrs": {
+     "change_state": {
+      "multi": false,
+      "name": "change_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "change_state"
+     },
+     "change_type": {
+      "multi": false,
+      "name": "change_type",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Control": {
+    "attrs": {
+     "control_set": {
+      "multi": false,
+      "name": "control_set",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "DataAsset": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "regulatory_scope": {
+      "multi": true,
+      "name": "regulatory_scope",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Decision": {
+    "attrs": {
+     "decided_on": {
+      "multi": false,
+      "name": "decided_on",
+      "required": false,
+      "type": "date",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "decision_status"
+     }
+    },
+    "parent": null
+   },
+   "Environment": {
+    "attrs": {
+     "environment_kind": {
+      "multi": false,
+      "name": "environment_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "environment_kind"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Incident": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "severity": {
+      "multi": false,
+      "name": "severity",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_severity"
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "incident_status"
+     }
+    },
+    "parent": null
+   },
+   "LoyaltyScheme": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "points_currency": {
+      "multi": false,
+      "name": "points_currency",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     },
+     "scheme_name": {
+      "multi": false,
+      "name": "scheme_name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": "Policy"
+   },
+   "MerchandisingPolicy": {
+    "attrs": {
+     "channel": {
+      "multi": false,
+      "name": "channel",
+      "required": false,
+      "type": "enum",
+      "values_ref": "retail_channel"
+     },
+     "effective_from": {
+      "multi": false,
+      "name": "effective_from",
+      "required": false,
+      "type": "date",
+      "values_ref": null
+     },
+     "effective_to": {
+      "multi": false,
+      "name": "effective_to",
+      "required": false,
+      "type": "date",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     }
+    },
+    "parent": "Policy"
+   },
+   "Person": {
+    "attrs": {
+     "role_name": {
+      "multi": false,
+      "name": "role_name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Policy": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     }
+    },
+    "parent": null
+   },
+   "Release": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "release_state": {
+      "multi": false,
+      "name": "release_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "release_state"
+     },
+     "version": {
+      "multi": false,
+      "name": "version",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Requirement": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "requirement_status"
+     }
+    },
+    "parent": null
+   },
+   "RetailComplianceControl": {
+    "attrs": {
+     "control_reference": {
+      "multi": false,
+      "name": "control_reference",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     },
+     "control_set": {
+      "multi": false,
+      "name": "control_set",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "regulatory_scope": {
+      "multi": true,
+      "name": "regulatory_scope",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": "Control"
+   },
+   "Service": {
+    "attrs": {
+     "criticality": {
+      "multi": false,
+      "name": "criticality",
+      "required": false,
+      "type": "enum",
+      "values_ref": "criticality"
+     },
+     "lifecycle_state": {
+      "multi": false,
+      "name": "lifecycle_state",
+      "required": false,
+      "type": "enum",
+      "values_ref": "lifecycle_state"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "repository_ref": {
+      "multi": false,
+      "name": "repository_ref",
+      "required": false,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "SupplierAgreement": {
+    "attrs": {
+     "agreement_type": {
+      "multi": false,
+      "name": "agreement_type",
+      "required": false,
+      "type": "enum",
+      "values_ref": "supplier_agreement_type"
+     },
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "policy_kind": {
+      "multi": false,
+      "name": "policy_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "policy_kind"
+     },
+     "supplier_id": {
+      "multi": false,
+      "name": "supplier_id",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": "Policy"
+   },
+   "Team": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     }
+    },
+    "parent": null
+   },
+   "Test": {
+    "attrs": {
+     "name": {
+      "multi": false,
+      "name": "name",
+      "required": true,
+      "type": "string",
+      "values_ref": null
+     },
+     "status": {
+      "multi": false,
+      "name": "status",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_status"
+     },
+     "test_kind": {
+      "multi": false,
+      "name": "test_kind",
+      "required": false,
+      "type": "enum",
+      "values_ref": "test_kind"
+     }
+    },
+    "parent": null
+   }
+  },
+  "core_version": "0.1.0",
+  "mappings": {},
+  "packs": [
+   [
+    "industry.retail-reference",
+    "industry",
+    "0.1.0"
+   ],
+   [
+    "app.retail-app-reference",
+    "application",
+    "0.1.0"
+   ]
+  ],
+  "relationships": [
+   "caused_by",
+   "consumes",
+   "decided_in",
+   "depends_on",
+   "deployed_to",
+   "exposes",
+   "governed_by",
+   "implements",
+   "owns",
+   "realizes",
+   "supersedes",
+   "tests"
+  ],
+  "systems": {
+   "catalog-service": {
+    "core_type": "Service",
+    "regulatory_scope": [],
+    "source_systems": [
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "status": "sample",
+    "system_id": "catalog-service"
+   },
+   "checkout-service": {
+    "core_type": "Service",
+    "regulatory_scope": [],
+    "source_systems": [
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "status": "sample",
+    "system_id": "checkout-service"
+   },
+   "customer-profile-db": {
+    "core_type": "DataAsset",
+    "regulatory_scope": [
+     "gdpr_retail"
+    ],
+    "source_systems": [
+     "git"
+    ],
+    "status": "sample",
+    "system_id": "customer-profile-db"
+   },
+   "loyalty-service": {
+    "core_type": "Service",
+    "regulatory_scope": [
+     "gdpr_retail"
+    ],
+    "source_systems": [
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "status": "sample",
+    "system_id": "loyalty-service"
+   },
+   "payment-tokens-db": {
+    "core_type": "DataAsset",
+    "regulatory_scope": [
+     "pci_dss"
+    ],
+    "source_systems": [
+     "git"
+    ],
+    "status": "sample",
+    "system_id": "payment-tokens-db"
+   },
+   "pricing-service": {
+    "core_type": "Service",
+    "regulatory_scope": [],
+    "source_systems": [
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "status": "sample",
+    "system_id": "pricing-service"
+   },
+   "supplier-portal": {
+    "core_type": "Application",
+    "regulatory_scope": [],
+    "source_systems": [
+     "git",
+     "jira",
+     "confluence"
+    ],
+    "status": "sample",
+    "system_id": "supplier-portal"
+   }
+  },
+  "view": {
+   "common": [
+    "acl_ref",
+    "acl_state",
+    "domain",
+    "entity_id",
+    "name",
+    "owner_ref",
+    "recorded_at",
+    "sensitivity",
+    "source_id",
+    "source_system",
+    "source_version",
+    "summary",
+    "tenant_id",
+    "valid_from",
+    "valid_to"
+   ],
+   "descr": {
+    "API": "An interface a service exposes and others consume",
+    "Application": "A deployable business system made of services",
+    "Capability": "What the enterprise can do, independent of the systems that deliver it",
+    "Change": "A unit of work that alters a system: a ticket, pull request or change record",
+    "Control": "A measure that meets a policy or regulation",
+    "DataAsset": "Data held by the enterprise: a database, dataset or topic. Metadata only, never row data (HLD 5.2)",
+    "Decision": "A recorded choice and its reason, such as an ADR",
+    "Environment": "Where software runs",
+    "Incident": "An unplanned event that disrupted a service",
+    "LoyaltyScheme": "A customer loyalty or rewards programme the organisation operates",
+    "MerchandisingPolicy": "A rule governing product ranging, pricing or promotion in a retail channel",
+    "Person": "A person, recorded by role only (HLD 6 Table 9). No names or contact details.",
+    "Policy": "A rule that governs behaviour, such as change control for payment systems",
+    "Release": "A versioned set of changes put into an environment",
+    "Requirement": "A stated need a change must satisfy",
+    "RetailComplianceControl": "A control that belongs to a named retail regulatory or standards control set (e.g. GDPR, PCI-DSS, food-safety)",
+    "Service": "A running unit of software with one owning team",
+    "SupplierAgreement": "A contractual or trading-terms policy with a product supplier",
+    "Team": "A group that owns things and is accountable for them",
+    "Test": "A check that shows a change or service behaves as required"
+   },
+   "domain": {
+    "API": "architecture",
+    "Application": "architecture",
+    "Capability": "business",
+    "Change": "product",
+    "Control": "security",
+    "DataAsset": "platform",
+    "Decision": "architecture",
+    "Environment": "platform",
+    "Incident": "operations",
+    "LoyaltyScheme": "security",
+    "MerchandisingPolicy": "security",
+    "Person": "business",
+    "Policy": "security",
+    "Release": "product",
+    "Requirement": "product",
+    "RetailComplianceControl": "security",
+    "Service": "architecture",
+    "SupplierAgreement": "security",
+    "Team": "business",
+    "Test": "testing"
+   },
+   "domains": [
+    "business",
+    "architecture",
+    "product",
+    "security",
+    "operations",
+    "platform",
+    "testing"
+   ],
+   "glossary": {},
+   "level": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "LoyaltyScheme": "industry",
+    "MerchandisingPolicy": "industry",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "RetailComplianceControl": "industry",
+    "Service": "core",
+    "SupplierAgreement": "industry",
+    "Team": "core",
+    "Test": "core"
+   },
+   "pack": {
+    "API": "core",
+    "Application": "core",
+    "Capability": "core",
+    "Change": "core",
+    "Control": "core",
+    "DataAsset": "core",
+    "Decision": "core",
+    "Environment": "core",
+    "Incident": "core",
+    "LoyaltyScheme": "industry.retail-reference",
+    "MerchandisingPolicy": "industry.retail-reference",
+    "Person": "core",
+    "Policy": "core",
+    "Release": "core",
+    "Requirement": "core",
+    "RetailComplianceControl": "industry.retail-reference",
+    "Service": "core",
+    "SupplierAgreement": "industry.retail-reference",
+    "Team": "core",
+    "Test": "core"
+   },
+   "precedence": {},
+   "priority": [],
+   "rules": {
+    "caused_by": [
+     [
+      "Incident"
+     ],
+     [
+      "Change",
+      "Incident",
+      "Release",
+      "Service"
+     ],
+     false
+    ],
+    "consumes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API",
+      "DataAsset"
+     ],
+     false
+    ],
+    "decided_in": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "Policy",
+      "Requirement",
+      "Service"
+     ],
+     [
+      "Decision"
+     ],
+     false
+    ],
+    "depends_on": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "DataAsset",
+      "Service"
+     ],
+     false
+    ],
+    "deployed_to": [
+     [
+      "Application",
+      "Release",
+      "Service"
+     ],
+     [
+      "Environment"
+     ],
+     false
+    ],
+    "exposes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "API"
+     ],
+     false
+    ],
+    "governed_by": [
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Change",
+      "DataAsset",
+      "Environment",
+      "Release",
+      "Service"
+     ],
+     [
+      "Control",
+      "Policy"
+     ],
+     false
+    ],
+    "implements": [
+     [
+      "Change"
+     ],
+     [
+      "Decision",
+      "Requirement"
+     ],
+     false
+    ],
+    "owns": [
+     [
+      "Team"
+     ],
+     [
+      "API",
+      "Application",
+      "Capability",
+      "Control",
+      "DataAsset",
+      "Environment",
+      "Policy",
+      "Service"
+     ],
+     false
+    ],
+    "realizes": [
+     [
+      "Application",
+      "Service"
+     ],
+     [
+      "Capability"
+     ],
+     false
+    ],
+    "supersedes": [
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     [
+      "API",
+      "Control",
+      "Decision",
+      "Policy",
+      "Release",
+      "Requirement"
+     ],
+     true
+    ],
+    "tests": [
+     [
+      "Test"
+     ],
+     [
+      "API",
+      "Application",
+      "Change",
+      "Requirement",
+      "Service"
+     ],
+     false
+    ]
+   }
+  },
+  "vocab": {
+   "acl_state": [
+    "known",
+    "stale",
+    "unknown"
+   ],
+   "api_protocol": [
+    "event",
+    "graphql",
+    "grpc",
+    "other",
+    "rest"
+   ],
+   "change_state": [
+    "approved",
+    "in_progress",
+    "in_review",
+    "proposed",
+    "rejected",
+    "released"
+   ],
+   "criticality": [
+    "tier_1",
+    "tier_2",
+    "tier_3"
+   ],
+   "decision_status": [
+    "accepted",
+    "proposed",
+    "rejected",
+    "superseded"
+   ],
+   "domains": [
+    "architecture",
+    "business",
+    "operations",
+    "platform",
+    "product",
+    "security",
+    "testing"
+   ],
+   "environment_kind": [
+    "development",
+    "production",
+    "staging",
+    "test"
+   ],
+   "incident_severity": [
+    "sev1",
+    "sev2",
+    "sev3",
+    "sev4"
+   ],
+   "incident_status": [
+    "closed",
+    "mitigated",
+    "open",
+    "resolved"
+   ],
+   "lifecycle_state": [
+    "active",
+    "deprecated",
+    "planned",
+    "retired"
+   ],
+   "policy_kind": [
+    "access",
+    "change_control",
+    "data_protection",
+    "operational",
+    "retention"
+   ],
+   "regulatory_scope": [
+    "age_restricted_goods",
+    "food_safety",
+    "gdpr_retail",
+    "pci_dss"
+   ],
+   "release_state": [
+    "planned",
+    "released",
+    "rolled_back"
+   ],
+   "requirement_status": [
+    "approved",
+    "draft",
+    "implemented",
+    "withdrawn"
+   ],
+   "retail_channel": [
+    "in_store",
+    "marketplace",
+    "mobile_app",
+    "online",
+    "wholesale"
+   ],
+   "sensitivity": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "supplier_agreement_type": [
+    "consignment",
+    "direct_supply",
+    "drop_ship",
+    "franchise"
+   ],
+   "test_kind": [
+    "acceptance",
+    "contract",
+    "integration",
+    "load",
+    "regression",
+    "security",
+    "unit"
+   ],
+   "test_status": [
+    "failing",
+    "flaky",
+    "not_run",
+    "passing"
+   ]
+  }
+ }
+}

@@ -140,6 +140,11 @@ class ConfluenceConnector:
             children=children,
         )
 
+    async def list_ids(self, scope: str) -> set[str]:
+        """Every page id in the space right now (for delete reconciliation). Ids only: no bodies."""
+        pages = await self._client.search_pages(self.build_cql(scope, None), limit=self._page_size, expand="version")
+        return {str(p["id"]) for p in pages}
+
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         pages = await self._client.search_pages(self.build_cql(scope, cursor), limit=self._page_size)
 

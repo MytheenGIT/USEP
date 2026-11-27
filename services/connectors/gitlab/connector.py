@@ -145,6 +145,12 @@ class GitLabConnector:
         )
         return self._normalize_mr(scope, project, mr, commits, notes, approvals, diffs)
 
+    async def list_ids(self, scope: str) -> set[str]:
+        """Every merge request id in the project right now, in the same form documents use (for delete reconciliation)."""
+        project = await self._client.get_project(project_ref_from_scope(scope))
+        mrs = await self._client.list_merge_requests(str(project["id"]), per_page=self._page_size)
+        return {f"{project['id']}!{mr['iid']}" for mr in mrs}
+
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         project = await self._client.get_project(project_ref_from_scope(scope))
         merge_requests = await self._client.list_merge_requests(str(project["id"]), updated_after=cursor, per_page=self._page_size)

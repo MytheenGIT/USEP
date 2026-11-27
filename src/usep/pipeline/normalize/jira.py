@@ -25,6 +25,9 @@ def parse(raw: Mapping[str, Any], ref: str = "") -> list[Record]:
                  {k: v for k, v in issue.items() if v is not None})
     rec.link_fields = {"title": f.get("summary", ""), "description": adf_to_text(f.get("description")),
                        "comment": "\n".join(comments)}
+    # Native remote links (the connector stores them next to the issue): their URLs are scanned for Confluence pages.
+    rec.link_fields["remote_link"] = "\n".join(
+        str((rl.get("object") or {}).get("url", "")) for rl in raw.get("remote_links") or [])
     out = [rec]
     for ln in f.get("issuelinks") or []:
         lt = ln.get("type") or {}

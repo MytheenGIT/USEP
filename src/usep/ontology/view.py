@@ -9,9 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-import yaml
-
-from usep.ontology.bundle import OntologyBundle, _FOLDER_FOR_LEVEL
+from usep.ontology.bundle import OntologyBundle
 
 LEVELS = ("core", "industry", "organization", "application", "project")   # least to most specific
 
@@ -24,59 +22,31 @@ class RelationshipRule:
     same_type: bool = False
 
 
-def _yaml(path: Path) -> Any:
-    return yaml.safe_load(path.read_text(encoding="utf-8")) if path.is_file() else {}
-
-
 class OntologyView:
     """Interpretation: 'Domain Ontology' = the industry pack level (ontology/README.md, guide section 4); the
-    seven semantic domains are the `domain` attribute of a node, not a pack level."""
+    seven semantic domains are the `domain` attribute of a node, not a pack level.
 
-    def __init__(self, bundle: OntologyBundle, root: str | Path) -> None:
+    Everything here comes from the one loader's bundle (`bundle.runtime`); nothing is read from disk."""
+
+    def __init__(self, bundle: OntologyBundle, root: str | Path | None = None) -> None:
+        rb = bundle.runtime
+        if rb is None:
+            raise ValueError("OntologyView needs a bundle made by OntologyBundle.load")
         self.bundle = bundle
-        self.root = Path(root)
-        core = self.root / "core"
-        self.domains = [d["id"] for d in _yaml(core / "domains.yml").get("domains", [])]
-        ca = _yaml(core / "common-attributes.yml")
-        self.common_attributes: frozenset[str] = frozenset(
-            a["name"] for part in ("required", "optional") for a in (ca.get("node") or {}).get(part, []))
-        raw = {c["id"]: c for c in _yaml(core / "concepts.yml").get("concepts", [])}
-        self.concept_level: dict[str, str] = {cid: "core" for cid in raw}
-        self.concept_domain: dict[str, str] = {cid: str(c.get("domain", "")) for cid, c in raw.items()}
-        self.concept_description: dict[str, str] = {cid: str(c.get("description", "")) for cid, c in raw.items()}
-        self.concept_pack: dict[str, str] = {cid: "core" for cid in raw}
-        self.relationship_rules: dict[str, RelationshipRule] = {}
-        for r in _yaml(core / "relationships.yml").get("relationships", []):
-            self.relationship_rules[r["id"]] = RelationshipRule(r["id"], frozenset(r["from"]), frozenset(r["to"]), bool(r.get("same_type")))
-        self.glossary: dict[str, str] = {}              # organisation term (lower case) -> core/pack concept
-        self.precedence: dict[str, list[str]] = {}
-        self.source_system_priority: list[str] = []
-        self.pack_dirs: dict[str, Path] = {}
-        for pin in bundle.pins.packs:
-            pdir = self._pack_dir(pin.id, pin.level)
-            self.pack_dirs[pin.id] = pdir
-            for c in _yaml(pdir / "concepts.yml").get("concepts", []):
-                self.concept_level[c["id"]] = pin.level
-                self.concept_pack[c["id"]] = pin.id
-                self.concept_description[c["id"]] = str(c.get("description", ""))
-                self.concept_domain[c["id"]] = self.concept_domain.get(c.get("subclass_of"), "")
-            for r in _yaml(pdir / "concepts.yml").get("relationships", []):
-                self.relationship_rules[r["id"]] = RelationshipRule(r["id"], frozenset(r["from"]), frozenset(r["to"]), bool(r.get("same_type")))
-            for t in _yaml(pdir / "glossary.yml").get("terms", []):
-                if t.get("maps_to") in bundle.concepts and not str(t.get("term", "")).startswith("<"):
-                    self.glossary[str(t["term"]).lower()] = t["maps_to"]
-            prec = _yaml(pdir / "precedence.yml")
-            if prec:
-                self.source_system_priority = [str(x) for x in prec.get("source_system_priority", [])]
-                self.precedence.update({k: [str(x) for x in v.get("order", [])] for k, v in (prec.get("attributes") or {}).items()})
-
-    def _pack_dir(self, pack_id: str, level: str) -> Path:
-        base = self.root / "packs" / _FOLDER_FOR_LEVEL[level]
-        for d in sorted(base.iterdir()):
-            m = _yaml(d / "pack.yml") if d.is_dir() else {}
-            if m.get("id") == pack_id:
-                return d
-        raise FileNotFoundError(pack_id)
+        self.root = Path(root) if root is not None else None
+        self.domains = list(rb.domains)
+        self.common_attributes: frozenset[str] = frozenset(a.name for a in (*rb.common_required, *rb.common_optional))
+        self.concept_level: dict[str, str] = {cid: c.level for cid, c in rb.concepts.items()}
+        self.concept_domain: dict[str, str] = {cid: str(c.domain or "") for cid, c in rb.concepts.items()}
+        self.concept_description: dict[str, str] = {cid: c.description for cid, c in rb.concepts.items()}
+        self.concept_pack: dict[str, str] = {cid: c.pack_id for cid, c in rb.concepts.items()}
+        self.relationship_rules: dict[str, RelationshipRule] = {
+            r.id: RelationshipRule(r.id, frozenset(r.from_types), frozenset(r.to_types), r.same_type)
+            for r in rb.relationships.values()}
+        self.glossary: dict[str, str] = {str(t).lower(): c for t, c in rb.glossary.items()}   # organisation term -> concept
+        self.precedence: dict[str, list[str]] = {k: [str(x) for x in (v.get("order", []) if isinstance(v, Mapping) else [])]
+                                                 for k, v in rb.precedence.items()}
+        self.source_system_priority: list[str] = list(rb.source_priority)
 
     # ---- queries ----------------------------------------------------------------------------------
     def ancestors(self, concept: str) -> list[str]:

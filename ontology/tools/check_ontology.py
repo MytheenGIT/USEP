@@ -217,37 +217,70 @@ def check_packs(rep: Report, core: dict):
 
 
 # ---------------------------------------------------------------- templates
+def _check_template(rep: Report, path: Path, where: str, labels: set[str], rel_ids: set[str], name: str | None = None) -> None:
+    t = load(path)
+    rep.expect(t["name"] == (name or path.stem), where, "file name must equal template name")
+    rep.expect(isinstance(t.get("version"), str), where, "version must be a string")
+    lim = t.get("limits", {})
+    rep.expect(lim.get("max_depth", 99) <= MAX_DEPTH, where, f"max_depth above {MAX_DEPTH}")
+    rep.expect(lim.get("fanout_cap", 9999) <= MAX_FANOUT, where, f"fanout_cap above {MAX_FANOUT}")
+    declared = {p["name"] for p in t.get("parameters", [])}
+    rep.expect("tenant_id" in declared, where, "tenant_id must be a declared parameter (ADR-10)")
+    for p in t.get("parameters", []):
+        if p["name"] == "depth":
+            rep.expect(p.get("max", 99) <= MAX_DEPTH, where, "depth parameter max above limit")
+    rep.expect("{{access_predicate}}" in t.get("access", ""), where, "access note must name {{access_predicate}} (ADR-06)")
+    for step in t["steps"]:
+        sw = f"{where}#{step['id']}"
+        cy = step["cypher"]
+        used = set(re.findall(r"\$([A-Za-z_]+)", cy))
+        rep.expect(used <= declared | RUNTIME_PARAMS, sw, f"undeclared parameters {used - declared - RUNTIME_PARAMS}")
+        rep.expect("$tenant_id" in cy, sw, "query does not filter on tenant_id")
+        rep.expect("{{access_predicate}}" in cy, sw, "query does not apply the access predicate inside the match (ADR-06)")
+        rep.expect(re.search(r"\bLIMIT\b", cy) is not None, sw, "query has no LIMIT")
+        for n in re.findall(r"\*\d+\.\.(\d+)", cy):
+            rep.expect(int(n) <= MAX_DEPTH, sw, f"variable-length path deeper than {MAX_DEPTH}")
+        for lab in re.findall(r"\(\w*:([A-Za-z]+)", cy):
+            rep.expect(lab in labels, sw, f"unknown node label {lab}")
+        for grp in re.findall(r"\[\w*:([a-z_|]+)", cy):
+            for rel in grp.split("|"):
+                rep.expect(rel in rel_ids, sw, f"unknown relationship type {rel}")
+
+
 def check_templates(rep: Report, core: dict):
     labels = core["concept_ids"] | {"Entity"}
     for path in sorted((ROOT / "templates").glob("*.yml")):
-        t = load(path)
-        where = f"templates/{path.name}"
-        rep.expect(t["name"] == path.stem, where, "file name must equal template name")
-        rep.expect(isinstance(t.get("version"), str), where, "version must be a string")
-        lim = t.get("limits", {})
-        rep.expect(lim.get("max_depth", 99) <= MAX_DEPTH, where, f"max_depth above {MAX_DEPTH}")
-        rep.expect(lim.get("fanout_cap", 9999) <= MAX_FANOUT, where, f"fanout_cap above {MAX_FANOUT}")
-        declared = {p["name"] for p in t.get("parameters", [])}
-        rep.expect("tenant_id" in declared, where, "tenant_id must be a declared parameter (ADR-10)")
-        for p in t.get("parameters", []):
-            if p["name"] == "depth":
-                rep.expect(p.get("max", 99) <= MAX_DEPTH, where, "depth parameter max above limit")
-        rep.expect("{{access_predicate}}" in t.get("access", ""), where, "access note must name {{access_predicate}} (ADR-06)")
-        for step in t["steps"]:
-            sw = f"{where}#{step['id']}"
-            cy = step["cypher"]
-            used = set(re.findall(r"\$([A-Za-z_]+)", cy))
-            rep.expect(used <= declared | RUNTIME_PARAMS, sw, f"undeclared parameters {used - declared - RUNTIME_PARAMS}")
-            rep.expect("$tenant_id" in cy, sw, "query does not filter on tenant_id")
-            rep.expect("{{access_predicate}}" in cy, sw, "query does not apply the access predicate inside the match (ADR-06)")
-            rep.expect(re.search(r"\bLIMIT\b", cy) is not None, sw, "query has no LIMIT")
-            for n in re.findall(r"\*\d+\.\.(\d+)", cy):
-                rep.expect(int(n) <= MAX_DEPTH, sw, f"variable-length path deeper than {MAX_DEPTH}")
-            for lab in re.findall(r"\(\w*:([A-Za-z]+)", cy):
-                rep.expect(lab in labels, sw, f"unknown node label {lab}")
-            for grp in re.findall(r"\[\w*:([a-z_|]+)", cy):
-                for rel in grp.split("|"):
-                    rep.expect(rel in core["rel_ids"], sw, f"unknown relationship type {rel}")
+        _check_template(rep, path, f"templates/{path.name}", labels, core["rel_ids"])
+
+
+def check_pack_templates(rep: Report, core: dict):
+    """A pack may add query templates (D2). Same rules as the core's, plus: the manifest lists each file, the name starts
+    with the pack folder (`app_`), it clashes with no core or other pack template, and it reaches only the core's and
+    its own pack's concepts and relationships."""
+    core_names = {p.stem for p in (ROOT / "templates").glob("*.yml")}
+    seen: dict[str, str] = {}
+    for level in LEVELS:
+        for pdir in sorted(p for p in (ROOT / "packs" / level).iterdir() if p.is_dir()):
+            where = f"packs/{level}/{pdir.name}"
+            mf = load(pdir / "pack.yml") if (pdir / "pack.yml").exists() else {}
+            listed = {Path(x).as_posix() for x in (mf.get("files", {}) or {}).get("templates", []) or []}
+            on_disk = {p.relative_to(pdir).as_posix() for p in (pdir / "templates").glob("*.yml")} if (pdir / "templates").is_dir() else set()
+            for missing in sorted(listed - on_disk):
+                rep.expect(False, where, f"manifest lists template {missing}, which does not exist")
+            for extra in sorted(on_disk - listed):
+                rep.expect(False, where, f"template {extra} is not listed in the manifest files.templates")
+            cdata = load(pdir / "concepts.yml") if (pdir / "concepts.yml").exists() else {}
+            labels = core["concept_ids"] | {"Entity"} | {c["id"] for c in cdata.get("concepts", [])}
+            rels = core["rel_ids"] | {r["id"] for r in cdata.get("relationships", []) or []}
+            for rel in sorted(listed & on_disk):
+                path = pdir / rel
+                name = path.stem
+                w = f"{where}/{rel}"
+                rep.expect(name.startswith(f"{level}_"), w, f"template name must start with {level}_")
+                rep.expect(name not in core_names, w, f"template {name} reuses a core template name")
+                rep.expect(name not in seen, w, f"template {name} already defined by {seen.get(name)} (CC-16)")
+                seen[name] = pdir.name
+                _check_template(rep, path, w, labels, rels, name)
 
 
 # ---------------------------------------------------------------- shapes and fixtures
@@ -266,9 +299,7 @@ def check_shapes(rep: Report, core: dict):
         rep.expect(str(USEP[cid]) in targeted, "shapes", f"no shape targets core concept {cid}")
     subj = {str(o) for o in g.objects(None, SH.targetSubjectsOf)}
     obj = {str(o) for o in g.objects(None, SH.targetObjectsOf)}
-    # Application packs only: the industry packs' relationship rules are not specified yet (the retail reference pack
-    # does not load; see docs/review/ontology-owner-review.md).
-    pack_rels = {r["id"] for f in sorted((ROOT / "packs" / "app").glob("*/concepts.yml"))
+    pack_rels = {r["id"] for f in sorted((ROOT / "packs").glob("*/*/concepts.yml"))
                  for r in load(f).get("relationships", []) or []}
     for rid in core["rel_ids"] | pack_rels:
         rep.expect(str(USEP[rid]) in subj, "shapes", f"no start-type shape for relationship {rid}")
@@ -295,6 +326,7 @@ def run() -> int:
     core = check_core(rep)
     check_packs(rep, core)
     check_templates(rep, core)
+    check_pack_templates(rep, core)
     shapes = check_shapes(rep, core)
     check_fixture(rep, shapes)
     if rep.errors:

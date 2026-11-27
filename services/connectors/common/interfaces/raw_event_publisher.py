@@ -35,9 +35,16 @@ class RawEventPublisher(Protocol):
         """Publish one raw event. Returns only after the bus has acknowledged it, or raises."""
         ...
 
+    async def publish_tombstone(self, source: str, source_id: str, scope: str, reason: str) -> None:
+        """Announce that an object has been deleted at (or is no longer visible from) its source."""
+        ...
+
 
 class NullRawEventPublisher:
     """Default that only logs. Nothing reaches a bus."""
 
     async def publish(self, event: RawEvent) -> None:
         logger.debug("raw_event_publisher.noop", source=event.source, source_ref=event.source_ref)
+
+    async def publish_tombstone(self, source: str, source_id: str, scope: str, reason: str) -> None:
+        logger.debug("raw_event_publisher.tombstone_noop", source=source, source_id=source_id)

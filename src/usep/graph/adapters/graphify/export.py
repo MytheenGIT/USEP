@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from usep.graph.export_filter import restrict_for_export
 from usep.graph.model import GraphEdge, GraphNode, KnowledgeGraph
 
 GRAPHIFY_VERSION = "0.9.119"
@@ -23,7 +24,7 @@ def _node(n: GraphNode) -> dict[str, Any]:
     extra = {k: v for k, v in {
         "tenant_id": n.tenant_id, "labels": list(n.labels) or None, "provenance": dict(n.provenance) or None,
         "versions": dict(n.versions) or None, "valid_from": n.valid_from, "valid_to": n.valid_to,
-        "sensitivity": n.sensitivity, "acl_ref": n.acl_ref, "confidence": n.confidence,
+        "sensitivity": n.sensitivity, "acl_ref": n.acl_ref, "owners_only": n.owners_only, "confidence": n.confidence,
     }.items() if v is not None}
     return {
         "id": n.entity_id,
@@ -74,3 +75,8 @@ def write_graphify(graph: KnowledgeGraph, out_dir: str | Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(to_graphify(graph), indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
     return path
+
+
+def write_graphify_restricted(graph: KnowledgeGraph, out_dir: str | Path, *, max_sensitivity: int = 1) -> Path:
+    """Filter first (owners-only and sensitive records never leave), then write. Use this for any real data (ADR-19)."""
+    return write_graphify(restrict_for_export(graph, max_sensitivity=max_sensitivity).graph, out_dir)

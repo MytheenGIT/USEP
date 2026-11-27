@@ -69,6 +69,7 @@ class LabelledRecord:
     owner_ref: str | None = None
     acl_ref: str | None = None
     acl_state: str | None = None
+    owners_only: bool | None = None
     valid_from: str | None = None
     valid_to: str | None = None
     recorded_at: str | None = None

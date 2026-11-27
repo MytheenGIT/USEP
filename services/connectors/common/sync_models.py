@@ -26,6 +26,7 @@ class SyncResult(BaseModel):
     documents: list[SourceDocument] = []
     cursors: dict[str, str | None] = {}
     skipped_scopes: list[str] = []
+    truncated_scopes: list[str] = []      # more objects were waiting than max_documents_per_scope; the next run continues
     object_errors: list[ObjectError] = []
     errors: list[str] = []
 
@@ -51,6 +52,7 @@ class SyncResponse(BaseModel):
     documents_count: int
     cursors: dict[str, str | None] = {}
     skipped_scopes: list[str] = []
+    truncated_scopes: list[str] = []
     object_errors: list[ObjectError] = []
     errors: list[str] = []
     documents: list[dict] = []
@@ -66,6 +68,7 @@ class SyncResponse(BaseModel):
             documents_count=result.documents_count,
             cursors=result.cursors,
             skipped_scopes=result.skipped_scopes,
+            truncated_scopes=result.truncated_scopes,
             object_errors=result.object_errors,
             errors=result.errors,
             documents=[doc.model_dump(mode="json") for doc in result.documents] if include_documents else [],

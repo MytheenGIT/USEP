@@ -23,7 +23,7 @@ def load(root=ONT, pins=PINS, **kw):
 
 def test_loads_core_and_pins_and_digest_is_stable():
     a, b = load(), load()
-    assert (len(a.concepts), len(a.relationships), len(a.templates)) == (18, 14, 8)
+    assert (len(a.concepts), len(a.relationships), len(a.templates)) == (18, 14, 10)   # 8 core and 2 from the app pack (D2)
     assert a.release.digest == b.release.digest
     assert [p.id for p in a.release.packs][0] == "core"
     assert a.concepts["ComplianceControl"].parent == "Control"

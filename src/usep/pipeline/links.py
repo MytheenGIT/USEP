@@ -32,9 +32,12 @@ JIRA_KEY = re.compile(r"(?<![A-Za-z0-9_])([A-Z][A-Z0-9]{1,9}-[1-9][0-9]{0,6})(?!
 # Look-alikes that are not Jira keys. Prefer an explicit project-key allowlist (config) over this list.
 NOT_JIRA = frozenset({"UTF", "ISO", "SHA", "MD", "RFC", "CVE", "CWE", "TLS", "SSL", "AES", "RSA", "PEP", "HTTP", "IPV",
                       "JDK", "JVM", "ECMA", "WCAG", "ARIA", "IEEE", "OWASP", "GPT", "LLM", "COVID", "ES", "PCI"})
+# A Confluence page URL: /wiki/spaces/<KEY>/pages/<id>[/<title>] or /pages/viewpage.action?pageId=<id>. Tiny links
+# (/wiki/x/<code>) cannot be resolved without a call, so they are not matched.
+CONFLUENCE_PAGE = re.compile(r"/pages/(\d+)(?:[/?#]|$)|[?&]pageId=(\d+)")
 URL = re.compile(r"https?://[^\s\"'<>)\]]+")
 _REPO_STOP = re.compile(r"/(-|blob|tree|merge_requests|issues|commit|commits|pipelines|wikis)(/|$)")
-CONFIDENCE = {"title": 1.0, "branch": 1.0, "commit": 0.9, "description": 0.9, "body": 0.9, "comment": 0.8}
+CONFIDENCE = {"title": 1.0, "branch": 1.0, "commit": 0.9, "description": 0.9, "body": 0.9, "comment": 0.8, "remote_link": 1.0}
 
 
 @dataclass(frozen=True)
@@ -80,6 +83,17 @@ def scan(rec: Record, hosts: tuple[str, ...] = (), project_keys: tuple[str, ...]
     return keys, repos
 
 
+def scan_pages(rec: Record) -> dict[str, tuple[str, float]]:
+    """Confluence page ids named by Jira remote links, each mapped to (field, confidence). A remote link is a native
+    API link (a person attached it deliberately), so only the `remote_link` field is read, not prose."""
+    pages: dict[str, tuple[str, float]] = {}
+    for m in URL.finditer(rec.link_fields.get("remote_link", "") or ""):
+        hit = CONFLUENCE_PAGE.search(m.group(0))
+        if hit:
+            pages.setdefault(hit.group(1) or hit.group(2), ("remote_link", CONFIDENCE["remote_link"]))
+    return pages
+
+
 def extract(bundle: OntologyBundle, rec: Record, concept: str, hosts: tuple[str, ...] = (),
             project_keys: tuple[str, ...] = ()) -> list[Link]:
     """Links for a record that became a node of `concept`. A relationship the pinned ontology lacks, or whose from-type
@@ -92,6 +106,9 @@ def extract(bundle: OntologyBundle, rec: Record, concept: str, hosts: tuple[str,
         for k, (fld, conf) in sorted(keys.items()):
             out.append(Link("references", concept, {"source_system": "jira", "source_id": k}, conf,
                             {"method": "rule", "rule": f"jira_key_in_{fld}", "evidence": k}))
+        for pid, (fld, conf) in sorted(scan_pages(rec).items()):
+            out.append(Link("references", concept, {"source_system": "confluence", "source_id": pid}, conf,
+                            {"method": "api_link", "rule": "jira_remote_link", "evidence": pid}))
     doc = bundle.relationships.get("documents")
     if doc and ancestors & set(doc.from_types):
         for r, (fld, conf) in sorted(repos.items()):
@@ -105,6 +122,9 @@ def refs_for_evidence(rec: Record, hosts: tuple[str, ...] = (), project_keys: tu
     (an unlabelled page is evidence only). Also carries the page parent, since the core has no child_of."""
     keys, repos = scan(rec, hosts, project_keys)
     out: dict = {"jira_keys": sorted(keys), "repo_urls": sorted(repos)}
+    pages = scan_pages(rec)
+    if pages:
+        out["confluence_page_ids"] = sorted(pages)
     if rec.parent_id:
         out["parent_id"] = rec.parent_id
     return out

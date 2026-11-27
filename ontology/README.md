@@ -49,17 +49,17 @@ python -m pytest ontology/tests -q
 
 ## How the code uses these files
 
-The package `src/usep/ontology/` reads this folder at run time. Nothing there writes a definition.
+One loader, `usep.ontology_runtime.load_ontology`, reads this folder at run time. `src/usep/ontology/` (labelling and the graph) is a read-only view over that loader's result, not a second reader. Nothing writes a definition.
 
 - **Config** (`config/local.yaml`): `ontology.dir`, `ontology.packs` (the exact packs a tenant pins, by id), `ontology.allow_reference_packs`, `ontology.require_signed`. With `ontology.dir` unset the gate is off and nothing is pinned.
-- **Loader** (`bundle.py`): loads the core and the pinned packs and fails closed: a missing pack, a pack that needs a different core, a `reference_only` pack without permission, two packs at one level defining one concept, or a mapping to an unknown concept or attribute. It also computes a digest of every defining file (line endings normalised).
+- **Loader** (`ontology_runtime/loader.py`): loads the core and the pinned packs and fails closed: a missing pack, a pack that needs a different core, a `reference_only` pack without permission, two packs at one level defining one concept, or a mapping to an unknown concept or attribute. It also computes a digest of every defining file (line endings normalised).
 - **Systems** (`systems.yml` in an application pack): each registered system must map to a known core type, be registered once, and name only regulatory scopes that a pinned pack defines. Nothing reads the scope at run time yet (OI-63).
-- **Gate G1** (`gate.py`, run by the pipeline after the cheap checks and before linking): the app pack mapping turns a record's `kind` into a core concept; required attributes and enumerated values are checked. A record that fails is quarantined as `Q-SCHEMA`. A source object with no mapping follows the mapping file's `on_unmapped` (`quarantine` for Jira, `evidence` for Git and Confluence).
+- **Gate G1** (`ontology_runtime/gate.py`, run by the pipeline after the cheap checks and before linking): the app pack mapping turns a record's `kind` into a core concept; required attributes and enumerated values are checked. A record that fails is quarantined as `Q-SCHEMA`. A source object with no mapping follows the mapping file's `on_unmapped` (`quarantine` for Jira, `evidence` for Git and Confluence).
 - **Pins**: every context package carries `ontology_version` (the core version) and an `ontology` block (core, each pack id, level and version, and the digest). The seal covers it, and a different pin never reuses a cached package.
 
 Pack CI (`tools/check_ontology.py`) still decides whether a pack is allowed to exist (additive only, policies only tighten). The loader trusts a pack that passed it. The run-time validator reads the YAML, not the Turtle shapes, so rdflib stays out of the run-time path.
 
-Not built: signing and the registry (C-06, C-07), the project pack's state translation (Jira workflow to `change_state`), and field mapping from dotted source paths beyond the last segment.
+Not built: signing and the registry (C-06, C-07), and field mapping from dotted source paths beyond the last segment.
 
 ## Ingestion run-time (`src/usep/ontology_runtime/`)
 

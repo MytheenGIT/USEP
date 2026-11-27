@@ -53,7 +53,7 @@ class AdoConnector:
         state = PR_STATE.get(pr.get("status", ""), "closed")
         version = to_utc_iso(pr.get("closedDate") or pr.get("creationDate"))
         return AdoDocument(
-            scope=project, source_version=version, acl={"project": proj, "repository": repo.get("name")},
+            scope=project, source_version=version, acl={"project": proj, "repository": repo.get("name"), "visibility": (repo.get("project") or {}).get("visibility")},
             source=self.source, source_type="pull_request",
             source_object_id=f"ado:{proj}/{repo.get('name', '')}!{pr['pullRequestId']}",
             source_url=f"{repo.get('webUrl', self._org)}/pullrequest/{pr['pullRequestId']}", retrieved_at=datetime.now(UTC),
@@ -94,6 +94,22 @@ class AdoConnector:
                         break
                     skip += self._page
         return out, errors
+
+    async def list_ids(self, scope: str) -> set[str]:
+        """Every work item and pull request id in the project right now (for delete reconciliation)."""
+        ids = {f"{scope}#{i}" for i in await self._client.wiql_ids(scope, None)}
+        for repo in await self._client.list_repositories(scope):
+            for status in ("active", "completed", "abandoned"):
+                skip = 0
+                while True:
+                    prs = await self._client.list_pull_requests(scope, repo["id"], status, None, self._page, skip)
+                    for p in prs:
+                        r = p.get("repository") or {}
+                        ids.add(f"ado:{(r.get('project') or {}).get('name', scope)}/{r.get('name', '')}!{p['pullRequestId']}")
+                    if len(prs) < self._page:
+                        break
+                    skip += self._page
+        return ids
 
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         docs: list[AdoDocument] = []

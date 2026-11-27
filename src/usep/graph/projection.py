@@ -135,4 +135,5 @@ class GraphProjectionService:
                                           "evidence_ref": r.evidence_ref, "mapping_rule_id": r.mapping_rule_id, "recorded_at": r.recorded_at}.items() if v},
             versions={**self._versions(), "ontology_pack_id": r.ontology_pack_id, "ontology_pack_version": r.ontology_pack_version},
             valid_from=r.valid_from, valid_to=r.valid_to, sensitivity=r.sensitivity, acl_ref=r.acl_ref,
+            owners_only=r.owners_only if r.owners_only is not None else r.acl_state in (None, "unknown", "stale"),
             confidence=r.confidence if r.confidence < 1 else None)

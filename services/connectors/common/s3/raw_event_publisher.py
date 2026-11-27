@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import zlib
+from datetime import UTC, datetime
 from typing import Any
 
 from common.ids import uuid7
@@ -35,6 +36,23 @@ class S3RawEventPublisher:
             "payload": event.model_dump(mode="json"), "headers": {},
         }
         part = zlib.crc32(f"{self._tenant}:{event.source_ref}".encode()) % self._partitions
+        key = f"{self._prefix}/{topic}/p{part:03d}/{event_id}.json"
+        await asyncio.to_thread(self._put, key, json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode())
+
+    async def publish_tombstone(self, source: str, source_id: str, scope: str, reason: str) -> None:
+        """Announce that an object is gone from its source: topic tombstone.<source>, keyed by the object id so it sorts
+        with that object's other events. Consumers (chunker, resolver, fabric writer) remove what they hold for it. If the
+        object comes back, a later snapshot supersedes the tombstone (compare detected_at with the evidence's retrieved_at)."""
+        topic = f"tombstone.{source}"
+        event_id = str(uuid7())
+        now = datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        envelope = {
+            "event_id": event_id, "topic": topic, "key": source_id, "tenant_id": self._tenant,
+            "type": "tombstone.object_deleted", "schema_version": SCHEMA_VERSION, "occurred_at": now,
+            "payload": {"source_family": source, "source_id": source_id, "scope": scope, "reason": reason,
+                        "detected_at": now}, "headers": {},
+        }
+        part = zlib.crc32(f"{self._tenant}:{source_id}".encode()) % self._partitions
         key = f"{self._prefix}/{topic}/p{part:03d}/{event_id}.json"
         await asyncio.to_thread(self._put, key, json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode())
 

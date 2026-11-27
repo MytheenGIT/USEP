@@ -12,6 +12,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT.parent / "ontology" / "templates"
+PACKS = ROOT.parent / "ontology" / "packs"
 FIELDS = ["id", "domain", "template", "difficulty", "question", "expected_entities", "expected_claims",
           "required_evidence", "requester_role", "must_not_include", "sme_owner", "created", "last_reviewed"]
 DIFFICULTY = {"easy", "medium", "hard"}
@@ -27,7 +28,7 @@ def check(path):
     items = (doc or {}).get("items")
     if not isinstance(items, list):
         return [f"{path.name}: top level must hold an 'items' list"]
-    tpl = {p.stem for p in TEMPLATES.glob("*.yml")}
+    tpl = {p.stem for p in TEMPLATES.glob("*.yml")} | {p.stem for p in PACKS.glob("*/*/templates/*.yml")}   # core and pack templates (D2)
     domain = path.stem.replace("golden_set_", "")
     seen_ids, seen_q, nums = set(), {}, []
     for it in items:

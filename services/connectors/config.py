@@ -17,6 +17,8 @@ class JiraSettings(BaseSettings):
     download_attachments: bool = True
     # LLD Table 13, Q-SIZE: files over 1 MB are not stored; metadata is kept.
     attachment_max_bytes: int = 1_048_576
+    # One extra call per issue for its remote links (native Jira to Confluence links). Turn off to save API calls.
+    fetch_remote_links: bool = True
 
 
 class GitLabSettings(BaseSettings):
@@ -110,6 +112,7 @@ class S3Settings(BaseSettings):
     endpoint_url: str = ""          # for MinIO / on-prem S3-compatible storage
     raw_prefix: str = "raw"
     cursor_prefix: str = "state/connectors"
+    index_prefix: str = "state/index"
     bus_prefix: str = "bus"
     bus_partitions: int = 16
 
@@ -124,6 +127,13 @@ class Settings(BaseSettings):
     api_token: str = ""
     # Local development only: serve /sync and /results without a token.
     auth_disabled: bool = False
+    # Backfill: where a scope with no stored cursor starts (ISO 8601 UTC). Empty means everything.
+    backfill_since: str = ""
+    # Land at most this many objects per scope per run (oldest first), so a large first sync resumes over several runs.
+    # 0 means no cap.
+    max_documents_per_scope: int = 0
+    # Reconciliation refuses a scope where more than this share of known objects is missing (looks like an auth problem).
+    reconcile_max_missing_fraction: float = 0.3
     tenant_id: str = ""             # required when s3.bucket is set: tenant id is in every event (ADR-10)
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"])
 

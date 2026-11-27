@@ -44,6 +44,17 @@ class ServiceNowConnector:
             state=_s(r.get("state")), priority=_s(r.get("priority")), assignment_group=_s(r.get("assignment_group")),
             cmdb_ci=_s(r.get("cmdb_ci")), caused_by=_s(r.get("caused_by")))
 
+    async def list_ids(self, scope: str) -> set[str]:
+        """Every record number in the table right now (for delete reconciliation). Numbers only."""
+        ids: set[str] = set()
+        offset = 0
+        while True:
+            rows = await self._client.query_table(scope, None, offset, self._page_size, fields="number,sys_id")
+            ids |= {str(r.get("number") or r["sys_id"]) for r in rows}
+            if len(rows) < self._page_size:
+                return ids
+            offset += self._page_size
+
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         since = parse_ts(cursor).strftime("%Y-%m-%d %H:%M:%S") if cursor else None
         docs: list[ServiceNowDocument] = []

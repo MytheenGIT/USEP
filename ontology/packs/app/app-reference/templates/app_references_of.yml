@@ -1,0 +1,27 @@
+# Pack query template (D2, proposed). The `references` relationship is defined by this pack, so its query lives here.
+# Cypher text is a proposal (P) until S6 tests run.
+name: app_references_of
+version: "1.0"
+status: draft
+owner_role: application-architect
+description: "What an entity references and what references it, with the rule, confidence and evidence behind each link"
+parameters:
+  - {name: tenant_id,      type: uuid, required: true, from: token}
+  - {name: anchor_id,      type: uuid, required: true}
+  - {name: min_confidence, type: number, default: 0.0, min: 0.0, max: 1.0}
+  - {name: as_of,          type: datetime, default: now}
+limits: {max_depth: 1, fanout_cap: 200}
+access: "{{access_predicate}} is supplied by the context engine (ADR-06). A linked entity the requester may not see is pruned, not masked."
+steps:
+  - id: links
+    description: "Entities linked to the anchor by references, in either direction"
+    cypher: |
+      MATCH (a:Entity {tenant_id: $tenant_id, entity_id: $anchor_id})-[r:references]-(n:Entity {tenant_id: $tenant_id})
+      WHERE {{access_predicate}}
+        AND r.confidence_score >= $min_confidence
+        AND r.valid_from <= $as_of AND (r.valid_to IS NULL OR r.valid_to > $as_of)
+      RETURN n.entity_id AS entity_id, labels(n) AS labels, startNode(r) = a AS outbound,
+             r.confidence_score AS confidence, r.confidence AS confidence_label, r.evidence_ref AS evidence_ref
+      ORDER BY confidence DESC, n.entity_id
+      LIMIT $fanout_cap
+returns: [links]
