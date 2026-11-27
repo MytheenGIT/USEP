@@ -1,0 +1,2462 @@
+{
+ "directed": true,
+ "graph": {
+  "graphify_version": "0.9.119",
+  "kind": "ontology-types",
+  "ontology_digest": "971e0d3598fbd2248b024bfd2666042bc856fde6c41f39348710cf4df1de54fc",
+  "ontology_version": "0.1.0",
+  "packs": [
+   "core@0.1.0",
+   "industry.banking-reference@0.1.0",
+   "org.org-reference@0.1.0",
+   "app.app-reference@0.1.0",
+   "project.project-reference@0.1.0"
+  ],
+  "reference_only": true,
+  "schema_version": 1
+ },
+ "hyperedges": [],
+ "links": [
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "decided_in:API:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "decided_in",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/decided_in",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:API:API",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:API:Application",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:API:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:API:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:API:Service",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:API:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:API:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:API:API",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:API:Control",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:API:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:API:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:API:Release",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Release",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:API:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "API",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "consumes:Application:API",
+    "source_system": "ontology"
+   },
+   "relation": "consumes",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/consumes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "consumes:Application:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "consumes",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/consumes",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "decided_in:Application:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "decided_in",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/decided_in",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Application:API",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Application:Application",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Application:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Application:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Application:Service",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "deployed_to:Application:Environment",
+    "source_system": "ontology"
+   },
+   "relation": "deployed_to",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/deployed_to",
+   "target": "Environment",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "exposes:Application:API",
+    "source_system": "ontology"
+   },
+   "relation": "exposes",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/exposes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Application:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Application:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "realizes:Application:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "realizes",
+   "source": "Application",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/realizes",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "decided_in:Capability:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "decided_in",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/decided_in",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Capability:API",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Capability:Application",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Capability:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Capability:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Capability:Service",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Capability:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Capability:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Capability",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "decided_in:Change:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "decided_in",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/decided_in",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Change:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Change:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "implements:Change:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "implements",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/implements",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "implements:Change:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "implements",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/implements",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Change:Change",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Change",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Change:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Change:Incident",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Incident",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Change:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Change",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "is_a:ComplianceControl:Control",
+    "source_system": "ontology"
+   },
+   "relation": "is_a",
+   "source": "ComplianceControl",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/concepts/ComplianceControl",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Control:API",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Control",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Control:Control",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Control",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Control:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Control",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Control:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Control",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Control:Release",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Control",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Release",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Control:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Control",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:DataAsset:API",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "DataAsset",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:DataAsset:Application",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "DataAsset",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:DataAsset:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "DataAsset",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:DataAsset:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "DataAsset",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:DataAsset:Service",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "DataAsset",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:DataAsset:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "DataAsset",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:DataAsset:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "DataAsset",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "documents:Decision:API",
+    "source_system": "ontology"
+   },
+   "relation": "documents",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/documents",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "documents:Decision:Application",
+    "source_system": "ontology"
+   },
+   "relation": "documents",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/documents",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "documents:Decision:Service",
+    "source_system": "ontology"
+   },
+   "relation": "documents",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/documents",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Decision:Change",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Change",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Decision:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Decision:Incident",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Incident",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Decision:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Decision:API",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Decision:Control",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Decision:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Decision:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Decision:Release",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Release",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Decision:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Decision",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Environment:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Environment",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Environment:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Environment",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "caused_by:Incident:Change",
+    "source_system": "ontology"
+   },
+   "relation": "caused_by",
+   "source": "Incident",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/caused_by",
+   "target": "Change",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "caused_by:Incident:Incident",
+    "source_system": "ontology"
+   },
+   "relation": "caused_by",
+   "source": "Incident",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/caused_by",
+   "target": "Incident",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "caused_by:Incident:Release",
+    "source_system": "ontology"
+   },
+   "relation": "caused_by",
+   "source": "Incident",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/caused_by",
+   "target": "Release",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "caused_by:Incident:Service",
+    "source_system": "ontology"
+   },
+   "relation": "caused_by",
+   "source": "Incident",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/caused_by",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "is_a:PaymentScheme:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "is_a",
+   "source": "PaymentScheme",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/concepts/PaymentScheme",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "decided_in:Policy:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "decided_in",
+   "source": "Policy",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/decided_in",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Policy:API",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Policy",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Policy:Control",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Policy",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Policy:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Policy",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Policy:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Policy",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Policy:Release",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Policy",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Release",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Policy:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Policy",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "deployed_to:Release:Environment",
+    "source_system": "ontology"
+   },
+   "relation": "deployed_to",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/deployed_to",
+   "target": "Environment",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Release:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Release:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Release:API",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Release:Control",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Release:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Release:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Release:Release",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Release",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Release:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Release",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "decided_in:Requirement:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "decided_in",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/decided_in",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Requirement:Change",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Change",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Requirement:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Requirement:Incident",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Incident",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "references:Requirement:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "references",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/references",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Requirement:API",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Requirement:Control",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Requirement:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Requirement:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Requirement:Release",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Release",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "supersedes:Requirement:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "supersedes",
+   "source": "Requirement",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/supersedes",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "consumes:Service:API",
+    "source_system": "ontology"
+   },
+   "relation": "consumes",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/consumes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "consumes:Service:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "consumes",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/consumes",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "decided_in:Service:Decision",
+    "source_system": "ontology"
+   },
+   "relation": "decided_in",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/decided_in",
+   "target": "Decision",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Service:API",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Service:Application",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Service:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Service:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "depends_on:Service:Service",
+    "source_system": "ontology"
+   },
+   "relation": "depends_on",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/depends_on",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "deployed_to:Service:Environment",
+    "source_system": "ontology"
+   },
+   "relation": "deployed_to",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/deployed_to",
+   "target": "Environment",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "exposes:Service:API",
+    "source_system": "ontology"
+   },
+   "relation": "exposes",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/exposes",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Service:Control",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "governed_by:Service:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "governed_by",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/governed_by",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "realizes:Service:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "realizes",
+   "source": "Service",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/realizes",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:API",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:Application",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:Capability",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "Capability",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:Control",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "Control",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:DataAsset",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "DataAsset",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:Environment",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "Environment",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:Policy",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "Policy",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "owns:Team:Service",
+    "source_system": "ontology"
+   },
+   "relation": "owns",
+   "source": "Team",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/owns",
+   "target": "Service",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "tests:Test:API",
+    "source_system": "ontology"
+   },
+   "relation": "tests",
+   "source": "Test",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/tests",
+   "target": "API",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "tests:Test:Application",
+    "source_system": "ontology"
+   },
+   "relation": "tests",
+   "source": "Test",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/tests",
+   "target": "Application",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "tests:Test:Change",
+    "source_system": "ontology"
+   },
+   "relation": "tests",
+   "source": "Test",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/tests",
+   "target": "Change",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "tests:Test:Requirement",
+    "source_system": "ontology"
+   },
+   "relation": "tests",
+   "source": "Test",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/tests",
+   "target": "Requirement",
+   "weight": 1.0
+  },
+  {
+   "confidence": "EXTRACTED",
+   "confidence_score": 1.0,
+   "metadata": {
+    "edge_id": "tests:Test:Service",
+    "source_system": "ontology"
+   },
+   "relation": "tests",
+   "source": "Test",
+   "source_file": "usep://graph",
+   "source_location": "ontology://971e0d3598fb/relationships/tests",
+   "target": "Service",
+   "weight": 1.0
+  }
+ ],
+ "multigraph": false,
+ "nodes": [
+  {
+   "file_type": "code",
+   "id": "API",
+   "label": "API",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "version",
+     "protocol",
+     "spec_ref"
+    ],
+    "concept": "API",
+    "description": "An interface a service exposes and others consume",
+    "domain": "architecture",
+    "kind": "concept",
+    "labels": [
+     "architecture",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "api",
+   "source_file": "usep://ontology",
+   "source_location": "core/API",
+   "type": "API"
+  },
+  {
+   "file_type": "code",
+   "id": "Application",
+   "label": "Application",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "criticality",
+     "lifecycle_state"
+    ],
+    "concept": "Application",
+    "description": "A deployable business system made of services",
+    "domain": "architecture",
+    "kind": "concept",
+    "labels": [
+     "architecture",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "application",
+   "source_file": "usep://ontology",
+   "source_location": "core/Application",
+   "type": "Application"
+  },
+  {
+   "file_type": "code",
+   "id": "Capability",
+   "label": "Capability",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "summary"
+    ],
+    "concept": "Capability",
+    "description": "What the enterprise can do, independent of the systems that deliver it",
+    "domain": "business",
+    "kind": "concept",
+    "labels": [
+     "business",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "capability",
+   "source_file": "usep://ontology",
+   "source_location": "core/Capability",
+   "type": "Capability"
+  },
+  {
+   "file_type": "code",
+   "id": "Change",
+   "label": "Change",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "change_state",
+     "change_type"
+    ],
+    "concept": "Change",
+    "description": "A unit of work that alters a system: a ticket, pull request or change record",
+    "domain": "product",
+    "kind": "concept",
+    "labels": [
+     "product",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "change",
+   "source_file": "usep://ontology",
+   "source_location": "core/Change",
+   "type": "Change"
+  },
+  {
+   "file_type": "code",
+   "id": "ComplianceControl",
+   "label": "ComplianceControl",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "control_set",
+     "control_reference"
+    ],
+    "concept": "ComplianceControl",
+    "description": "A control that belongs to a named control set, such as PCI-DSS",
+    "domain": "security",
+    "kind": "concept",
+    "labels": [
+     "security",
+     "industry",
+     "industry.banking-reference"
+    ],
+    "level": "industry",
+    "owners_only": false,
+    "pack_id": "industry.banking-reference",
+    "parent": "Control",
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "compliancecontrol",
+   "source_file": "usep://ontology",
+   "source_location": "industry.banking-reference/ComplianceControl",
+   "type": "ComplianceControl"
+  },
+  {
+   "file_type": "code",
+   "id": "Control",
+   "label": "Control",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "control_set"
+    ],
+    "concept": "Control",
+    "description": "A measure that meets a policy or regulation",
+    "domain": "security",
+    "kind": "concept",
+    "labels": [
+     "security",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "control",
+   "source_file": "usep://ontology",
+   "source_location": "core/Control",
+   "type": "Control"
+  },
+  {
+   "file_type": "code",
+   "id": "DataAsset",
+   "label": "DataAsset",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "regulatory_scope"
+    ],
+    "concept": "DataAsset",
+    "description": "Data held by the enterprise: a database, dataset or topic. Metadata only, never row data (HLD 5.2)",
+    "domain": "platform",
+    "kind": "concept",
+    "labels": [
+     "platform",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "dataasset",
+   "source_file": "usep://ontology",
+   "source_location": "core/DataAsset",
+   "type": "DataAsset"
+  },
+  {
+   "file_type": "code",
+   "id": "Decision",
+   "label": "Decision",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "status",
+     "decided_on"
+    ],
+    "concept": "Decision",
+    "description": "A recorded choice and its reason, such as an ADR",
+    "domain": "architecture",
+    "kind": "concept",
+    "labels": [
+     "architecture",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "decision",
+   "source_file": "usep://ontology",
+   "source_location": "core/Decision",
+   "type": "Decision"
+  },
+  {
+   "file_type": "code",
+   "id": "Environment",
+   "label": "Environment",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "environment_kind"
+    ],
+    "concept": "Environment",
+    "description": "Where software runs",
+    "domain": "platform",
+    "kind": "concept",
+    "labels": [
+     "platform",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "environment",
+   "source_file": "usep://ontology",
+   "source_location": "core/Environment",
+   "type": "Environment"
+  },
+  {
+   "file_type": "code",
+   "id": "Incident",
+   "label": "Incident",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "severity",
+     "status"
+    ],
+    "concept": "Incident",
+    "description": "An unplanned event that disrupted a service",
+    "domain": "operations",
+    "kind": "concept",
+    "labels": [
+     "operations",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "incident",
+   "source_file": "usep://ontology",
+   "source_location": "core/Incident",
+   "type": "Incident"
+  },
+  {
+   "file_type": "code",
+   "id": "PaymentScheme",
+   "label": "PaymentScheme",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "policy_kind",
+     "scheme_name"
+    ],
+    "concept": "PaymentScheme",
+    "description": "A card or payment network rulebook the organization must follow (HLD 6 Table 10 example)",
+    "domain": "security",
+    "kind": "concept",
+    "labels": [
+     "security",
+     "industry",
+     "industry.banking-reference"
+    ],
+    "level": "industry",
+    "owners_only": false,
+    "pack_id": "industry.banking-reference",
+    "parent": "Policy",
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "paymentscheme",
+   "source_file": "usep://ontology",
+   "source_location": "industry.banking-reference/PaymentScheme",
+   "type": "PaymentScheme"
+  },
+  {
+   "file_type": "code",
+   "id": "Person",
+   "label": "Person",
+   "metadata": {
+    "attribute_names": [
+     "role_name"
+    ],
+    "concept": "Person",
+    "description": "A person, recorded by role only (HLD 6 Table 9). No names or contact details.",
+    "domain": "business",
+    "kind": "concept",
+    "labels": [
+     "business",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": true,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "person",
+   "source_file": "usep://ontology",
+   "source_location": "core/Person",
+   "type": "Person"
+  },
+  {
+   "file_type": "code",
+   "id": "Policy",
+   "label": "Policy",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "policy_kind"
+    ],
+    "concept": "Policy",
+    "description": "A rule that governs behaviour, such as change control for payment systems",
+    "domain": "security",
+    "kind": "concept",
+    "labels": [
+     "security",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "policy",
+   "source_file": "usep://ontology",
+   "source_location": "core/Policy",
+   "type": "Policy"
+  },
+  {
+   "file_type": "code",
+   "id": "Release",
+   "label": "Release",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "version",
+     "release_state"
+    ],
+    "concept": "Release",
+    "description": "A versioned set of changes put into an environment",
+    "domain": "product",
+    "kind": "concept",
+    "labels": [
+     "product",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "release",
+   "source_file": "usep://ontology",
+   "source_location": "core/Release",
+   "type": "Release"
+  },
+  {
+   "file_type": "code",
+   "id": "Requirement",
+   "label": "Requirement",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "status"
+    ],
+    "concept": "Requirement",
+    "description": "A stated need a change must satisfy",
+    "domain": "product",
+    "kind": "concept",
+    "labels": [
+     "product",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "requirement",
+   "source_file": "usep://ontology",
+   "source_location": "core/Requirement",
+   "type": "Requirement"
+  },
+  {
+   "file_type": "code",
+   "id": "Service",
+   "label": "Service",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "criticality",
+     "lifecycle_state",
+     "repository_ref"
+    ],
+    "concept": "Service",
+    "description": "A running unit of software with one owning team",
+    "domain": "architecture",
+    "kind": "concept",
+    "labels": [
+     "architecture",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "service",
+   "source_file": "usep://ontology",
+   "source_location": "core/Service",
+   "type": "Service"
+  },
+  {
+   "file_type": "code",
+   "id": "Team",
+   "label": "Team",
+   "metadata": {
+    "attribute_names": [
+     "name"
+    ],
+    "concept": "Team",
+    "description": "A group that owns things and is accountable for them",
+    "domain": "business",
+    "kind": "concept",
+    "labels": [
+     "business",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "team",
+   "source_file": "usep://ontology",
+   "source_location": "core/Team",
+   "type": "Team"
+  },
+  {
+   "file_type": "code",
+   "id": "Test",
+   "label": "Test",
+   "metadata": {
+    "attribute_names": [
+     "name",
+     "test_kind",
+     "status"
+    ],
+    "concept": "Test",
+    "description": "A check that shows a change or service behaves as required",
+    "domain": "testing",
+    "kind": "concept",
+    "labels": [
+     "testing",
+     "core",
+     "core"
+    ],
+    "level": "core",
+    "owners_only": false,
+    "pack_id": "core",
+    "parent": null,
+    "role_only": false,
+    "sensitivity": 0,
+    "versions": {
+     "ontology_version": "0.1.0"
+    }
+   },
+   "norm_label": "test",
+   "source_file": "usep://ontology",
+   "source_location": "core/Test",
+   "type": "Test"
+  }
+ ]
+}

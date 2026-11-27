@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, navigate, paths } from "../../app/router";
 import { api } from "../../shared/api/client";
-import { GraphDto, GraphNodeDto } from "../../shared/api/types";
+import { GraphDto, GraphNodeDto, OntologyDto } from "../../shared/api/types";
 import { useAsync } from "../../shared/hooks/useAsync";
 import { Badge, Button, EmptyState, Icon, Spinner } from "../../shared/ui";
 import { useSession } from "../auth/AuthContext";
@@ -28,6 +28,8 @@ export function AgentPage({ id }: { id?: string }) {
   const ready = useMemo(() => (items ?? []).filter((c) => c.status === "ready"), [items]);
   const chosen = id ?? ready[0]?.id;
   const graph = useAsync<GraphDto | null>(() => (chosen ? guard(api.getGraph(session.token, chosen)) : Promise.resolve(null)), [chosen, session.token]);
+  // The ontology this configuration is checked against. If it cannot be loaded the agent says so for ontology questions.
+  const ontology = useAsync<OntologyDto | null>(() => (chosen ? guard(api.getOntology(session.token, chosen)).catch(() => null) : Promise.resolve(null)), [chosen, session.token]);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const counter = useRef(0);
@@ -58,7 +60,8 @@ export function AgentPage({ id }: { id?: string }) {
     setTurns((t) => [...t, turn]);
     setDraft("");
     const g = graph.data;
-    timers.current.push(window.setTimeout(() => setTurns((t) => t.map((x) => (x.id === turn.id ? { ...x, answer: answerQuestion(g, text) } : x))), THINKING_MS));
+    const o = ontology.loading ? undefined : ontology.data;   // still loading: answer from the graph only
+    timers.current.push(window.setTimeout(() => setTurns((t) => t.map((x) => (x.id === turn.id ? { ...x, answer: answerQuestion(g, text, o) } : x))), THINKING_MS));
   };
   const submit = (e: FormEvent) => { e.preventDefault(); ask(draft); };
 
@@ -67,7 +70,7 @@ export function AgentPage({ id }: { id?: string }) {
       <div className="page-head">
         <div>
           <h1>Ask the agent</h1>
-          <p className="muted">Questions are answered from the knowledge graph you pick. <Badge tone="warning" title="Answers come from the graph on screen with fixed question shapes">preview</Badge></p>
+          <p className="muted">Questions are answered from the knowledge graph you pick and from its ontology. <Badge tone="warning" title="Answers come from the graph and the ontology on screen, with fixed question shapes">preview</Badge></p>
         </div>
         <div className="row-gap">
           <label className="agent-pick">
@@ -97,7 +100,13 @@ export function AgentPage({ id }: { id?: string }) {
               <div className="bubble bubble-user">{t.question}</div>
               {t.answer ? (
                 <div className="bubble bubble-agent">
+                  {t.answer.source === "ontology" && <p><Badge tone="info" title="From the ontology: the rulebook, not data in the graph">from the ontology</Badge></p>}
                   <p>{t.answer.text}</p>
+                  {config && t.answer.concepts && t.answer.concepts.length > 0 && (
+                    <div className="cites" aria-label="Concepts">{[...new Set(t.answer.concepts)].map((c) => (
+                      <Link key={c} to={paths.ontology(config.id, c)} className="cite" title={`Open the definition of ${c}`}><span className="dot" style={{ background: conceptColor(c) }} aria-hidden="true" />{c}</Link>
+                    ))}</div>
+                  )}
                   {t.answer.citations.length > 0 && <div className="cites" aria-label="Based on">{t.answer.citations.map((n) => <Chip key={n.id} node={n} />)}</div>}
                 </div>
               ) : (
@@ -108,7 +117,7 @@ export function AgentPage({ id }: { id?: string }) {
           <div ref={end} />
         </div>
         <form className="chat-input" onSubmit={submit}>
-          <input aria-label="Your question" placeholder="Ask about requirements, changes, incidents, owners…" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={!graph.data} autoComplete="off" />
+          <input aria-label="Your question" placeholder="Ask about the graph or the ontology: changes, incidents, what can own a Service…" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={!graph.data} autoComplete="off" />
           <Button variant="primary" type="submit" disabled={!draft.trim() || !graph.data}><Icon name="send" size={16} /> Ask</Button>
         </form>
       </div>

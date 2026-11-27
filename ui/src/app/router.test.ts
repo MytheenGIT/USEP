@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseRoute } from "./router";
+import { parseRoute, paths } from "./router";
 
 describe("parseRoute", () => {
   it("defaults to the configuration list", () => {
@@ -21,6 +21,13 @@ describe("parseRoute", () => {
   it("parses the new-configuration route with an optional template", () => {
     expect(parseRoute("#/configurations/new")).toEqual({ name: "new" });
     expect(parseRoute("#/configurations/new?from=abc")).toEqual({ name: "new", from: "abc" });
+  });
+  it("parses the ontology route with an optional configuration and concept", () => {
+    expect(parseRoute("#/ontology")).toEqual({ name: "ontology" });
+    expect(parseRoute("#/ontology/abc")).toEqual({ name: "ontology", id: "abc" });
+    expect(parseRoute("#/ontology/abc?concept=Service")).toEqual({ name: "ontology", id: "abc", concept: "Service" });
+    expect(parseRoute("#/ontology/a/b")).toEqual({ name: "notfound" });
+    expect(paths.ontology("a b", "Service")).toBe("#/ontology/a%20b?concept=Service");
   });
   it("flags unknown routes", () => {
     expect(parseRoute("#/nope/1/2/3")).toEqual({ name: "notfound" });

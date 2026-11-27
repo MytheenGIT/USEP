@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Configuration } from "../../shared/api/types";
+import { CONNECTOR_KEYS } from "../../shared/api/connectors";
 import { addableConnectors, completeCount, connectorState, emptyForm, formFromConfiguration, jqlLines, selectedCount, toPayload, validateForm } from "./formModel";
 
 const on = { enabled: true, useServerCredentials: false, jql: "", allMemberProjects: false, authMethod: "token" as const, sshKey: "", encodedQuery: "" };
@@ -135,7 +136,7 @@ describe("formModel", () => {
 
   it("offers only the connectors a configuration does not use yet", () => {
     const summary = (enabled: boolean) => ({ enabled, targets: [], jql_queries: [], all_member_projects: false, auth_method: "token" as const, encoded_query: "", credentials: "none" as const });
-    expect(addableConnectors({ connectors: { jira: summary(true), gitlab: summary(true), figma: summary(false) } })).toEqual(["confluence", "github", "servicenow", "figma"]);
-    expect(addableConnectors({ connectors: {} })).toHaveLength(6);
+    expect(addableConnectors({ connectors: { jira: summary(true), gitlab: summary(true), figma: summary(false) } })).toEqual(["ado", "confluence", "github", "servicenow", "figma"]);
+    expect(addableConnectors({ connectors: {} })).toEqual(CONNECTOR_KEYS);        // nothing used yet: every connector, however many there are
   });
 });

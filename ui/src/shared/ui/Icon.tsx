@@ -11,6 +11,7 @@ const PATHS = {
   search: "m21 21-4.3-4.3M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z",
   send: "M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z",
   check: "m5 12 5 5L20 7",
+  book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5Zm2 14h13v2H6a2 2 0 0 1-2-2M9 7h6",
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -41,7 +41,10 @@ export function GraphPage({ id, themeKey }: { id: string; themeKey: string }) {
           <h1>{config?.name ?? "Knowledge graph"}</h1>
           <p className="muted">Ontology {graph.ontology_version} · generated {formatDateTime(graph.generated_at)} · {graph.nodes.length} nodes, {graph.edges.length} relationships</p>
         </div>
-        <Link to={paths.agent(id)} className="btn btn-primary"><Icon name="chat" size={16} /> Ask the agent</Link>
+        <div className="row-gap">
+          <Link to={paths.ontology(id)} className="btn btn-secondary"><Icon name="book" size={16} /> Ontology</Link>
+          <Link to={paths.agent(id)} className="btn btn-primary"><Icon name="chat" size={16} /> Ask the agent</Link>
+        </div>
       </div>
 
       <Card>
@@ -73,7 +76,7 @@ export function GraphPage({ id, themeKey }: { id: string; themeKey: string }) {
             {view === "graph"
               ? <GraphCanvas ref={canvas} graph={visible} selectedId={selectedId} onSelect={setSelectedId} themeKey={themeKey} />
               : <NodeTables graph={graph} visible={visible} selectedId={selectedId} onSelect={setSelectedId} />}
-            <NodeDetails graph={graph} node={node} onSelect={setSelectedId} />
+            <NodeDetails graph={graph} node={node} onSelect={setSelectedId} configId={id} />
           </div>
         )}
       </Card>

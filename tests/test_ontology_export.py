@@ -7,7 +7,8 @@ from usep.ontology import load_ontology, resolve_pins
 
 ROOT = Path(__file__).resolve().parents[1] / "ontology"
 PACKS = ["industry.banking-reference", "org.org-reference", "app.app-reference", "project.project-reference"]
-FIXTURE = ROOT.parent / "ui" / "src" / "api" / "fixtures" / "ontology.json"
+FIXTURE = ROOT.parent / "ui" / "src" / "shared" / "api" / "fixtures" / "ontology.json"
+GRAPHIFY_FIXTURE = FIXTURE.with_name("ontology.graphify.json")
 
 
 def dto():
@@ -33,3 +34,10 @@ def test_dto_holds_definitions_only():
 def test_ui_fixture_is_current():
     """Regenerate with scripts/export_ontology_json.py when the ontology changes."""
     assert json.loads(FIXTURE.read_text(encoding="utf-8")) == json.loads(json.dumps(dto()))
+
+
+def test_graphify_fixture_is_current():
+    """The console's type diagram reads this. Regenerate with scripts/export_ontology_json.py."""
+    from usep.ontology.graph import ontology_graphify
+    b = load_ontology(ROOT, resolve_pins(ROOT, PACKS), allow_reference_only=True)
+    assert json.loads(GRAPHIFY_FIXTURE.read_text(encoding="utf-8")) == json.loads(json.dumps(ontology_graphify(b)))

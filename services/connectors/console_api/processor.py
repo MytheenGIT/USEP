@@ -24,7 +24,9 @@ from common.sync_models import SyncStatus
 from config import Settings
 from console_api.connectors import build_connector
 from console_api.graph import build_graph
+from console_api.errors import ConsoleError
 from console_api.models import Configuration, ConnectorSummary, SourceStatus
+from console_api.ontology import apply_ontology
 from console_api.secrets_store import Credentials, SecretStore
 from console_api.store import ConfigurationStore
 from console_api.validation import SPECS, server_base_url, server_credentials
@@ -143,12 +145,15 @@ class ConfigProcessor:
             problems = [f"{SPECS[x.source].label}: {x.detail}" for x in statuses if x.state != "success"]
             if not problems:
                 # every selected connector was read: only then is the context complete enough for a graph
-                self._store.save_graph(build_graph(config.id, [d for items in documents.values() for d in items]))
+                self._build_graph(config, [d for items in documents.values() for d in items])
                 config.status = "ready"
-                config.status_detail = None
+                config.status_detail = self._ontology_note(config)
             else:
                 config.status = "failed"
                 config.status_detail = _short("; ".join(problems))
+        except ConsoleError as exc:  # the ontology could not be loaded: nothing is shown that was not checked against it
+            config.status = "failed"
+            config.status_detail = _short(exc.message)
         except Exception as exc:  # fail closed: record, never leak internals
             logger.error("config.process_failed", configuration_id=config.id, error=type(exc).__name__)
             config.status = "failed"
@@ -187,7 +192,7 @@ class ConfigProcessor:
                 self._revert(config, [s.source for s in failed], "; ".join(f"Could not add {SPECS[s.source].label}: {s.detail}" for s in failed))
             kept = [s for s in statuses if s.state == "success"]
             if kept:
-                self._store.save_graph(build_graph(config.id, [d for items in (saved | documents).values() for d in items]))
+                self._build_graph(config, [d for items in (saved | documents).values() for d in items])
             return await self._finish_added(config, old_statuses + kept)
         except Exception as exc:  # fail closed: the graph it had stays, nothing half-added
             logger.error("config.add_failed", configuration_id=config.id, error=type(exc).__name__)
@@ -195,6 +200,19 @@ class ConfigProcessor:
             return await self._finish_added(config, old_statuses)
         finally:
             self._secrets.drop(config.id)
+
+    def _build_graph(self, config: Configuration, documents: list[SourceDocument]) -> None:
+        """Propose the graph from the documents, keep what the ontology allows, save it, and pin the ontology on the configuration."""
+        graph, pin = apply_ontology(self._s, build_graph(config.id, documents))
+        self._store.save_graph(graph)
+        config.ontology = pin
+
+    @staticmethod
+    def _ontology_note(config: Configuration) -> str | None:
+        pin = config.ontology
+        if pin and (pin.nodes_dropped or pin.edges_dropped):
+            return _short(f"{pin.nodes_dropped} item(s) and {pin.edges_dropped} relationship(s) were left out because the ontology does not allow them.")
+        return None
 
     @staticmethod
     def _revert(config: Configuration, keys: list[str], detail: str) -> None:

@@ -1,6 +1,6 @@
 # Brief for the UI team: show the ontology in the console
 
-Status: proposal. The API does not exist yet; the UI builds against a fixture and the contract below.
+Status: built (first version). The console shows it under **Ontology** in the left panel: `ui/src/features/ontology/`. The API is in the console API (`services/connectors/console_api/ontology.py`, `GET /api/configurations/{id}/ontology` and `.../ontology/graphify`). The mock UI uses the fixtures in `ui/src/shared/api/fixtures/`.
 
 ## What the ontology is, in one paragraph
 The ontology is the rulebook, not the data. It lists the kinds of thing that can exist (concepts such as Service, Team, Policy), the kinds of link between them (relationships such as `owns`), the allowed values, the named safe queries, and the rules that can only tighten access. It holds **no tenant data**. The existing graph view shows facts (real services and teams); this new view shows the definitions behind them. Read `ontology/README.md` and `USEP_Ontology_guide.docx` sections 1 to 4 first.
@@ -42,8 +42,8 @@ export interface OntologyDto {
 }
 ```
 
-- A **working fixture** is in `ui/src/api/fixtures/ontology.json` (18 concepts, 14 relationships, 10 templates; all packs are placeholders). Make `VITE_USE_MOCK=true` serve it. Add `getOntology(token, id)` to the `Api` interface in `src/api/types.ts` and implement it in `client.ts` and `mock.ts`.
-- The backend builds the same JSON with `usep.ontology.export.to_dto`; a test keeps the fixture in step. If the contract needs a new field, ask the ontology owner and change the exporter, then regenerate with `python scripts/export_ontology_json.py ui/src/api/fixtures/ontology.json`.
+- A **working fixture** is in `ui/src/shared/api/fixtures/ontology.json` (18 concepts, 14 relationships, 10 templates; all packs are placeholders). Make `VITE_USE_MOCK=true` serve it. Add `getOntology(token, id)` to the `Api` interface in `src/shared/api/types.ts` and implement it in `http.ts` and `mock.ts`.
+- The backend builds the same JSON with `usep.ontology.export.to_dto`; a test keeps the fixture in step. If the contract needs a new field, ask the ontology owner and change the exporter, then regenerate with `python scripts/export_ontology_json.py ui/src/shared/api/fixtures/ontology.json`.
 - Data can be large (hundreds of concepts for a real tenant). Render lists with virtualisation or pagination; do not draw every relationship at once.
 
 ## Rules the UI must follow

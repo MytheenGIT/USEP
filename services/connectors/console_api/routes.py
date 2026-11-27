@@ -14,6 +14,7 @@ from console_api.auth import Session, bearer_token, credentials_match, require_s
 from console_api.errors import ConsoleError
 from console_api.ids import utc_now_iso, uuid7
 from console_api.connectivity import check_connection
+from console_api.ontology import ontology_dto, ontology_graph
 from console_api.models import (
     Configuration, ConnectorDefault, Graph, LoginBody, RepositoryList, SessionOut, ConnectionCheck,
 )
@@ -214,3 +215,22 @@ async def get_graph(config_id: str, request: Request, session: Session = Depends
         raise ConsoleError(409, "graph_not_ready", "The knowledge graph is not ready yet")
     await _audit(request, "graph.read", "success", session.username, configuration_id=config.id, tenant_id=config.tenant_id)
     return graph
+
+
+@router.get("/configurations/{config_id}/ontology")
+async def get_ontology(config_id: str, request: Request, session: Session = Depends(require_session)) -> dict[str, Any]:
+    """The ontology this configuration is pinned to (definitions only; contract: docs/ui-ontology-view-brief.md)."""
+    config = _get_or_404(request, config_id)
+    out = ontology_dto(request.app.state.settings)
+    await _audit(request, "ontology.read", "success", session.username, configuration_id=config.id, ontology_digest=out["digest"][:12])
+    return out
+
+
+@router.get("/configurations/{config_id}/ontology/graphify")
+async def get_ontology_graphify(config_id: str, request: Request, session: Session = Depends(require_session)) -> dict[str, Any]:
+    """The same ontology as a Graphify graph.json (concepts are nodes, relationship types are links)."""
+    config = _get_or_404(request, config_id)
+    out = ontology_graph(request.app.state.settings)
+    await _audit(request, "ontology.graph.read", "success", session.username, configuration_id=config.id,
+                 ontology_digest=out["graph"]["ontology_digest"][:12])
+    return out

@@ -47,6 +47,13 @@ export function ConfigDetailPage({ id }: { id: string }) {
       {config.status === "failed" && <ErrorMessage>{config.status_detail ?? "Processing failed."}</ErrorMessage>}
       {config.status === "ready" && config.status_detail && <div className="alert alert-warning" role="status">{config.status_detail}</div>}
 
+      {config.ontology && (
+        <div className="alert alert-info" role="status">
+          Graph checked against ontology {config.ontology.version} (digest <code>{config.ontology.digest.slice(0, 12)}</code>{config.ontology.reference_only ? ", placeholder packs" : ""}).{" "}
+          <Link to={paths.ontology(config.id)}>View the ontology</Link>
+        </div>
+      )}
+
       <div className="grid-2">
         <Card title="Sources"><SourceStatusList sources={config.sources ?? []} /><p className="muted small">Only the connectors you switched on are read.</p></Card>
         <Card title="Connectors">

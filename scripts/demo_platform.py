@@ -68,7 +68,7 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess:
 def part_ingestion(verbose: bool) -> None:
     header(1, "Ingestion: 7 sources -> connectors -> pipeline -> entities, edges, evidence, quarantine")
     r = run([sys.executable, str(ROOT / "scripts/demo_local.py"), "--show"])
-    check(r.returncode == 0, "demo_local.py ran on 18 dummy records (in-memory S3, real connector and pipeline code)")
+    check(r.returncode == 0, "demo_local.py ran on 18 dummy records (in-memory S3, real pipeline code, stand-in connector output)")
     lines = r.stdout.splitlines()
     for ln in lines:
         if verbose or any(k in ln for k in ("handled", "quarantine reasons", "evidence objects", " edge ")):
@@ -219,7 +219,7 @@ def main() -> int:
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("\n" + ("All demo checks passed." if ok else "Some demo checks FAILED."))
-    print("Not shown (not built): entity resolver, graph and vector projectors, UI. Registry key is a throwaway; IaC and CI never run.")
+    print("Not shown (not built): entity resolver, graph and vector projectors. Registry key is a throwaway; IaC and CI never run.")
     return 0 if ok else 1
 
 

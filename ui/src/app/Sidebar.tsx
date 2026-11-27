@@ -92,6 +92,11 @@ export function Sidebar({ route, collapsed, onToggleCollapsed }: Props) {
           </ul>
         )}
 
+        <Link to={paths.ontology(items?.[0]?.id)} className={route.name === "ontology" ? "nav-item active" : "nav-item"} title="Ontology">
+          <Icon name="book" />
+          <span className="side-label nav-text">Ontology</span>
+        </Link>
+
         <Link to={paths.agent(ready[0]?.id)} className={route.name === "agent" ? "nav-item active" : "nav-item"} title="Ask the agent">
           <Icon name="chat" />
           <span className="side-label nav-text">Ask the agent</span>

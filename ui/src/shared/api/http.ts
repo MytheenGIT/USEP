@@ -42,4 +42,6 @@ export const httpApi: Api = {
   addConnectors: (t, id, connectors) => call("POST", `/configurations/${encodeURIComponent(id)}/connectors`, t, { connectors }),
   getConfiguration: (t, id) => call("GET", `/configurations/${encodeURIComponent(id)}`, t),
   getGraph: (t, id) => call("GET", `/configurations/${encodeURIComponent(id)}/graph`, t),
+  getOntology: (t, id) => call("GET", `/configurations/${encodeURIComponent(id)}/ontology`, t),
+  getOntologyGraphify: (t, id) => call("GET", `/configurations/${encodeURIComponent(id)}/ontology/graphify`, t),
 };
