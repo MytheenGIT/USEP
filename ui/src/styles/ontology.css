@@ -1,0 +1,85 @@
+/* Ontology page. Everything is scoped under .onto so it cannot change another page. Colours and radii come from tokens.css.
+   Layout breakpoints are container queries: the content column is narrower than the window (the sidebar takes 248px). */
+.onto { container-type: inline-size; }
+.onto-notices { display: block; padding: 10px 14px; font-size: 13px; }
+.onto-notices ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.onto-intro { color: var(--muted); font-size: 13px; max-width: 80ch; margin: 0 0 14px; }
+
+/* Tabs: an underlined row that scrolls sideways instead of clipping when the space is narrow. */
+.onto-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px; scrollbar-width: thin; }
+.onto-tab { font: inherit; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 9px 14px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.onto-tab:hover { color: var(--text); }
+.onto-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.onto-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+
+.onto-section { display: grid; gap: 14px; }
+.onto-h { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; margin: 8px 0 0; }
+.onto-note { color: var(--muted); font-size: 13px; margin: 0; max-width: 80ch; }
+.onto-empty { color: var(--muted); border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; margin: 0; }
+.btn-sm { padding: 3px 10px; font-size: 12.5px; }
+
+/* A row of facts: digest and copy button on one baseline. */
+.onto-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.onto-meta code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; }
+.onto-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0; }
+.onto-stat { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); padding: 10px 12px; min-width: 0; }
+.onto-stat dt { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
+.onto-stat dd { margin: 0; overflow-wrap: anywhere; }
+.onto-stat-wide { grid-column: 1 / -1; }
+
+/* Tables: scroll inside their own frame, never push the page wider. Narrow columns stay on one line and centred. */
+.onto-tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.onto-tablewrap table { margin: 0; }
+.onto-tablewrap th { white-space: nowrap; background: var(--surface-2); }
+.onto-tablewrap tr:last-child td { border-bottom: 0; }
+.onto-tablewrap td, .onto-tablewrap th { vertical-align: middle; }
+.onto-tablewrap .num { text-align: center; white-space: nowrap; width: 1%; }
+.onto-tablewrap .mono, .onto-mono { font-family: var(--mono); font-size: 13px; }
+.onto-tablewrap .onto-chip { font-size: 12px; padding: 3px 8px; gap: 5px; }
+.onto-tablewrap td { padding: 8px 10px; }
+.onto-tablewrap .mono { white-space: nowrap; }
+.onto-cell { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 30px; }
+.onto-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+/* Concept chips (also used as links). */
+.onto-chip { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; line-height: 1.2; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+.onto-chip:hover { border-color: var(--border-strong); }
+.onto-chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.onto-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.onto-chip .badge { font-size: 11px; padding: 0 7px; line-height: 1.55; }
+
+/* Concepts: a narrow list beside a wide detail panel, so attributes have room. */
+.onto-split { display: grid; grid-template-columns: minmax(230px, 290px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.onto-search { width: 100%; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 14px; }
+.onto-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.onto-list { max-height: clamp(420px, calc(100vh - 380px), 760px); overflow: auto; padding-right: 4px; }
+.onto-domain { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; margin: 16px 0 8px; }
+.onto-list > section:first-child .onto-domain { margin-top: 0; }
+.onto-detail { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); padding: 18px; min-width: 0; display: grid; gap: 14px; align-content: start; max-height: clamp(420px, calc(100vh - 380px), 760px); overflow: auto; }
+.onto-detail h3 { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 1.15rem; }
+.onto-detail p { margin: 0; }
+.onto-facts { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.onto-fact { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; background: var(--surface); }
+.onto-fact b { color: var(--text); font-weight: 600; }
+.onto-attrs, .onto-rels { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.onto-attr { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.onto-attr-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.onto-attr-name { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.onto-attr-from { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--muted); }
+.onto-rel { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 6px 12px; align-items: center; }
+.onto-rel code { font-family: var(--mono); font-size: 13px; }
+
+/* Relationships tab */
+.onto-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; }
+.onto-bar p { margin: 0; flex: 1 1 320px; }
+.onto-bar .row-gap { flex: 0 0 auto; }
+.onto .canvas { height: clamp(420px, calc(100vh - 420px), 640px); }
+
+/* Vocabularies: cards in a grid instead of one long column. */
+.onto-vocab { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.onto-vocab-card { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); padding: 12px; display: grid; gap: 10px; align-content: start; }
+.onto-vocab-card h3 { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--mono); font-size: 13px; }
+.onto-vocab-card h3 span { font-family: var(--font); font-size: 12px; font-weight: 400; color: var(--muted); }
+
+@container (max-width: 700px) { .onto-split { grid-template-columns: minmax(0, 1fr); } .onto-list { max-height: 300px; } }
+@container (max-width: 520px) { .onto-rel { grid-template-columns: minmax(0, 1fr); } }

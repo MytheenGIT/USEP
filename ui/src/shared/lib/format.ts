@@ -18,3 +18,6 @@ export function timeAgo(iso: string, now: number = Date.now()): string {
 }
 
 export const sourceLabel = (key: string): string => (key in CONNECTOR_META ? CONNECTOR_META[key as ConnectorKey].label : key);
+
+/** "1 relationship", "3 relationships". */
+export const plural = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;

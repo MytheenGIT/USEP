@@ -1,3 +1,4 @@
+import { Link, paths } from "../../app/router";
 import { GraphDto, GraphNodeDto } from "../../shared/api/types";
 import { Badge } from "../../shared/ui";
 import { conceptColor } from "./colors";
@@ -5,7 +6,7 @@ import { edgesOf, nameOf } from "./graphModel";
 
 const show = (v: unknown) => (Array.isArray(v) ? v.join(", ") : v == null ? "—" : String(v));
 
-export function NodeDetails({ graph, node, onSelect }: { graph: GraphDto; node: GraphNodeDto | null; onSelect: (id: string) => void }) {
+export function NodeDetails({ graph, node, onSelect, configId }: { graph: GraphDto; node: GraphNodeDto | null; onSelect: (id: string) => void; configId?: string }) {
   if (!node) return <aside className="details" aria-label="Details"><p className="muted">Select a node to see its details.</p></aside>;
   const edges = edgesOf(graph, node.id);
   return (
@@ -15,6 +16,7 @@ export function NodeDetails({ graph, node, onSelect }: { graph: GraphDto; node: 
         <span className="dot" style={{ background: conceptColor(node.concept) }} aria-hidden="true" /> {node.concept}
         {node.labels.map((l) => <Badge key={l}>{l}</Badge>)}
       </p>
+      {configId && <p className="small"><Link to={paths.ontology(configId, node.concept)}>Concept: {node.concept} (open its definition)</Link></p>}
       <dl className="kv">
         <div><dt>Source</dt><dd>{node.source_system ?? "—"} {node.source_id ?? ""}</dd></div>
         <div><dt>Ontology version</dt><dd>{node.ontology_version ?? "—"}</dd></div>

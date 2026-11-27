@@ -3149,3 +3149,176 @@ items:
   sme_owner: <lead-ontology-engineer>
   created: '2026-11-12'
   last_reviewed: '2026-11-12'
+- id: eng-183
+  domain: engineering
+  template: app_references_of@1.0
+  difficulty: easy
+  question: Which Jira issues does merge request 42 in checkout-service reference?
+  expected_entities:
+  - checkout-mr-42
+  - pay-101
+  - pay-102
+  expected_claims:
+  - Each reference names the rule that created it
+  - Both issues are cited in the merge request title or branch name
+  required_evidence:
+  - source_system: git
+    source_id: checkout-service!42
+  - source_system: jira
+    source_id: PAY-101
+  requester_role: engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'
+- id: eng-184
+  domain: engineering
+  template: app_references_of@1.0
+  difficulty: medium
+  question: Which changes and requirements reference PAY-101, and what evidence supports each link?
+  expected_entities:
+  - pay-101
+  - checkout-mr-42
+  - pay-205
+  expected_claims:
+  - Links are listed in both directions with the evidence reference of each
+  - A reference with no evidence reference is flagged
+  required_evidence:
+  - source_system: jira
+    source_id: PAY-101
+  - source_system: git
+    source_id: checkout-service!42
+  requester_role: engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'
+- id: eng-185
+  domain: engineering
+  template: app_references_of@1.0
+  difficulty: hard
+  question: Which references to PAY-101 come only from comments and have confidence below 0.9?
+  expected_entities:
+  - pay-101
+  - pay-310
+  expected_claims:
+  - Comment-derived links carry the lower confidence set by their rule
+  - Links from titles and branch names are excluded by the confidence floor
+  required_evidence:
+  - source_system: jira
+    source_id: PAY-310
+  - source_system: jira
+    source_id: PAY-101
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'
+- id: eng-186
+  domain: engineering
+  template: app_references_of@1.0
+  difficulty: medium
+  question: What references the payments outage ticket PAY-300 for someone without access to security issues?
+  expected_entities:
+  - pay-300
+  - payments-hotfix-mr-7
+  expected_claims:
+  - A link to an issue the requester cannot see is pruned, not masked
+  - The answer does not say how many links were pruned
+  required_evidence:
+  - source_system: jira
+    source_id: PAY-300
+  - source_system: git
+    source_id: payments-service!7
+  requester_role: contractor
+  must_not_include:
+  - sec-7
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'
+- id: eng-187
+  domain: engineering
+  template: app_documents_of@1.0
+  difficulty: easy
+  question: Which decision records document the checkout service?
+  expected_entities:
+  - checkout-service
+  - adr-idempotent-payments
+  expected_claims:
+  - Each decision is listed with its status
+  - The link names the repository URL that created it
+  required_evidence:
+  - source_system: confluence
+    source_id: adr-idempotent-payments
+  - source_system: git
+    source_id: checkout-service
+  requester_role: engineer
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'
+- id: eng-188
+  domain: engineering
+  template: app_documents_of@1.0
+  difficulty: medium
+  question: Which services and APIs does the decision on idempotent payments document?
+  expected_entities:
+  - adr-idempotent-payments
+  - checkout-service
+  - orders-api
+  expected_claims:
+  - Only services, applications and APIs are returned as documented entities
+  - Each link carries its evidence reference
+  required_evidence:
+  - source_system: confluence
+    source_id: adr-idempotent-payments
+  - source_system: git
+    source_id: orders-api
+  requester_role: architect
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'
+- id: eng-189
+  domain: engineering
+  template: app_documents_of@1.0
+  difficulty: hard
+  question: Which decisions document services that have no owning team recorded?
+  expected_entities:
+  - legacy-batch-service
+  - adr-batch-retirement
+  expected_claims:
+  - Services with no owns edge are listed with the decisions that document them
+  - Services with an open ownership conflict are reported separately
+  required_evidence:
+  - source_system: confluence
+    source_id: adr-batch-retirement
+  - source_system: git
+    source_id: CODEOWNERS
+  requester_role: governance-lead
+  must_not_include: []
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'
+- id: eng-190
+  domain: engineering
+  template: app_documents_of@1.0
+  difficulty: medium
+  question: Which decisions document the fraud-scoring service for a requester outside the risk team?
+  expected_entities:
+  - fraud-scoring-service
+  - adr-model-versioning
+  expected_claims:
+  - A restricted decision is pruned from the result, not masked
+  - The answer does not reveal that a decision was withheld
+  required_evidence:
+  - source_system: confluence
+    source_id: adr-model-versioning
+  - source_system: git
+    source_id: fraud-scoring-service
+  requester_role: contractor
+  must_not_include:
+  - adr-fraud-thresholds
+  sme_owner: <lead-ontology-engineer>
+  created: '2026-11-27'
+  last_reviewed: '2026-11-27'

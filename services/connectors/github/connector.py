@@ -173,6 +173,18 @@ class GitHubConnector:
         )
         return self._normalize(scope, repo, pr, commits, comments, review_comments, reviews, files)
 
+    async def list_ids(self, scope: str) -> set[str]:
+        """The repository and every pull request id right now (for delete reconciliation)."""
+        ids = {f"github:{scope}"}
+        await self._client.get_repo(scope)                      # a repository that is gone raises here: the scope fails
+        page = 1
+        while True:
+            prs = await self._client.list_pull_requests(scope, page=page, per_page=self._page_size)
+            ids |= {f"github:{scope}#{p['number']}" for p in prs}
+            if len(prs) < self._page_size:
+                return ids
+            page += 1
+
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         repo = await self._client.get_repo(scope)
         pulls = await self._client.list_pull_requests(repo["full_name"], cursor, per_page=self._page_size)

@@ -1,0 +1,17 @@
+# Sensitivity rules (usep.pipeline.classify). 0 public, 1 internal, 2 confidential, 3 restricted.
+# Values are today's defaults, proposals until the data owners set them. A rule can only raise sensitivity.
+default_sensitivity: 1
+label_sensitivity:
+  public: 0
+  internal: 1
+  confidential: 2
+  pii: 2
+  gdpr: 2
+  restricted: 3
+  pci: 3
+  secret: 3
+  security: 2
+  hr: 3
+pii_floor: 2
+secret_floor: 3
+restricted_acl_floor: 2

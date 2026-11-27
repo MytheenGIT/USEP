@@ -43,6 +43,18 @@ class ConnectorSummary(BaseModel):
     credentials: CredentialMode = "none"
 
 
+class OntologyPin(BaseModel):
+    """The ontology a configuration's graph was built and checked against. A later change to the ontology shows as a different digest."""
+
+    version: str
+    digest: str
+    packs: list[str] = []  # "id@version", core first
+    reference_only: bool = False  # true while any pinned pack is placeholder content
+    checked_at: str
+    nodes_dropped: int = 0  # items the graph builder proposed that the ontology does not allow (never shown in the graph)
+    edges_dropped: int = 0
+
+
 class Configuration(BaseModel):
     id: str
     tenant_id: str
@@ -53,6 +65,7 @@ class Configuration(BaseModel):
     created_at: str
     created_by: str
     sources: list[SourceStatus] = []
+    ontology: OntologyPin | None = None  # set when the graph is built; None for a configuration with no graph yet
 
 
 class ConnectorDefault(BaseModel):
@@ -97,6 +110,7 @@ class Graph(BaseModel):
     configuration_id: str
     generated_at: str
     ontology_version: str
+    ontology_digest: str | None = None
     nodes: list[GraphNode]
     edges: list[GraphEdge]
 

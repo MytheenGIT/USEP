@@ -1,0 +1,18 @@
+# One stack per environment. Pass the rest at deploy time, for example:
+#   sam deploy --config-env dev --parameter-overrides TenantId=<uuid> KmsKeyArn=<arn> OntologyPins=<pins>
+version = 0.1
+
+[dev.deploy.parameters]
+stack_name = "usep-dev"
+parameter_overrides = "Environment=dev"
+capabilities = "CAPABILITY_IAM"
+
+[staging.deploy.parameters]
+stack_name = "usep-staging"
+parameter_overrides = "Environment=staging"
+capabilities = "CAPABILITY_IAM"
+
+[prod.deploy.parameters]
+stack_name = "usep-prod"
+parameter_overrides = "Environment=prod"
+capabilities = "CAPABILITY_IAM"

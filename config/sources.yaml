@@ -1,0 +1,41 @@
+# Source onboarding (diagram A). Safe to commit: no secrets here. Tokens come from the secrets manager as
+# USEP_INGESTION_* variables. An environment variable overrides the same value here.
+# Every value below is a placeholder until the data owner approves the source scope.
+defaults:
+  backfill_since: ""            # ISO 8601 UTC. Empty = from the start. The six-month window is a proposal.
+sources:
+  jira:
+    enabled: true
+    interval_minutes: 30
+    scopes: []                  # JQL queries, one scope each. Empty = the connector's default query
+    acl_mappings: {}            # e.g. {"project:ABC": ["group:abc-team"]}. May only restrict (owners-only stays on)
+  gitlab:
+    enabled: true
+    interval_minutes: 30
+    scopes: []                  # project ids or group/project paths
+    acl_mappings: {}
+  confluence:
+    enabled: true
+    interval_minutes: 60
+    scopes: []                  # space keys
+    acl_mappings: {}
+  github:
+    enabled: true
+    interval_minutes: 30
+    scopes: []                  # owner/name
+    acl_mappings: {}
+  servicenow:
+    enabled: true
+    interval_minutes: 30
+    scopes: [incident, change_request]
+    acl_mappings: {}
+  ado:
+    enabled: true
+    interval_minutes: 30
+    scopes: []                  # project names
+    acl_mappings: {}
+  figma:
+    enabled: false              # not in the pilot: turn on together with a schedule in the SAM template
+    interval_minutes: 60
+    scopes: []                  # file keys
+    acl_mappings: {}

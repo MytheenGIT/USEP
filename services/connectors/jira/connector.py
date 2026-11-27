@@ -66,12 +66,14 @@ class JiraConnector:
         binary_store: BinaryStore | None = None,
         download_attachments: bool = True,
         attachment_max_bytes: int = 1_048_576,
+        fetch_remote_links: bool = False,
     ) -> None:
         self._client = client
         self._queries = list(dict.fromkeys(q.strip() for q in (jql_queries or []) if q.strip()))
         self._base_url = (base_url_for_links or base_url).rstrip("/")
         self._page_size = page_size
         self._binary_store = binary_store
+        self._fetch_remote_links = fetch_remote_links
         self._download_attachments = download_attachments and binary_store is not None
         self._attachment_max_bytes = attachment_max_bytes
         self._user_tz: ZoneInfo | None = None
@@ -220,6 +222,8 @@ class JiraConnector:
         status = (fields.get("status") or {}).get("name", "")
         # Raw payload carries the complete comment and changelog lists, not the truncated embedded ones.
         raw_payload = {**issue, "comments_all": raw_comments, "changelog_all": raw_histories}
+        if self._fetch_remote_links:
+            raw_payload["remote_links"] = await self._client.get_remote_links(key)
 
         return JiraDocument(
             source=self.source,
@@ -253,6 +257,14 @@ class JiraConnector:
             changelog=changelog,
             attachments=attachments,
         )
+
+    async def list_ids(self, scope: str) -> set[str]:
+        """Every issue key the scope's query matches right now (for delete reconciliation). Keys only: no comments,
+        no changelog."""
+        jql = await self.build_jql(scope, None)
+        issues = await self._client.search_issues_paginated(jql, page_size=self._page_size, fields=["summary"],
+                                                            expand=["names"])
+        return {i["key"] for i in issues}
 
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         jql = await self.build_jql(scope, cursor)

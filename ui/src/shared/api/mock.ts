@@ -3,9 +3,19 @@
 // Everything here is invented: no real Jira, Confluence, GitLab, GitHub, ServiceNow or Figma is contacted.
 import { CONNECTOR_KEYS, CONNECTOR_META } from "./connectors";
 import { validateConfigInput } from "../lib/configValidation";
+import graphifyFixture from "./fixtures/ontology.graphify.json";
+import ontologyFixture from "./fixtures/ontology.json";
 import {
-  Api, ApiError, ConfigInput, Configuration, ConnectorDefault, ConnectorKey, ConnectorSummary, GraphDto, GraphEdgeDto, GraphNodeDto, RepositoryChoice,
+  Api, ApiError, ConfigInput, Configuration, ConnectorDefault, ConnectorKey, ConnectorSummary, GraphDto, GraphEdgeDto, GraphNodeDto, GraphifyGraph, OntologyDto,
+  RepositoryChoice,
 } from "./types";
+
+/** The ontology the demo configurations were "checked against": the real reference-pack ontology (the fixture). */
+function pinned(c: Configuration): Configuration {
+  const o = ontologyFixture as unknown as OntologyDto;
+  c.ontology = { version: o.ontology_version, digest: o.digest, packs: o.packs.map((p) => `${p.id}@${p.version}`), reference_only: o.packs.some((p) => p.reference_only), checked_at: new Date().toISOString(), nodes_dropped: 0, edges_dropped: 0 };
+  return c;
+}
 
 export const MOCK_USER = "admin";
 export const MOCK_PASSWORD = "admin";
@@ -69,7 +79,7 @@ function demoGraph(c: Configuration): GraphDto {
     n("req-23", "Requirement", "PAY-23 Partial refunds", { source_system: "jira", properties: { status: "To Do", priority: "Medium" } });
     n("req-31", "Requirement", "PAY-31 3-D Secure support", { source_system: "jira", properties: { status: "Done", priority: "High" } });
     n("bug-40", "Incident", "PAY-40 Double charge on retry", { source_system: "jira", labels: ["Bug"], confidence: 0.6, properties: { severity: "sev2" } });
-    e("svc-checkout", "realizes", "req-12", 0.7, "jira"); e("svc-notify", "realizes", "req-18", 0.7, "jira"); e("svc-billing", "realizes", "req-23", 0.7, "jira");
+    // (no "realizes" from a service to a requirement: the ontology only lets a service realize a capability)
   }
 
   // GitLab / GitHub: code changes that implement the requirements
@@ -77,14 +87,13 @@ function demoGraph(c: Configuration): GraphDto {
   if (has.gitlab) {
     change("chg-gl-7", "gitlab", "MR 7 Add retry with backoff", "released");
     change("chg-gl-9", "gitlab", "MR 9 3-D Secure challenge flow", "released");
-    e("chg-gl-7", "modifies", "svc-checkout", 1, "gitlab"); e("chg-gl-9", "modifies", "svc-checkout", 1, "gitlab");
+    // No "modifies" edge to the service: the ontology has no Change -> Service relationship, so the real graph would drop it.
     if (has.jira) { e("chg-gl-7", "implements", "req-12", 1, "gitlab"); e("chg-gl-9", "implements", "req-31", 1, "gitlab"); }
     if (has.jira) e("bug-40", "caused_by", "chg-gl-7", 0.6, "gitlab");
   }
   if (has.github) {
     change("chg-gh-112", "github", "PR 112 Receipt email template", "in_review");
     change("chg-gh-118", "github", "PR 118 Refund endpoint", "open");
-    e("chg-gh-112", "modifies", "svc-notify", 1, "github"); e("chg-gh-118", "modifies", "svc-billing", 1, "github");
     if (has.jira) { e("chg-gh-112", "implements", "req-18", 1, "github"); e("chg-gh-118", "implements", "req-23", 1, "github"); }
   }
 
@@ -93,8 +102,7 @@ function demoGraph(c: Configuration): GraphDto {
     n("chg-sn-1001", "Change", "CHG0001001 Deploy retry logic to production", { source_system: "servicenow", labels: ["change_request"], properties: { change_state: "closed" } });
     n("inc-7001", "Incident", "INC0007001 Checkout timeouts after release", { source_system: "servicenow", labels: ["incident"], confidence: 0.6, properties: { priority: "1 - Critical", group: "Payments Support" } });
     n("inc-7002", "Incident", "INC0007002 Duplicate receipts sent", { source_system: "servicenow", labels: ["incident"], confidence: 0.6, properties: { priority: "3 - Moderate", group: "Platform Support" } });
-    e("chg-sn-1001", "deployed_to", "env-prod", 1, "servicenow");
-    e("inc-7001", "caused_by", "chg-sn-1001", 0.6, "servicenow"); e("inc-7001", "affects", "svc-checkout", 0.8, "servicenow"); e("inc-7002", "affects", "svc-notify", 0.8, "servicenow");
+    e("inc-7001", "caused_by", "chg-sn-1001", 0.6, "servicenow"); 
     if (has.jira) e("chg-sn-1001", "implements", "req-12", 1, "servicenow");
   }
 
@@ -102,8 +110,8 @@ function demoGraph(c: Configuration): GraphDto {
   if (has.confluence) {
     n("adr-14", "Decision", "ADR-014 Use idempotency keys for payments", { source_system: "confluence", labels: ["adr"], confidence: 0.6 });
     n("adr-21", "Decision", "ADR-021 Send receipts asynchronously", { source_system: "confluence", labels: ["adr"], confidence: 0.6 });
-    e("svc-checkout", "governed_by", "adr-14", 0.8, "confluence"); e("svc-notify", "governed_by", "adr-21", 0.8, "confluence");
-    if (has.jira) e("adr-14", "informs", "req-12", 0.6, "confluence");
+    e("svc-checkout", "decided_in", "adr-14", 0.8, "confluence"); e("svc-notify", "decided_in", "adr-21", 0.8, "confluence");
+    if (has.jira) e("adr-14", "references", "req-12", 0.6, "confluence");
   }
 
   // Figma: the designs that specify the flows
@@ -113,7 +121,7 @@ function demoGraph(c: Configuration): GraphDto {
     e("svc-checkout", "realizes", "dsg-checkout", 0.7, "figma"); e("svc-notify", "realizes", "dsg-receipt", 0.7, "figma");
   }
 
-  return { configuration_id: c.id, generated_at: new Date().toISOString(), ontology_version: "0.1.0", nodes, edges };
+  return { configuration_id: c.id, generated_at: new Date().toISOString(), ontology_version: "0.1.0", ontology_digest: (ontologyFixture as unknown as OntologyDto).digest, nodes, edges };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -177,7 +185,7 @@ function seed(name: string, hoursAgo: number, input: ConfigInput) {
     created_at: new Date(Date.now() - hoursAgo * 3_600_000).toISOString(), created_by: MOCK_USER,
     sources: CONNECTOR_KEYS.filter((k) => input.connectors[k]?.enabled).map((k) => ({ source: k, state: "success" as const, documents_count: DOCS[k] })),
   };
-  configs.push(c);
+  configs.push(pinned(c));
 }
 
 const on = (extra: Partial<NonNullable<ConfigInput["connectors"][ConnectorKey]>> = {}) => ({ enabled: true, use_server_credentials: false, ...extra });
@@ -241,7 +249,7 @@ export const mockApi: Api = {
     keys.forEach((k, i) => setTimeout(() => {
       c.sources = [...(c.sources ?? []), { source: k, state: "success", documents_count: DOCS[k] }];
     }, STEP_MS * (i + 1)));
-    setTimeout(() => { c.status = "ready"; }, STEP_MS * (keys.length + 1));
+    setTimeout(() => { c.status = "ready"; pinned(c); }, STEP_MS * (keys.length + 1));
     return { ...c };
   },
   async addConnectors(token, id, connectors) {
@@ -259,7 +267,7 @@ export const mockApi: Api = {
     for (const k of wanted) c.connectors[k] = summaries[k];
     c.status = "processing";
     wanted.forEach((k, i) => setTimeout(() => { c.sources = [...(c.sources ?? []), { source: k, state: "success", documents_count: DOCS[k] }]; }, STEP_MS * (i + 1)));
-    setTimeout(() => { c.status = "ready"; }, STEP_MS * (wanted.length + 1));
+    setTimeout(() => { c.status = "ready"; pinned(c); }, STEP_MS * (wanted.length + 1));
     return { ...c };
   },
   async getConfiguration(token, id) {
@@ -274,5 +282,16 @@ export const mockApi: Api = {
     if (!c) throw new ApiError(404, "Configuration not found");
     if (c.status !== "ready") throw new ApiError(409, "The knowledge graph is not ready yet");
     return demoGraph(c);
+  },
+  // The real ontology of the reference packs (generated by scripts/export_ontology_json.py), not invented data.
+  async getOntology(token, id) {
+    auth(token);
+    if (!configs.some((x) => x.id === id)) throw new ApiError(404, "Configuration not found");
+    return structuredClone(ontologyFixture) as unknown as OntologyDto;
+  },
+  async getOntologyGraphify(token, id) {
+    auth(token);
+    if (!configs.some((x) => x.id === id)) throw new ApiError(404, "Configuration not found");
+    return structuredClone(graphifyFixture) as unknown as GraphifyGraph;
   },
 };

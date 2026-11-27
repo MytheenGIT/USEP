@@ -17,6 +17,8 @@ id_rsa*
 id_ed25519*
 *.gpg
 secrets/
+# ...but the secret-RESOLVER code lives in a package named `secrets` (it holds no secrets: it reads references like env:NAME)
+!src/usep/adapters/secrets/
 *.secret
 *.secrets
 credentials*
@@ -172,6 +174,9 @@ $RECYCLE.BIN/
 *.xlsx
 *.pptx
 *.pdf
+
+# ---- Demo output (scripts/demo_local.py --out demo_out; generated, includes throwaway dev keys) ----
+demo_out/
 
 # ---- Keep ----
 !.gitkeep

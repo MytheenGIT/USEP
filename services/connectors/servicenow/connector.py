@@ -104,6 +104,17 @@ class ServiceNowConnector:
             closed_at=to_utc_iso(_stored(record, "closed_at")),
         )
 
+    async def list_ids(self, scope: str) -> set[str]:
+        """Every record number in the table right now (for delete reconciliation). Numbers only."""
+        ids: set[str] = set()
+        offset = 0
+        while True:
+            rows = await self._client.query_table(scope, None, offset, self._page_size, fields="number,sys_id")
+            ids |= {str(r.get("number") or r["sys_id"]) for r in rows}
+            if len(rows) < self._page_size:
+                return ids
+            offset += self._page_size
+
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         records = await self._client.list_records(scope, self.build_query(cursor), page_size=self._page_size)
         cursor_dt = parse_ts(cursor)

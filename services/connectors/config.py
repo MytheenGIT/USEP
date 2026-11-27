@@ -267,6 +267,13 @@ class Settings(BaseSettings):
     admin_username: str = ""
     admin_password: str = ""
     session_ttl_hours: int = 8
+    # The ontology the console shows (definitions only). A checkout folder plus the packs this tenant pins; blank dir means the
+    # repository's ontology/ folder. Reference packs are placeholder examples: allowed here for the pilot, turn the switch off
+    # when real packs are pinned, and the console then refuses to serve placeholder content.
+    ontology_dir: str = ""
+    ontology_packs: KeyList = Field(default_factory=lambda: [
+        "industry.banking-reference", "org.org-reference", "app.app-reference", "project.project-reference"])
+    ontology_allow_reference_packs: bool = True
     # Hosts typed into the console. Private or internal hosts are refused unless this is true (an on-prem Jira or
     # GitLab); allowed_source_hosts, when set, is the only list of hosts the console will call.
     allow_private_source_hosts: bool = False
@@ -327,4 +334,8 @@ def enabled_sources(settings: Settings) -> list[str]:
 
 
 def get_settings() -> Settings:
-    return Settings()
+    import os
+
+    import sources_file
+    settings = Settings()
+    return sources_file.apply(settings, sources_file.load(os.environ.get("USEP_SOURCES_FILE", "config/sources.yaml")))

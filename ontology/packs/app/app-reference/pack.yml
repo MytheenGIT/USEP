@@ -13,8 +13,15 @@ requires_core: ">=0.1.0 <1.0.0"
 additive_only: true
 reference_only: true
 files:
+  concepts: concepts.yml
   systems: systems.yml
   mappings:
     - mappings/git.yml
     - mappings/jira.yml
     - mappings/confluence.yml
+    - mappings/figma.yml
+    - mappings/servicenow.yml
+    - mappings/ado.yml
+  templates:
+    - templates/app_references_of.yml
+    - templates/app_documents_of.yml

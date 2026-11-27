@@ -1,0 +1,228 @@
+# SAM template: S3 as the event bus (ADR-19), SQS to trigger and retry, Lambda as connectors (C-01) and acquisition worker (C-02).
+# No Kafka anywhere: S3 holds the events, SQS delivers the notifications.
+# NOT DEPLOYED OR VALIDATED YET: written without sam/cfn-lint available. Run `sam validate --lint` and review with the
+# platform engineer before first use. Bucket hardening (Object Lock on evidence/, lifecycle, replication, KMS key policy)
+# is a platform-iac decision still open in ADR-19 and the HLD 4.6 open design points; only the minimum is set here.
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment: {Type: String, AllowedValues: [dev, staging, prod], Description: "Deployment environment. Used in every resource name"}
+  TenantId: {Type: String, Description: "Tenant UUID. In every event (ADR-10)"}
+  OntologyPins: {Type: String, Default: "", Description: "Comma separated pack@version pins"}
+  AllowReferenceOntology: {Type: String, Default: "false", AllowedValues: ["true", "false"]}
+  SecretsArn: {Type: String, Default: "", Description: "Secrets Manager secret: JSON of USEP_INGESTION_* tokens"}
+  RepoHosts: {Type: String, Default: "", Description: "Hosts whose URLs count as repositories, comma separated"}
+  RegistryBucket: {Type: String, Default: "", Description: "Ontology registry bucket (platform-iac/registry). Empty: the pipeline reads the ontology shipped in its package (development only)"}
+  KmsKeyArn: {Type: String, Description: "KMS key for raw, evidence and quarantine objects"}
+
+Conditions:
+  HasRegistry: !Not [!Equals [!Ref RegistryBucket, ""]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 512
+    Architectures: [x86_64]
+
+Resources:
+  DataBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: [RawEventQueuePolicy, EntityEventQueuePolicy, EvidenceEventQueuePolicy]
+    Properties:
+      BucketName: !Sub "usep-${Environment}-data"      # global namespace: a taken name fails the deploy
+      VersioningConfiguration: {Status: Enabled}
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: "aws:kms", KMSMasterKeyID: !Ref KmsKeyArn}
+      NotificationConfiguration:        # new raw.<family> event objects go to the queue, not straight to the function
+        QueueConfigurations:
+          - Event: "s3:ObjectCreated:Put"
+            Queue: !GetAtt RawEventQueue.Arn
+            Filter: {S3Key: {Rules: [{Name: prefix, Value: "bus/raw."}]}}
+          - Event: "s3:ObjectCreated:Put"        # deletions found by reconciliation (C-01), re-announced by the pipeline
+            Queue: !GetAtt RawEventQueue.Arn
+            Filter: {S3Key: {Rules: [{Name: prefix, Value: "bus/tombstone."}]}}
+          - Event: "s3:ObjectCreated:Put"        # node and edge candidates for the entity resolver (step 6)
+            Queue: !GetAtt EntityEventQueue.Arn
+            Filter: {S3Key: {Rules: [{Name: prefix, Value: "bus/entity."}]}}
+          - Event: "s3:ObjectCreated:Put"        # evidence pointers for the chunker and embedder (C-04 vector projector)
+            Queue: !GetAtt EvidenceEventQueue.Arn
+            Filter: {S3Key: {Rules: [{Name: prefix, Value: "bus/evidence."}]}}
+
+  PipelineDlq:
+    Type: AWS::SQS::Queue
+    Properties: {QueueName: !Sub "usep-${Environment}-pipeline-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+
+  # S3 -> SQS -> Lambda. The queue gives retry, per-message failure, back-pressure and a dead-letter queue.
+  # Standard queue: S3 cannot notify a FIFO queue, so arrival order is not guaranteed (see pipeline_handler docstring).
+  RawEventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "usep-${Environment}-raw-events"
+      VisibilityTimeout: 1800                   # at least six times the function timeout (AWS guidance for SQS triggers)
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt PipelineDlq.Arn, maxReceiveCount: 5}
+
+  RawEventQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref RawEventQueue]
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: {Service: s3.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt RawEventQueue.Arn
+            Condition:
+              ArnLike: {"aws:SourceArn": !Sub "arn:aws:s3:::usep-${Environment}-data"}
+              StringEquals: {"aws:SourceAccount": !Ref "AWS::AccountId"}
+
+  # One queue and one dead-letter queue per downstream consumer (ADR-19). S3 allows one destination per prefix, so a topic
+  # with two consumers needs a fan-out (SNS) or polling with consumer-group offsets. `retraction` and `quarantine` have more
+  # than one consumer, so they are polled through the bus offsets (usep.pipeline / S3EventBus.consume) and have no queue here.
+  # The consumers themselves (resolver, chunker) are not built: these queues fill and wait, and expire after four days.
+  EntityEventDlq:
+    Type: AWS::SQS::Queue
+    Properties: {QueueName: !Sub "usep-${Environment}-entity-events-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+
+  EntityEventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "usep-${Environment}-entity-events"
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt EntityEventDlq.Arn, maxReceiveCount: 5}
+
+  EntityEventQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref EntityEventQueue]
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: {Service: s3.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt EntityEventQueue.Arn
+            Condition:
+              ArnLike: {"aws:SourceArn": !Sub "arn:aws:s3:::usep-${Environment}-data"}
+              StringEquals: {"aws:SourceAccount": !Ref "AWS::AccountId"}
+
+  EvidenceEventDlq:
+    Type: AWS::SQS::Queue
+    Properties: {QueueName: !Sub "usep-${Environment}-evidence-events-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+
+  EvidenceEventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "usep-${Environment}-evidence-events"
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt EvidenceEventDlq.Arn, maxReceiveCount: 5}
+
+  EvidenceEventQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref EvidenceEventQueue]
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: {Service: s3.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt EvidenceEventQueue.Arn
+            Condition:
+              ArnLike: {"aws:SourceArn": !Sub "arn:aws:s3:::usep-${Environment}-data"}
+              StringEquals: {"aws:SourceAccount": !Ref "AWS::AccountId"}
+
+  # Webhook doorbell (C-01). Public URL by design: the function checks a per-source secret and only requests a sync.
+  WebhookFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "usep-${Environment}-webhook"
+      CodeUri: ../../build/connectors
+      Handler: webhook_handler.handler
+      Timeout: 10
+      ReservedConcurrentExecutions: 5          # a flood of calls cannot start more than a few syncs at once
+      Environment:
+        Variables:
+          USEP_CONNECTOR_FUNCTION: !Ref ConnectorFunction
+          USEP_INGESTION_SECRETS_ARN: !Ref SecretsArn
+      Policies:
+        - Statement:
+            - {Effect: Allow, Action: ["lambda:InvokeFunction"], Resource: !GetAtt ConnectorFunction.Arn}
+            - {Effect: Allow, Action: ["secretsmanager:GetSecretValue"], Resource: !Ref SecretsArn}
+      Events:
+        Webhook:
+          Type: HttpApi
+          Properties: {Path: "/webhook/{source}", Method: POST}
+
+
+  ConnectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "usep-${Environment}-connectors"
+      CodeUri: ../../build/connectors
+      Handler: lambda_handler.handler
+      Timeout: 900
+      Environment:
+        Variables:
+          USEP_INGESTION_S3_BUCKET: !Ref DataBucket
+          USEP_INGESTION_TENANT_ID: !Ref TenantId
+          USEP_INGESTION_SECRETS_ARN: !Ref SecretsArn
+      Policies:
+        - S3CrudPolicy: {BucketName: !Ref DataBucket}
+        - Statement:
+            - {Effect: Allow, Action: ["secretsmanager:GetSecretValue"], Resource: !Ref SecretsArn}
+            - {Effect: Allow, Action: ["kms:GenerateDataKey", "kms:Decrypt"], Resource: !Ref KmsKeyArn}
+      Events:
+        Jira:       {Type: ScheduleV2, Properties: {ScheduleExpression: "rate(30 minutes)", Input: '{"source":"jira"}'}}
+        GitLab:     {Type: ScheduleV2, Properties: {ScheduleExpression: "rate(30 minutes)", Input: '{"source":"gitlab"}'}}
+        Confluence: {Type: ScheduleV2, Properties: {ScheduleExpression: "rate(60 minutes)", Input: '{"source":"confluence"}'}}
+        GitHub:     {Type: ScheduleV2, Properties: {ScheduleExpression: "rate(30 minutes)", Input: '{"source":"github"}'}}
+        ServiceNow: {Type: ScheduleV2, Properties: {ScheduleExpression: "rate(30 minutes)", Input: '{"source":"servicenow"}'}}
+        Ado:        {Type: ScheduleV2, Properties: {ScheduleExpression: "rate(30 minutes)", Input: '{"source":"ado"}'}}
+        # Figma is not in the pilot: add a schedule when it is. Enable only the sources that are configured.
+
+  PipelineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "usep-${Environment}-pipeline"
+      CodeUri: ../../build/pipeline
+      Handler: usep.adapters.aws_lambda.pipeline_handler.handler
+      Timeout: 300
+      Environment:
+        Variables:
+          USEP_BUS_BUCKET: !Ref DataBucket
+          USEP_ONTOLOGY_DIR: ontology
+          USEP_REGISTRY_BUCKET: !Ref RegistryBucket    # set: pins and signed releases come from the registry (ADR-20)
+          USEP_TRUST_STORE: config/registry/trusted_keys.yaml
+          USEP_POLICY_DIR: config/runtime            # classification, egress, redaction, resolution (copied by build_lambda.sh)
+          USEP_TENANT_ID: !Ref TenantId              # enables ontology release refresh
+          USEP_REPO_HOSTS: !Ref RepoHosts
+          USEP_ONTOLOGY_PINS: !Ref OntologyPins
+          USEP_ONTOLOGY_ALLOW_REFERENCE: !Ref AllowReferenceOntology
+      Policies:
+        - S3CrudPolicy: {BucketName: !Ref DataBucket}
+        - !If [HasRegistry, {S3ReadPolicy: {BucketName: !Ref RegistryBucket}}, !Ref "AWS::NoValue"]
+        - Statement:
+            - {Effect: Allow, Action: ["kms:GenerateDataKey", "kms:Decrypt"], Resource: !Ref KmsKeyArn}
+      Events:
+        RawEvents:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt RawEventQueue.Arn
+            BatchSize: 10
+            FunctionResponseTypes: [ReportBatchItemFailures]   # retry only the messages that failed
+        # Replay / reconciliation: enable only when needed (see pipeline_handler docstring).
+        # Reconcile: {Type: ScheduleV2, Properties: {ScheduleExpression: "rate(1 hour)", Input: '{"poll":true}', State: DISABLED}}
+
+Outputs:
+  DataBucketName: {Value: !Ref DataBucket}
+  RawEventQueueUrl: {Value: !Ref RawEventQueue}
+  DeadLetterQueueUrl: {Value: !Ref PipelineDlq}
+  EntityEventQueueUrl: {Value: !Ref EntityEventQueue}
+  EvidenceEventQueueUrl: {Value: !Ref EvidenceEventQueue}

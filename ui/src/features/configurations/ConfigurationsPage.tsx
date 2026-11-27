@@ -1,4 +1,5 @@
 import { Link, navigate, paths } from "../../app/router";
+import { CONNECTOR_KEYS, CONNECTOR_META } from "../../shared/api/connectors";
 import { Configuration } from "../../shared/api/types";
 import { sourceLabel, timeAgo } from "../../shared/lib/format";
 import { Button, Card, EmptyState, ErrorMessage, Spinner } from "../../shared/ui";
@@ -48,7 +49,7 @@ export function ConfigurationsPage() {
         <Card>
           {items.length === 0 ? (
             <EmptyState title="No connectors yet" action={<Button variant="primary" onClick={create}>Create the first one</Button>}>
-              Connect Jira, Confluence, GitLab or Figma to build a knowledge graph.
+              Connect your sources ({CONNECTOR_KEYS.map((k) => CONNECTOR_META[k].label).join(", ")}) to build a knowledge graph.
             </EmptyState>
           ) : (
             <ul className="list">{items.map((c) => <ConfigRow key={c.id} c={c} />)}</ul>

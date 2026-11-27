@@ -1,7 +1,23 @@
-# Tools for the ontology checks (ontology/tools/check_ontology.py) and tests.
+# Everything `python -m pytest tests` and the ontology checks need (tests/ holds the ontology, pipeline, registry, fabric and
+# ingestion tests). CI installs this file and nothing else for those steps, so a package a test imports belongs here.
 # Pinned to the versions the checks were run with. Install in a virtual environment:
 #   python -m venv .venv && .venv/Scripts/pip install -r requirements-dev.txt
 pyyaml==6.0.3
 rdflib==7.6.0
 pyshacl==0.40.2
 pytest==9.1.1
+boto3==1.44.12
+ruff==0.17.6
+cryptography==50.0.2
+psycopg[binary]==3.3.9
+pixeltable-pgserver==0.7.2    # embedded PostgreSQL 16 for tests/fabric; the tests skip PostgreSQL if it is not installed
+# usep.core and usep.ingestion (the ingestion unit tests)
+pydantic==2.14.4
+pydantic-settings==2.16.3
+uuid6==2025.0.1
+structlog==26.1.0
+opentelemetry-api==1.45.2
+hvac==2.4.0
+# async tests and the S3 fake
+pytest-asyncio==1.5.0
+moto[s3]==5.2.6

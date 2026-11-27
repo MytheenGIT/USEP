@@ -88,6 +88,17 @@ export interface SourceStatus {
   detail?: string | null;
 }
 
+/** The ontology a configuration's graph was built and checked against (set by the server when the graph is built). */
+export interface OntologyPin {
+  version: string;
+  digest: string;
+  packs: string[];            // "id@version", core first
+  reference_only: boolean;    // true while any pinned pack is placeholder content
+  checked_at: string;
+  nodes_dropped: number;      // items the graph builder proposed that the ontology does not allow (never shown)
+  edges_dropped: number;
+}
+
 export interface Configuration {
   id: string;
   name: string;
@@ -97,6 +108,7 @@ export interface Configuration {
   created_at: string;
   created_by: string;
   sources?: SourceStatus[];
+  ontology?: OntologyPin | null;
 }
 
 export interface GraphNodeDto {
@@ -125,6 +137,7 @@ export interface GraphDto {
   configuration_id: string;
   generated_at: string;
   ontology_version: string;
+  ontology_digest?: string | null;
   nodes: GraphNodeDto[];
   edges: GraphEdgeDto[];
 }
@@ -132,6 +145,38 @@ export interface GraphDto {
 export interface Session {
   token: string;
   username: string;
+}
+
+// The ontology this configuration is pinned to: definitions only, never tenant data (docs/ui-ontology-view-brief.md).
+// Served by GET /configurations/:id/ontology; built from the same loader that gate G1 uses in the pipeline.
+export interface OntologyPack { id: string; level: "core" | "industry" | "organization" | "application" | "project"; version: string; status: string; signed: boolean; reference_only: boolean; }
+export interface OntologyAttribute { name: string; type: string; required: boolean; multi: boolean; values_ref: string | null; defined_in: string; }
+export interface OntologyConcept { id: string; domain: string | null; level: string; pack_id: string; parent: string | null; description: string; role_only: boolean; attributes: OntologyAttribute[]; }
+export interface OntologyRelationship { id: string; from: string[]; to: string[]; level: string; same_type: boolean; }
+export interface OntologyTemplate { name: string; pack_id: string; max_depth: number; fanout_cap: number; }
+export interface OntologyPolicy { id: string; effect: "deny" | "require_approval" | "restrict_to_owners"; level: string; }
+export interface OntologyDto {
+  ontology_version: string;
+  digest: string;
+  packs: OntologyPack[];
+  domains: string[];
+  concepts: OntologyConcept[];
+  relationships: OntologyRelationship[];
+  vocabularies: Record<string, string[]>;
+  templates: OntologyTemplate[];
+  policies: OntologyPolicy[];
+  glossary: Record<string, string>;
+}
+
+// The same ontology as a Graphify graph.json (GET /configurations/:id/ontology/graphify): concepts are nodes, relationship types
+// are links, and `is_a` joins a pack concept to its parent. Graphify's explain, path and query commands read this file.
+export interface GraphifyNode { id: string; label: string; type: string; metadata: Record<string, unknown>; }
+export interface GraphifyLink { source: string; target: string; relation: string; confidence: string; source_location?: string; }
+export interface GraphifyGraph {
+  directed: boolean;
+  graph: { schema_version: number; kind?: string; ontology_version?: string; ontology_digest?: string; reference_only?: boolean; packs?: string[] };
+  nodes: GraphifyNode[];
+  links: GraphifyLink[];
 }
 
 export interface Api {
@@ -147,6 +192,8 @@ export interface Api {
   addConnectors(token: string, id: string, connectors: ConfigInput["connectors"]): Promise<Configuration>;
   getConfiguration(token: string, id: string): Promise<Configuration>;
   getGraph(token: string, id: string): Promise<GraphDto>;
+  getOntology(token: string, id: string): Promise<OntologyDto>;
+  getOntologyGraphify(token: string, id: string): Promise<GraphifyGraph>;
 }
 
 /** Field errors keyed "name", "connectors", or "<connector>.<field>" such as "jira.project_keys". */

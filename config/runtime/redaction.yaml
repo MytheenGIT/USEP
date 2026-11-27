@@ -1,0 +1,6 @@
+# Extra redaction patterns, added to the built-in ones. A built-in pattern cannot be switched off.
+# Each entry: name (lower_snake_case), pattern (a Python regular expression), category (secret or pii).
+extra_patterns: []
+# Example:
+# extra_patterns:
+#   - {name: internal_ticket_token, pattern: "\\bTKT-[A-Z0-9]{24}\\b", category: secret}

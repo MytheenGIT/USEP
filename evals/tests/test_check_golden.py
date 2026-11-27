@@ -78,3 +78,19 @@ def test_repeated_claim_fails(tmp_path):
     def m(items):
         items[1]["expected_claims"] = copy.deepcopy(items[0]["expected_claims"])
     assert any("claim repeated" in e for e in errors_after(tmp_path, m))
+
+
+def test_pack_template_needs_an_item_at_every_difficulty(tmp_path):
+    def m(items):
+        for it in items:
+            if it["template"] == "app_documents_of@1.0" and it["difficulty"] == "hard":
+                it["difficulty"] = "easy"
+    assert any("app_documents_of has no hard item" in e for e in errors_after(tmp_path, m))
+
+
+def test_pack_template_with_no_item_fails(tmp_path):
+    def m(items):
+        items[:] = [it for it in items if not it["template"].startswith("app_references_of@")]
+        for n, it in enumerate(items, 1):
+            it["id"] = f"eng-{n:03d}"
+    assert any("no item uses template app_references_of" in e for e in errors_after(tmp_path, m))

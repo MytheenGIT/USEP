@@ -6,7 +6,10 @@ import httpx
 
 from common.client_base import BaseAPIClient, ClientRuntime
 
-PAGE_EXPAND = "body.storage,version,ancestors,metadata.labels,space,restrictions.read.restrictions.group"
+PAGE_EXPAND = (
+    "body.storage,version,ancestors,metadata.labels,space,"
+    "restrictions.read.restrictions.user,restrictions.read.restrictions.group"
+)
 
 
 class ConfluenceClient(BaseAPIClient):

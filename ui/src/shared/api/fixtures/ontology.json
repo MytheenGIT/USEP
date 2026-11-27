@@ -1,0 +1,1035 @@
+{
+ "concepts": [
+  {
+   "attributes": [
+    {
+     "defined_in": "API",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "API",
+     "multi": false,
+     "name": "version",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "API",
+     "multi": false,
+     "name": "protocol",
+     "required": false,
+     "type": "enum",
+     "values_ref": "api_protocol"
+    },
+    {
+     "defined_in": "API",
+     "multi": false,
+     "name": "spec_ref",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "An interface a service exposes and others consume",
+   "domain": "architecture",
+   "id": "API",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Application",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Application",
+     "multi": false,
+     "name": "criticality",
+     "required": false,
+     "type": "enum",
+     "values_ref": "criticality"
+    },
+    {
+     "defined_in": "Application",
+     "multi": false,
+     "name": "lifecycle_state",
+     "required": false,
+     "type": "enum",
+     "values_ref": "lifecycle_state"
+    }
+   ],
+   "description": "A deployable business system made of services",
+   "domain": "architecture",
+   "id": "Application",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Capability",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Capability",
+     "multi": false,
+     "name": "summary",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "What the enterprise can do, independent of the systems that deliver it",
+   "domain": "business",
+   "id": "Capability",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Change",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Change",
+     "multi": false,
+     "name": "change_state",
+     "required": false,
+     "type": "enum",
+     "values_ref": "change_state"
+    },
+    {
+     "defined_in": "Change",
+     "multi": false,
+     "name": "change_type",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "A unit of work that alters a system: a ticket, pull request or change record",
+   "domain": "product",
+   "id": "Change",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Control",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Control",
+     "multi": false,
+     "name": "control_set",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "ComplianceControl",
+     "multi": false,
+     "name": "control_reference",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "A control that belongs to a named control set, such as PCI-DSS",
+   "domain": "security",
+   "id": "ComplianceControl",
+   "level": "industry",
+   "pack_id": "industry.banking-reference",
+   "parent": "Control",
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Control",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Control",
+     "multi": false,
+     "name": "control_set",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "A measure that meets a policy or regulation",
+   "domain": "security",
+   "id": "Control",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "DataAsset",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "DataAsset",
+     "multi": true,
+     "name": "regulatory_scope",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "Data held by the enterprise: a database, dataset or topic. Metadata only, never row data (HLD 5.2)",
+   "domain": "platform",
+   "id": "DataAsset",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Decision",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Decision",
+     "multi": false,
+     "name": "status",
+     "required": false,
+     "type": "enum",
+     "values_ref": "decision_status"
+    },
+    {
+     "defined_in": "Decision",
+     "multi": false,
+     "name": "decided_on",
+     "required": false,
+     "type": "date",
+     "values_ref": null
+    }
+   ],
+   "description": "A recorded choice and its reason, such as an ADR",
+   "domain": "architecture",
+   "id": "Decision",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Environment",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Environment",
+     "multi": false,
+     "name": "environment_kind",
+     "required": false,
+     "type": "enum",
+     "values_ref": "environment_kind"
+    }
+   ],
+   "description": "Where software runs",
+   "domain": "platform",
+   "id": "Environment",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Incident",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Incident",
+     "multi": false,
+     "name": "severity",
+     "required": false,
+     "type": "enum",
+     "values_ref": "incident_severity"
+    },
+    {
+     "defined_in": "Incident",
+     "multi": false,
+     "name": "status",
+     "required": false,
+     "type": "enum",
+     "values_ref": "incident_status"
+    }
+   ],
+   "description": "An unplanned event that disrupted a service",
+   "domain": "operations",
+   "id": "Incident",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Policy",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Policy",
+     "multi": false,
+     "name": "policy_kind",
+     "required": false,
+     "type": "enum",
+     "values_ref": "policy_kind"
+    },
+    {
+     "defined_in": "PaymentScheme",
+     "multi": false,
+     "name": "scheme_name",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "A card or payment network rulebook the organization must follow (HLD 6 Table 10 example)",
+   "domain": "security",
+   "id": "PaymentScheme",
+   "level": "industry",
+   "pack_id": "industry.banking-reference",
+   "parent": "Policy",
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Person",
+     "multi": false,
+     "name": "role_name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "A person, recorded by role only (HLD 6 Table 9). No names or contact details.",
+   "domain": "business",
+   "id": "Person",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": true
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Policy",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Policy",
+     "multi": false,
+     "name": "policy_kind",
+     "required": false,
+     "type": "enum",
+     "values_ref": "policy_kind"
+    }
+   ],
+   "description": "A rule that governs behaviour, such as change control for payment systems",
+   "domain": "security",
+   "id": "Policy",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Release",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Release",
+     "multi": false,
+     "name": "version",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Release",
+     "multi": false,
+     "name": "release_state",
+     "required": false,
+     "type": "enum",
+     "values_ref": "release_state"
+    }
+   ],
+   "description": "A versioned set of changes put into an environment",
+   "domain": "product",
+   "id": "Release",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Requirement",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Requirement",
+     "multi": false,
+     "name": "status",
+     "required": false,
+     "type": "enum",
+     "values_ref": "requirement_status"
+    }
+   ],
+   "description": "A stated need a change must satisfy",
+   "domain": "product",
+   "id": "Requirement",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Service",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Service",
+     "multi": false,
+     "name": "criticality",
+     "required": false,
+     "type": "enum",
+     "values_ref": "criticality"
+    },
+    {
+     "defined_in": "Service",
+     "multi": false,
+     "name": "lifecycle_state",
+     "required": false,
+     "type": "enum",
+     "values_ref": "lifecycle_state"
+    },
+    {
+     "defined_in": "Service",
+     "multi": false,
+     "name": "repository_ref",
+     "required": false,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "A running unit of software with one owning team",
+   "domain": "architecture",
+   "id": "Service",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Team",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    }
+   ],
+   "description": "A group that owns things and is accountable for them",
+   "domain": "business",
+   "id": "Team",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  },
+  {
+   "attributes": [
+    {
+     "defined_in": "Test",
+     "multi": false,
+     "name": "name",
+     "required": true,
+     "type": "string",
+     "values_ref": null
+    },
+    {
+     "defined_in": "Test",
+     "multi": false,
+     "name": "test_kind",
+     "required": false,
+     "type": "enum",
+     "values_ref": "test_kind"
+    },
+    {
+     "defined_in": "Test",
+     "multi": false,
+     "name": "status",
+     "required": false,
+     "type": "enum",
+     "values_ref": "test_status"
+    }
+   ],
+   "description": "A check that shows a change or service behaves as required",
+   "domain": "testing",
+   "id": "Test",
+   "level": "core",
+   "pack_id": "core",
+   "parent": null,
+   "role_only": false
+  }
+ ],
+ "digest": "971e0d3598fbd2248b024bfd2666042bc856fde6c41f39348710cf4df1de54fc",
+ "domains": [
+  "business",
+  "architecture",
+  "product",
+  "security",
+  "operations",
+  "platform",
+  "testing"
+ ],
+ "glossary": {},
+ "ontology_version": "0.1.0",
+ "packs": [
+  {
+   "id": "core",
+   "level": "core",
+   "reference_only": false,
+   "signed": false,
+   "status": "draft",
+   "version": "0.1.0"
+  },
+  {
+   "id": "industry.banking-reference",
+   "level": "industry",
+   "reference_only": true,
+   "signed": false,
+   "status": "draft",
+   "version": "0.1.0"
+  },
+  {
+   "id": "org.org-reference",
+   "level": "organization",
+   "reference_only": true,
+   "signed": false,
+   "status": "draft",
+   "version": "0.1.0"
+  },
+  {
+   "id": "app.app-reference",
+   "level": "application",
+   "reference_only": true,
+   "signed": false,
+   "status": "draft",
+   "version": "0.1.0"
+  },
+  {
+   "id": "project.project-reference",
+   "level": "project",
+   "reference_only": true,
+   "signed": false,
+   "status": "draft",
+   "version": "0.1.0"
+  }
+ ],
+ "policies": [
+  {
+   "effect": "deny",
+   "id": "core.deny_by_default",
+   "level": "core"
+  },
+  {
+   "effect": "restrict_to_owners",
+   "id": "core.unknown_acl_owner_only",
+   "level": "core"
+  },
+  {
+   "effect": "require_approval",
+   "id": "core.tier3_never_autonomous",
+   "level": "core"
+  },
+  {
+   "effect": "deny",
+   "id": "core.decision_critical_conflict_blocks_commit",
+   "level": "core"
+  },
+  {
+   "effect": "deny",
+   "id": "core.restricted_personal_data_excluded",
+   "level": "core"
+  },
+  {
+   "effect": "require_approval",
+   "id": "industry.banking.pci_scope_commit_needs_tier2",
+   "level": "industry"
+  },
+  {
+   "effect": "require_approval",
+   "id": "org.criticality_tier1_requires_tier2_approval",
+   "level": "organization"
+  }
+ ],
+ "relationships": [
+  {
+   "from": [
+    "Incident"
+   ],
+   "id": "caused_by",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Change",
+    "Release",
+    "Service",
+    "Incident"
+   ]
+  },
+  {
+   "from": [
+    "Application",
+    "Service"
+   ],
+   "id": "consumes",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "API",
+    "DataAsset"
+   ]
+  },
+  {
+   "from": [
+    "Capability",
+    "Application",
+    "Service",
+    "API",
+    "Change",
+    "Requirement",
+    "Policy"
+   ],
+   "id": "decided_in",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Decision"
+   ]
+  },
+  {
+   "from": [
+    "Capability",
+    "Application",
+    "Service",
+    "API",
+    "DataAsset"
+   ],
+   "id": "depends_on",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Capability",
+    "Application",
+    "Service",
+    "API",
+    "DataAsset"
+   ]
+  },
+  {
+   "from": [
+    "Application",
+    "Service",
+    "Release"
+   ],
+   "id": "deployed_to",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Environment"
+   ]
+  },
+  {
+   "from": [
+    "Decision"
+   ],
+   "id": "documents",
+   "level": "application",
+   "same_type": false,
+   "to": [
+    "Service",
+    "Application",
+    "API"
+   ]
+  },
+  {
+   "from": [
+    "Application",
+    "Service"
+   ],
+   "id": "exposes",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "API"
+   ]
+  },
+  {
+   "from": [
+    "Capability",
+    "Application",
+    "Service",
+    "API",
+    "DataAsset",
+    "Change",
+    "Environment",
+    "Release"
+   ],
+   "id": "governed_by",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Policy",
+    "Control"
+   ]
+  },
+  {
+   "from": [
+    "Change"
+   ],
+   "id": "implements",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Requirement",
+    "Decision"
+   ]
+  },
+  {
+   "from": [
+    "Team"
+   ],
+   "id": "owns",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Capability",
+    "Application",
+    "Service",
+    "API",
+    "DataAsset",
+    "Environment",
+    "Policy",
+    "Control"
+   ]
+  },
+  {
+   "from": [
+    "Application",
+    "Service"
+   ],
+   "id": "realizes",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Capability"
+   ]
+  },
+  {
+   "from": [
+    "Change",
+    "Requirement",
+    "Decision"
+   ],
+   "id": "references",
+   "level": "application",
+   "same_type": false,
+   "to": [
+    "Change",
+    "Requirement",
+    "Decision",
+    "Incident"
+   ]
+  },
+  {
+   "from": [
+    "Decision",
+    "Policy",
+    "Requirement",
+    "Release",
+    "API",
+    "Control"
+   ],
+   "id": "supersedes",
+   "level": "core",
+   "same_type": true,
+   "to": [
+    "Decision",
+    "Policy",
+    "Requirement",
+    "Release",
+    "API",
+    "Control"
+   ]
+  },
+  {
+   "from": [
+    "Test"
+   ],
+   "id": "tests",
+   "level": "core",
+   "same_type": false,
+   "to": [
+    "Application",
+    "Service",
+    "API",
+    "Requirement",
+    "Change"
+   ]
+  }
+ ],
+ "templates": [
+  {
+   "fanout_cap": 200,
+   "max_depth": 1,
+   "name": "app_documents_of",
+   "pack_id": "app.app-reference"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 1,
+   "name": "app_references_of",
+   "pack_id": "app.app-reference"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 2,
+   "name": "consumers_of_api",
+   "pack_id": "core"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 1,
+   "name": "controls_applying",
+   "pack_id": "core"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 2,
+   "name": "decisions_about",
+   "pack_id": "core"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 3,
+   "name": "dependencies_of",
+   "pack_id": "core"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 3,
+   "name": "impact_of_change",
+   "pack_id": "core"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 1,
+   "name": "incidents_for",
+   "pack_id": "core"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 1,
+   "name": "owner_of",
+   "pack_id": "core"
+  },
+  {
+   "fanout_cap": 200,
+   "max_depth": 1,
+   "name": "tests_covering",
+   "pack_id": "core"
+  }
+ ],
+ "vocabularies": {
+  "acl_state": [
+   "known",
+   "unknown",
+   "stale"
+  ],
+  "api_protocol": [
+   "rest",
+   "grpc",
+   "graphql",
+   "event",
+   "other"
+  ],
+  "change_state": [
+   "proposed",
+   "in_progress",
+   "in_review",
+   "approved",
+   "released",
+   "rejected"
+  ],
+  "criticality": [
+   "tier_1",
+   "tier_2",
+   "tier_3"
+  ],
+  "decision_status": [
+   "proposed",
+   "accepted",
+   "superseded",
+   "rejected"
+  ],
+  "environment_kind": [
+   "development",
+   "test",
+   "staging",
+   "production"
+  ],
+  "incident_severity": [
+   "sev1",
+   "sev2",
+   "sev3",
+   "sev4"
+  ],
+  "incident_status": [
+   "open",
+   "mitigated",
+   "resolved",
+   "closed"
+  ],
+  "lifecycle_state": [
+   "planned",
+   "active",
+   "deprecated",
+   "retired"
+  ],
+  "policy_kind": [
+   "access",
+   "change_control",
+   "data_protection",
+   "retention",
+   "operational"
+  ],
+  "release_state": [
+   "planned",
+   "released",
+   "rolled_back"
+  ],
+  "requirement_status": [
+   "draft",
+   "approved",
+   "implemented",
+   "withdrawn"
+  ],
+  "sensitivity": [
+   "0",
+   "1",
+   "2",
+   "3"
+  ],
+  "test_kind": [
+   "unit",
+   "contract",
+   "integration",
+   "load",
+   "security",
+   "regression",
+   "acceptance"
+  ],
+  "test_status": [
+   "passing",
+   "failing",
+   "flaky",
+   "not_run"
+  ]
+ }
+}

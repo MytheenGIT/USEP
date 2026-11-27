@@ -1,122 +1,188 @@
-"""Gate G1: check a source record against the pinned ontology (LLD 2.1, 4.5; HLD 6 Table 9 constraints).
+"""Gate G1: schema validation of every candidate before it is committed (HLD 5; guide section 3.5, 6.1).
 
-The gate answers three questions about one record, in order:
-1. What is it? The application pack's mapping for the record's source system turns the source
-   object (`attributes["kind"]`, else `entity_type`) into a core concept.
-2. Is that allowed? A source object with no mapping follows the mapping file's `on_unmapped`
-   policy: `quarantine` (the record is rejected with Q-SCHEMA and the words "unmapped type") or
-   `evidence` (it passes and can still support other entities).
-3. Is it well formed? For a mapped concept, every required attribute is present and every
-   enumerated attribute holds an allowed value.
+Two steps. `map_record` turns a source record into a candidate node or edge through the application pack's
+mappings. `validate` checks the candidate against the core rules: required attributes, allowed values, temporal
+validity and, for edges, endpoint types. A failure never becomes a stored fact. It becomes a Quarantine entry with a
+reason code. Quarantine keeps the reason and where it was found (field names), never the content.
 
-Statuses that pass: mapped, relationship, carrier, unmodelled, evidence. A record that fails is
-quarantined by the pipeline; nothing is guessed and nothing is dropped.
-
-This validator reads the YAML definitions. The Turtle shapes in ontology/shapes/ are checked by pack
-CI with rdflib. Both come from the same core, and a test keeps them in step on the cases that matter,
-so rdflib stays out of the run-time path.
+The shapes in ontology/shapes/*.ttl are checked by pack CI. This gate reads the same rules from the YAML definitions
+(the guide's section 8 says the run-time validator reads YAML, not Turtle).
 """
 from __future__ import annotations
 
-from collections import Counter
+import re
+import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Mapping
 
-from usep.core.models import SourceRecord
-from usep.ontology.bundle import AttributeDef, MappingEntry, OntologyBundle, _DATE_RE
+from usep.ontology.model import OntologyBundle
 
-MAPPED, RELATIONSHIP, CARRIER, UNMODELLED, EVIDENCE, REJECTED = (
-    "mapped", "relationship", "carrier", "unmodelled", "evidence", "rejected",
-)
-
-
-@dataclass(frozen=True, slots=True)
-class GateOutcome:
-    status: str
-    concept: str | None = None
-    detail: str = ""
-
-    @property
-    def ok(self) -> bool:
-        return self.status != REJECTED
+Q_SCHEMA = "Q-SCHEMA"          # a rule failed
+Q_UNMAPPED = "Q-UNMAPPED"      # 'unmapped type': no mapping matches the source object
+_PATH = re.compile(r"^[A-Za-z_][\w]*(\.[A-Za-z_][\w]*)*$")
 
 
-class OntologyGate:
-    def __init__(self, bundle: OntologyBundle) -> None:
-        self.bundle = bundle
-        self.stats: Counter[str] = Counter()   # how many records took each path; for the metrics later
+@dataclass(frozen=True)
+class Candidate:
+    kind: str                                    # node | edge | evidence
+    type: str                                    # concept or relationship id
+    attributes: Mapping[str, Any]
+    from_type: str | None = None
+    to_type: str | None = None
 
-    def check(self, record: SourceRecord) -> GateOutcome:
-        outcome = self._check(record)
-        self.stats[outcome.status] += 1
-        return outcome
 
-    # ---- steps ------------------------------------------------------------------------------------
-    def _check(self, record: SourceRecord) -> GateOutcome:
-        attributes = record.attributes
-        kind = str(attributes.get("kind") or record.entity_type or "")
-        system = self.bundle.mappings.get(record.source_system)
-        if system is None:
-            return GateOutcome(REJECTED, detail=f"unmapped type: no mapping for source system {record.source_system}")
-        entry = self._find(system.entries, kind, attributes)
-        if entry is None:
-            if system.on_unmapped == "evidence":
-                return GateOutcome(EVIDENCE)
-            # name the field that tells types apart (not its value), so the owner knows where to look
-            keys = sorted({k for e in system.entries if e.source_object == kind for k in e.when})
-            hint = f" ({', '.join(keys)})" if keys else ""
-            return GateOutcome(REJECTED, detail=f"unmapped type: {record.source_system}/{kind or '(no kind)'}{hint}")
-        if entry.relationship:
-            return GateOutcome(RELATIONSHIP)
-        if entry.entity is None:
-            return GateOutcome(entry.role if entry.role in (CARRIER, UNMODELLED, EVIDENCE) else EVIDENCE)
-        problem = self._validate(entry, attributes)
-        if problem:
-            return GateOutcome(REJECTED, entry.entity, problem)
-        return GateOutcome(MAPPED, entry.entity)
+@dataclass(frozen=True)
+class Quarantine:
+    reason_code: str
+    reason: str
+    location: tuple[str, ...] = ()               # field names or source object: never values
 
-    @staticmethod
-    def _find(entries: list[MappingEntry], kind: str, attributes: Mapping[str, Any]) -> MappingEntry | None:
-        for e in entries:   # most specific pack level first
-            if e.source_object != kind:
-                continue
-            if all(str(attributes.get(k)) in allowed for k, allowed in e.when.items()):
-                return e
+
+@dataclass(frozen=True)
+class GateResult:
+    ok: bool
+    candidate: Candidate | None = None
+    quarantine: Quarantine | None = None
+
+
+def _lookup(payload: Mapping[str, Any], path: str) -> Any:
+    cur: Any = payload
+    for part in path.split("."):
+        if not isinstance(cur, Mapping) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
+
+
+def _when_matches(when: Mapping[str, tuple[str, ...]], source_object: str, payload: Mapping[str, Any]) -> bool:
+    scope = payload.get(source_object) if isinstance(payload.get(source_object), Mapping) else {}
+    for key, allowed in when.items():
+        val = scope.get(key, payload.get(key))
+        vals = list(val) if isinstance(val, (list, tuple, set)) else [val]
+        if not allowed:                          # an empty list means 'none of these set' (for example no label)
+            if any(v not in (None, "") for v in vals):
+                return False
+        elif not any(v in allowed for v in vals):
+            return False
+    return True
+
+
+def map_record(bundle: OntologyBundle, source_system: str, source_object: str,
+               payload: Mapping[str, Any]) -> GateResult:
+    """Pick the mapping for this record. No match goes to quarantine as 'unmapped type'; it is never guessed or dropped."""
+    for m in bundle.mappings:
+        if m.source_system != source_system or m.source_object != source_object:
+            continue
+        if not _when_matches(m.when, source_object, payload):
+            continue
+        attrs: dict[str, Any] = {}
+        for target, expr in m.fields.items():
+            # An expression that is not a plain path (for example 'x (project pack maps this)') is a translation
+            # the project pack owns. It is not built yet, so the field stays unset instead of being guessed.
+            if _PATH.match(expr):
+                scope = payload.get(source_object)
+                if "." not in expr and isinstance(scope, Mapping) and expr in scope:
+                    val = scope[expr]                    # a plain name is an attribute of the record itself
+                else:
+                    val = _lookup(payload, expr)         # a dotted path, for example issue.summary
+                if val is not None:
+                    attrs[target] = val
+        if m.evidence_only:
+            return GateResult(True, Candidate("evidence", "", attrs))
+        if m.entity:
+            return GateResult(True, Candidate("node", m.entity, attrs))
+        return GateResult(True, Candidate("edge", m.relationship, attrs, m.from_entity, m.to_entity))
+    return GateResult(False, quarantine=Quarantine(
+        Q_UNMAPPED, f"unmapped type: no mapping for {source_system}/{source_object}", (source_object,)))
+
+
+def _is_uuid7(v: Any) -> bool:
+    try:
+        return uuid.UUID(str(v)).version == 7
+    except ValueError:
+        return False
+
+
+def _parse_dt(v: Any) -> datetime | None:
+    if isinstance(v, datetime):
+        return v
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except ValueError:
         return None
 
-    def _validate(self, entry: MappingEntry, attributes: Mapping[str, Any]) -> str:
-        concept = self.bundle.concepts[entry.entity or ""]
-        mapped: dict[str, tuple[Any, bool]] = {}   # ontology attribute -> (value, translated by another pack)
-        for onto_attr, source in entry.fields.items():
-            translated = "(" in source               # "issue.status (project pack maps this)": value is not checked here
-            key = source.split("(", 1)[0].strip()
-            value = attributes.get(key, attributes.get(key.rsplit(".", 1)[-1]))
-            mapped[onto_attr] = (value, translated)
-        for name, attr in concept.attributes.items():
-            value, translated = mapped.get(name, (None, False))   # only mapped fields count: a source field that
-            # happens to share an ontology attribute name does not mean the same thing
-            if value is None or value == "" or value == []:
-                if attr.required:
-                    return f"missing required attribute: {name}"
-                continue
-            if translated:
-                continue
-            problem = self._check_value(attr, value)
-            if problem:
-                return problem
-        return ""
 
-    def _check_value(self, attr: AttributeDef, value: Any) -> str:
-        items = value if attr.multi and isinstance(value, (list, tuple)) else [value]
-        allowed = self.bundle.vocabularies.get(attr.values_ref) if attr.values_ref else None
-        for item in items:
-            if attr.type == "enum":
-                if allowed is not None and str(item).strip().lower() not in allowed:
-                    return f"value not allowed for {attr.name}"
-            elif attr.type == "date":
-                if not isinstance(item, str) or not _DATE_RE.match(item):
-                    return f"{attr.name} must be a date (YYYY-MM-DD)"
-            elif attr.type == "string":
-                if not isinstance(item, str):
-                    return f"{attr.name} must be text"
-        return ""
+def validate(bundle: OntologyBundle, cand: Candidate) -> GateResult:
+    """Check a candidate. Collects every failure so the steward sees them all at once."""
+    bad: list[tuple[str, str]] = []                          # (field, reason)
+    if cand.kind == "evidence":
+        return GateResult(True, cand)
+
+    if cand.kind == "edge":
+        rel = bundle.relationships.get(cand.type)
+        if rel is None:
+            return _fail(f"unknown relationship type {cand.type}", (cand.type,))
+        for end, t, allowed in (("from", cand.from_type, rel.from_types), ("to", cand.to_type, rel.to_types)):
+            if t not in bundle.concepts or not set(bundle.ancestors(t)) & set(allowed):
+                bad.append((end, f"{end} type {t} not allowed for {rel.id}"))
+        for name, lo, hi in (("weight", 0, 1), ("confidence", 0, 1)):
+            v = cand.attributes.get(name)
+            if v is not None and not (isinstance(v, (int, float)) and lo <= v <= hi):
+                bad.append((name, f"{name} must be between {lo} and {hi}"))
+        return _result(cand, bad)
+
+    concept = bundle.concepts.get(cand.type)
+    if concept is None:
+        return _fail(f"unknown concept {cand.type}", (cand.type,))
+    a = cand.attributes
+    for attr in bundle.common_required:
+        if a.get(attr.name) in (None, ""):
+            bad.append((attr.name, "required attribute missing"))
+    if "tenant_id" in a and not _is_uuid7(a["tenant_id"]) and not _valid_uuid(a["tenant_id"]):
+        bad.append(("tenant_id", "not a UUID"))
+    if a.get("entity_id") not in (None, "") and not _is_uuid7(a["entity_id"]):
+        bad.append(("entity_id", "must be a UUID v7"))
+    if a.get("domain") not in (None, "") and a["domain"] not in bundle.domains:
+        bad.append(("domain", "not one of the semantic domains"))
+    if a.get("sensitivity") is not None and a["sensitivity"] not in bundle.vocabularies["sensitivity"]:
+        bad.append(("sensitivity", "must be 0 to 3"))
+    if a.get("acl_state") is not None and a["acl_state"] not in bundle.vocabularies["acl_state"]:
+        bad.append(("acl_state", "must be known, unknown or stale"))
+    vf, vt = _parse_dt(a.get("valid_from")), _parse_dt(a.get("valid_to"))
+    for name, raw, parsed in (("valid_from", a.get("valid_from"), vf), ("valid_to", a.get("valid_to"), vt),
+                              ("recorded_at", a.get("recorded_at"), _parse_dt(a.get("recorded_at")))):
+        if raw not in (None, "") and parsed is None:
+            bad.append((name, "not an ISO 8601 timestamp"))
+    if vf and vt and vf > vt:
+        bad.append(("valid_to", "valid_from is later than valid_to"))
+
+    for attr in bundle.attributes_of(cand.type):
+        val = a.get(attr.name)
+        if val in (None, ""):
+            if attr.required:
+                bad.append((attr.name, "required attribute missing"))
+            continue
+        if attr.values is not None:
+            for v in (val if attr.multi and isinstance(val, (list, tuple)) else [val]):
+                if v not in attr.values:
+                    bad.append((attr.name, "value not in the controlled vocabulary"))
+    return _result(cand, bad)
+
+
+def _valid_uuid(v: Any) -> bool:
+    try:
+        uuid.UUID(str(v))
+        return True
+    except ValueError:
+        return False
+
+
+def _fail(reason: str, loc: tuple[str, ...]) -> GateResult:
+    return GateResult(False, quarantine=Quarantine(Q_SCHEMA, reason, loc))
+
+
+def _result(cand: Candidate, bad: list[tuple[str, str]]) -> GateResult:
+    if not bad:
+        return GateResult(True, cand)
+    return _fail("; ".join(f"{f}: {r}" for f, r in bad), tuple(dict.fromkeys(f for f, _ in bad)))

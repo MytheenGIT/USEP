@@ -2,7 +2,8 @@ import { AnchorHTMLAttributes, useEffect, useState } from "react";
 
 /**
  * Tiny hash router (no dependency): #/configurations, #/configurations/new[?from=:id], #/configurations/:id,
- * #/configurations/:id/add, #/configurations/:id/processing, #/configurations/:id/graph, #/agent[/:id], #/profile
+ * #/configurations/:id/add, #/configurations/:id/processing, #/configurations/:id/graph, #/agent[/:id],
+ * #/ontology[/:id][?concept=Name], #/profile
  */
 export type Route =
   | { name: "configurations" }
@@ -12,6 +13,7 @@ export type Route =
   | { name: "processing"; id: string }
   | { name: "graph"; id: string }
   | { name: "agent"; id?: string }
+  | { name: "ontology"; id?: string; concept?: string }
   | { name: "profile" }
   | { name: "notfound" };
 
@@ -28,6 +30,10 @@ export function parseRoute(hash: string): Route {
   if (parts[0] === "configurations" && parts.length === 3 && parts[2] === "add") return { name: "add", id: parts[1] };
   if (parts[0] === "configurations" && parts.length === 3 && parts[2] === "processing") return { name: "processing", id: parts[1] };
   if (parts[0] === "agent" && parts.length <= 2) return parts[1] ? { name: "agent", id: parts[1] } : { name: "agent" };
+  if (parts[0] === "ontology" && parts.length <= 2) {
+    const concept = new URLSearchParams(query).get("concept") ?? undefined;
+    return { name: "ontology", ...(parts[1] ? { id: parts[1] } : {}), ...(concept ? { concept } : {}) };
+  }
   if (parts.length === 1 && parts[0] === "profile") return { name: "profile" };
   return { name: "notfound" };
 }
@@ -40,6 +46,8 @@ export const paths = {
   processing: (id: string) => `#/configurations/${encodeURIComponent(id)}/processing`,
   graph: (id: string) => `#/configurations/${encodeURIComponent(id)}/graph`,
   agent: (id?: string) => (id ? `#/agent/${encodeURIComponent(id)}` : "#/agent"),
+  ontology: (id?: string, concept?: string) =>
+    `#/ontology${id ? `/${encodeURIComponent(id)}` : ""}${concept ? `?concept=${encodeURIComponent(concept)}` : ""}`,
   profile: () => "#/profile",
 };
 

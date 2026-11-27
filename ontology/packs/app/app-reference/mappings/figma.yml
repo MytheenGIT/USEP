@@ -1,0 +1,7 @@
+# Figma files. Nothing in the core describes a design, so a file is evidence only: its text is chunked and indexed for
+# discovery and cited by other entities. Revisit if a core or pack concept for design artifacts is agreed (P).
+source_system: figma
+mappings:
+  - source_object: file
+    entity: null
+    note: "A design file creates no entity. Its text layers are evidence for discovery."

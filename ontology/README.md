@@ -49,17 +49,30 @@ python -m pytest ontology/tests -q
 
 ## How the code uses these files
 
-The package `src/usep/ontology/` reads this folder at run time. Nothing there writes a definition.
+One loader, `usep.ontology.load_ontology`, reads this folder at run time. `usep.ontology.bundle` and `usep.ontology.view` (labelling and the graph) are a read-only view over that loader's result, not a second reader. Nothing writes a definition.
 
 - **Config** (`config/local.yaml`): `ontology.dir`, `ontology.packs` (the exact packs a tenant pins, by id), `ontology.allow_reference_packs`, `ontology.require_signed`. With `ontology.dir` unset the gate is off and nothing is pinned.
-- **Loader** (`bundle.py`): loads the core and the pinned packs and fails closed: a missing pack, a pack that needs a different core, a `reference_only` pack without permission, two packs at one level defining one concept, or a mapping to an unknown concept or attribute. It also computes a digest of every defining file (line endings normalised).
+- **Loader** (`ontology/loader.py`): loads the core and the pinned packs and fails closed: a missing pack, a pack that needs a different core, a `reference_only` pack without permission, two packs at one level defining one concept, or a mapping to an unknown concept or attribute. It also computes a digest of every defining file (line endings normalised).
 - **Systems** (`systems.yml` in an application pack): each registered system must map to a known core type, be registered once, and name only regulatory scopes that a pinned pack defines. Nothing reads the scope at run time yet (OI-63).
-- **Gate G1** (`gate.py`, run by the pipeline after the cheap checks and before linking): the app pack mapping turns a record's `kind` into a core concept; required attributes and enumerated values are checked. A record that fails is quarantined as `Q-SCHEMA`. A source object with no mapping follows the mapping file's `on_unmapped` (`quarantine` for Jira, `evidence` for Git and Confluence).
+- **Gate G1** (`ontology/gate.py`, run by the pipeline after the cheap checks and before linking): the app pack mapping turns a record's `kind` into a core concept; required attributes and enumerated values are checked. A record that fails is quarantined as `Q-SCHEMA`. A source object with no mapping follows the mapping file's `on_unmapped` (`quarantine` for Jira, `evidence` for Git and Confluence).
 - **Pins**: every context package carries `ontology_version` (the core version) and an `ontology` block (core, each pack id, level and version, and the digest). The seal covers it, and a different pin never reuses a cached package.
 
 Pack CI (`tools/check_ontology.py`) still decides whether a pack is allowed to exist (additive only, policies only tighten). The loader trusts a pack that passed it. The run-time validator reads the YAML, not the Turtle shapes, so rdflib stays out of the run-time path.
 
-Not built: signing and the registry (C-06, C-07), the project pack's state translation (Jira workflow to `change_state`), and field mapping from dotted source paths beyond the last segment.
+Signing and the registry (C-06, C-07) are built in `src/usep/registry/` (ADR-20, proposed): signed immutable releases, a trust store, per-tenant pins, `scripts/registry.py`, a release workflow and IaC. Not yet exercised: the IaC and workflow have never run, and no production signing key exists. Dotted source paths map at any depth. Still open: the project pack's state translation (`state_tables.py`) beyond the reference rows.
+
+## Run-time package (`src/usep/ontology/`)
+
+The files above are definitions. The run-time package loads and applies them. It reads the same YAML; pack CI (`tools/check_ontology.py`) checks the Turtle shapes.
+
+- **Loader (`load_ontology(root, pins)`)**: reads the core and the pinned packs from a checkout. It collects every problem and raises one `OntologyLoadError`, so no partial ontology is ever returned (fail closed). It refuses a pack that is not pinned or not found, a wrong version, a reference-only pack (unless `allow_reference_only`), a pack needing another core version, a pack that redefines or removes a term, and a policy that would loosen access. A pin looks like `app.app-reference@0.1.0`.
+- **Bundle (`OntologyBundle`)**: immutable. Concepts, relationships, vocabularies, mappings, policies, templates, precedence, glossary, the project pack's `workflow`, and a `release` (core version, pack versions, SHA-256 digest of every defining file). The digest lets a run say which ontology it used.
+- **Gate G1 (`gate.py`)**: `map_record` selects the application-pack mapping for a source object (no match: `Q-UNMAPPED`); `validate` checks required attributes, vocabulary values, temporal validity and edge endpoint types (failure: `Q-SCHEMA`). A failure becomes a quarantine entry with a reason code and field names, never content.
+- **State translation**: the mappings leave one step to the project pack, turning a source state into a core state (`src/usep/pipeline/state_tables.py` says which source field feeds which attribute and which table translates it). No rule means `Q-STATE`.
+- **Release events (`events.py`)**: an `ontology.release` event carries versions and the digest, not definitions. A consumer reloads from its own checkout and switches only if its digest matches. The pipeline Lambda does this at most every `USEP_ONTOLOGY_REFRESH_SECONDS`; a release it cannot load is refused and the current ontology stays.
+- **Used by**: the acquisition pipeline (`src/usep/pipeline/`), which calls the loader once per container and the gate per record. The ingestion flow is described in the root `README.md`.
+
+Pack relationships and shapes: the application pack adds `references` and `documents` (`packs/app/app-reference/concepts.yml`, shapes in `shapes/packs/application/`). Pack CI requires endpoint shapes for application-pack relationships and validates every project-pack state table against the core vocabularies.
 
 ## What is a source fact and what is a proposal
 
@@ -76,6 +89,8 @@ Not built: signing and the registry (C-06, C-07), the project pack's state trans
 ## Open points
 
 - Where a pack keeps its own shapes. The Roadmap layout has one `shapes/` folder; this repo puts core shapes at the
-  root and leaves room for `shapes/packs/<level>/<pack>.ttl` (OI-49).
+  root and pack shapes under `shapes/packs/<level>/<pack>.ttl` (the application pack's are there; OI-49).
+- Pack-level query templates are not supported yet (loader, check and golden set know only the eight core ones).
+- Proposals awaiting the owner are listed in `docs/review/ontology-owner-review.md`.
 - Where the engineering domain fragment lives (OI-18) and whether the pilot needs a project pack (OI-19).
-- Pack signing: `signed: false` and `signature_ref: null` until C-07 exists. Nothing here is published.
+- Pack signing: packs in Git keep `signed: false` and `signature_ref: null`; the signature lives in the registry release (ADR-20), and `config/registry/trusted_keys.yaml` is empty until the platform lead creates the KMS key. Nothing here is published.

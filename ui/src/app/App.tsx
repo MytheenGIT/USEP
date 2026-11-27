@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "../features/auth/AuthContext";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ProfilePage } from "../features/auth/ProfilePage";
 import { AgentPage } from "../features/agent/AgentPage";
+import { OntologyPage } from "../features/ontology/OntologyPage";
 import { ProcessingPage } from "../features/configurations/ProcessingPage";
 import { ConfigDetailPage } from "../features/configurations/ConfigDetailPage";
 import { ConfigurationsProvider } from "../features/configurations/ConfigurationsContext";
@@ -30,6 +31,7 @@ function Routes() {
       {route.name === "add" && <AddConnectorPage key={route.id} id={route.id} />}
       {route.name === "processing" && <ProcessingPage key={route.id} id={route.id} />}
       {route.name === "agent" && <AgentPage key={route.id ?? "latest"} id={route.id} />}
+      {route.name === "ontology" && <OntologyPage key={`${route.id ?? "first"}`} id={route.id} concept={route.concept} themeKey={theme} />}
       {route.name === "profile" && <ProfilePage theme={theme} onTheme={setTheme} />}
       {route.name === "graph" && (
         <Suspense fallback={<Spinner label="Loading graph view" />}>
