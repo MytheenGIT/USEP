@@ -5,7 +5,9 @@
 name: ontology-ci
 on:
   pull_request:
-    paths: ["ontology/**", "evals/**", "src/usep/ontology*/**", "src/usep/registry/**", "tests/**", "config/**", "scripts/registry.py"]
+    # Everything the checks run over, including the dependency files: a change to requirements-dev.txt must run CI too.
+    paths: ["ontology/**", "evals/**", "src/**", "services/connectors/**", "tests/**", "config/**", "scripts/**",
+            "requirements-dev.txt", "pyproject.toml", ".github/workflows/ontology-ci.yml"]
   push:
     tags: ["ontology-v*"]
 
