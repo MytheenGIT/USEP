@@ -56,7 +56,7 @@ Nothing here enforces it for you: enforcement belongs in the model gateway (C-09
 ## Not covered yet
 
 - No `entity_id`. Evidence is keyed by `source_system` and `source_id`; link chunks to entities once the resolver exists.
-- Deletions and permission removals at the source are not propagated. A removed object's evidence stays.
+- Deletions: the connector's reconciliation publishes `tombstone.<family>` and the pipeline re-announces it on the topic `retraction` (`source_systems`, `source_id`, `detected_at`). Consumers must drop chunks, nodes and candidates for that object. The evidence object itself stays (immutable, needed for audit). Permission removals at the source are still not propagated: they show up only as a new evidence object with a new label hash when the source next reports a changed ACL.
 - Redaction is pattern based (secrets, emails, card numbers). It does not detect names or free-text personal data.
 - Source ACLs are partly harvested: Jira security level, Confluence read-restriction groups, GitLab and GitHub visibility.
   Jira project roles, ServiceNow ACLs and ADO area permissions are not, so those records stay `unknown`.

@@ -93,7 +93,19 @@ Seven sources: Jira, GitLab, GitHub, Confluence, Figma, ServiceNow, Azure DevOps
 
 ## Topics
 
-`raw.<family>` (jira, gitlab, github, confluence, figma, servicenow, ado), `entity.<domain>` (business, architecture, product, security, operations, platform, testing), `evidence.<family>` (same families as raw), `quarantine`, `ontology.release`. Events carry references, not payloads, and a `tenant_id`. Schemas are in `src/usep/pipeline/topics.py`.
+`raw.<family>` (jira, gitlab, github, confluence, figma, servicenow, ado), `entity.<domain>` (business, architecture, product, security, operations, platform, testing), `evidence.<family>` (same families as raw), `tombstone.<family>` (written by the connector when reconciliation finds a deletion), `retraction` (the pipeline's re-announcement of it, for every consumer), `quarantine`, `ontology.release`. Events carry references, not payloads, and a `tenant_id`. Schemas are in `src/usep/pipeline/topics.py`.
+
+## Configuration files (`config/`)
+
+| File | Holds | Read by |
+|---|---|---|
+| `config/sources.yaml` | which sources are on, interval, scopes, first-backfill start, owner-stated ACL mappings (restrictive only). No secrets | connectors (Lambda and service), pipeline (ACL mappings) |
+| `config/runtime/classification.yaml` | sensitivity rules | pipeline |
+| `config/runtime/egress.yaml` | what may leave for an external model (decision D8) | pipeline, model gateway |
+| `config/runtime/redaction.yaml` | extra redaction patterns; built-in ones cannot be switched off | pipeline |
+| `config/runtime/resolution.yaml` | resolver thresholds (auto-link 0.92, review 0.75) | the resolver, when built |
+
+Shipped values equal the built-in defaults, so nothing changes until an owner edits a file. A bad file stops the service (fail closed); `tests/test_template_matches_config.py` keeps the SAM schedules in step with `sources.yaml`. Secrets stay in the secrets manager.
 
 ## Quarantine reason codes
 

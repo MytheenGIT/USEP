@@ -152,3 +152,32 @@ def test_sqs_success_returns_no_failures(bundle, monkeypatch):
     key = _put_raw_event(s3, "ABC-41", jira("ABC-41", "Task", "Done"))
     r = ph.handler({"Records": [_sqs("m1", [key, "bus/_offsets/raw.jira/g/p000.json"])]}, _s3=s3, _loader=lambda pins: bundle)
     assert r["batchItemFailures"] == [] and r["handled"] == 1
+
+
+# ---------------------------------------------------------------- deletions at the source
+def _tombstone(family, source_id, event_id="01a21c4d-0227-753a-b466-515aab3d8520"):
+    from usep.ports.event_bus import Event
+    return Event(event_id, f"tombstone.{family}", source_id, TENANT, "tombstone.object_deleted", 1, "2026-02-01T00:00:00.000Z",
+                 {"source_family": family, "source_id": source_id, "scope": "ABC", "reason": "not_found_in_scope",
+                  "detected_at": "2026-02-01T00:00:00.000Z"}, {})
+
+
+def test_tombstone_becomes_a_retraction_with_source_systems(env):
+    s3, _, w = env
+    out = w.handle_tombstone(_tombstone("gitlab", "5!9"))
+    (ev,) = [json.loads(v) for k, v in s3.objects.items() if "/retraction/" in k]
+    assert out.retracted == 1 and ev["payload"]["source_systems"] == ["git"] and ev["payload"]["source_id"] == "5!9"
+    w.handle_tombstone(_tombstone("gitlab", "5!9"))                       # same event again: same idempotency key
+    keys = {json.loads(v)["payload"]["idempotency_key"] for k, v in s3.objects.items() if "/retraction/" in k}
+    assert len(keys) == 1
+
+
+def test_sqs_tombstone_message_reaches_the_worker(bundle, monkeypatch):
+    from tests.fake_s3 import FakeS3
+    s3 = FakeS3()
+    ev = _tombstone("jira", "ABC-1")
+    key = f"bus/tombstone.jira/p000/{ev.event_id}.json"
+    s3.objects[key] = json.dumps({k: getattr(ev, k) for k in ("event_id", "topic", "key", "tenant_id", "type", "schema_version", "occurred_at", "payload", "headers")}).encode()
+    monkeypatch.setenv("USEP_BUS_BUCKET", BUCKET)
+    r = ph.handler({"Records": [_sqs("m1", [key])]}, _s3=s3, _loader=lambda pins: bundle)
+    assert r["batchItemFailures"] == [] and r["retracted"] == 1 and any("/retraction/" in k for k in s3.objects)

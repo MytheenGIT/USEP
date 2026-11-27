@@ -30,6 +30,7 @@ from common.s3.raw_event_publisher import S3RawEventPublisher
 from common.s3.raw_payload_writer import S3RawPayloadWriter
 from common.sync_models import SyncStatus
 from config import Settings
+import sources_file
 from reconcile import Reconciler
 from registry import SOURCES, build_source
 from sync_service import SyncService
@@ -123,6 +124,12 @@ def handler(event: dict[str, Any], context: Any = None, *, _s3: Any | None = Non
     if _settings is None:
         _load_secrets()
     settings = _settings or Settings()
+    if _settings is None:                               # the committed onboarding file; a test passes its own settings
+        doc = sources_file.load(os.environ.get("USEP_SOURCES_FILE", "config/sources.yaml"))
+        if not sources_file.enabled(doc, source):
+            logger.info("connector.lambda.disabled", source=source)
+            return {"source": source, "status": "disabled"}
+        sources_file.apply(settings, doc)
     s3_client = _s3
     if s3_client is None:
         import boto3

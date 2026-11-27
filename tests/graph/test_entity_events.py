@@ -73,3 +73,19 @@ def test_restrict_keeps_open_low_sensitivity_nodes_and_drops_edges_to_dropped_no
     assert res.reasons == {"sensitivity": 1, "owners_only": 1}
     out = json.loads(write_graphify_restricted(g, tmp_path).read_text())
     assert {n["id"] for n in out["nodes"]} == {"a", "b"} and len(out["links"]) == 1
+
+
+def retraction(system, sid, at):
+    return {"tenant_id": TENANT, "payload": {"source_family": system, "source_systems": [system], "source_id": sid,
+                                             "scope": "ABC", "reason": "not_found_in_scope", "detected_at": at,
+                                             "idempotency_key": "k"}}
+
+
+def test_a_retraction_removes_the_node_and_its_edges_unless_the_object_came_back():
+    events = run(("ABC-1", jira("ABC-1", "Story", "Open", desc="builds on ABC-2")),
+                 ("ABC-2", jira("ABC-2", "Task", "In Review")))
+    assert len(build_graph(VIEW, TENANT, events).result.graph.edges) == 1
+    gone = build_graph(VIEW, TENANT, events + [retraction("jira", "ABC-2", "9999-01-01T00:00:00.000Z")])
+    assert {n.source_id for n in gone.result.graph.nodes} == {"ABC-1"} and gone.result.graph.edges == []
+    back = build_graph(VIEW, TENANT, events + [retraction("jira", "ABC-2", "2000-01-01T00:00:00.000Z")])
+    assert {n.source_id for n in back.result.graph.nodes} == {"ABC-1", "ABC-2"}      # recorded after the deletion: kept

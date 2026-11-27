@@ -38,9 +38,11 @@ def _get(event: Any, name: str) -> Any:
 
 
 def build_graph(view: OntologyView, tenant_id: str, events: Iterable[Any]) -> EventGraph:
-    """Project node and edge candidates of one tenant. Events of other tenants are ignored, never projected."""
+    """Project node and edge candidates of one tenant. Events of other tenants are ignored, never projected.
+    A retraction event removes the node it names (and so every edge that touched it) unless the node was recorded after it."""
     nodes: dict[str, LabelledRecord] = {}
     edge_events: list[Mapping[str, Any]] = []
+    gone: list[tuple[tuple[str, ...], str, str]] = []                 # (source_systems, source_id, detected_at)
     for ev in events:
         if _get(ev, "tenant_id") != tenant_id:
             continue
@@ -53,6 +55,12 @@ def build_graph(view: OntologyView, tenant_id: str, events: Iterable[Any]) -> Ev
                 nodes[rec.entity_id] = rec                      # events are unordered: the newest record wins
         elif p.get("kind") == "edge":
             edge_events.append(p)
+        elif "source_systems" in p and "detected_at" in p:           # a retraction: the object is gone at the source
+            gone.append((tuple(p["source_systems"]), str(p["source_id"]), str(p["detected_at"])))
+    for systems, sid, at in gone:                                    # a node recorded after the deletion came back: keep it
+        for eid in [i for i, r in nodes.items() if r.source_system in systems and r.source_id == sid
+                    and (r.recorded_at or "") <= at]:
+            del nodes[eid]
 
     index: dict[tuple[str, str], list[LabelledRecord]] = {}
     for r in nodes.values():

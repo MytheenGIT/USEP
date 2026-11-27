@@ -1,0 +1,7 @@
+# Entity and link resolver settings (diagram step 6). Read by the resolver team's code; nothing consumes it yet.
+# A candidate scoring at or above auto_link is linked to the existing entity. From review up to auto_link, a steward decides.
+# Below review the candidate is a new entity if it validates, otherwise unresolved.
+auto_link_threshold: 0.92
+review_threshold: 0.75
+below_review: new_entity        # new_entity | unresolved
+pending_link_retry_minutes: 60  # retry a link whose target has not arrived yet

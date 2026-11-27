@@ -7,3 +7,6 @@ pyshacl==0.40.2
 pytest==9.1.1
 boto3==1.44.12
 ruff==0.17.6
+cryptography==50.0.2
+psycopg[binary]==3.3.9
+pixeltable-pgserver==0.7.2    # embedded PostgreSQL 16 for tests/fabric; the tests skip PostgreSQL if it is not installed

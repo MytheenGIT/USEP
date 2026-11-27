@@ -33,12 +33,12 @@ class AdoConnector:
     def scopes(self) -> list[str]:
         return [p for p in self._projects if p.strip()]
 
-    def _wi_doc(self, project: str, wi: dict[str, Any]) -> AdoDocument:
+    def _wi_doc(self, project: str, wi: dict[str, Any], visibility: str | None = None) -> AdoDocument:
         f = wi.get("fields", {})
         proj = f.get("System.TeamProject", project)
         version = to_utc_iso(f.get("System.ChangedDate"))
         return AdoDocument(
-            scope=project, source_version=version, acl={"project": proj, "area_path": f.get("System.AreaPath")},
+            scope=project, source_version=version, acl={"project": proj, "area_path": f.get("System.AreaPath"), "visibility": visibility},
             source=self.source, source_type="work_item", source_object_id=f"{proj}#{wi['id']}",
             source_url=(wi.get("_links", {}).get("html", {}) or {}).get("href") or f"{self._org}/{proj}/_workitems/edit/{wi['id']}",
             retrieved_at=datetime.now(UTC), raw_payload=wi, title=f.get("System.Title", ""),
@@ -63,12 +63,16 @@ class AdoConnector:
 
     async def _work_items(self, project: str, cursor: str | None) -> tuple[list[AdoDocument], list[ObjectError]]:
         ids = await self._client.wiql_ids(project, cursor)
+        try:
+            visibility = await self._client.project_visibility(project) if ids else None
+        except Exception:                             # noqa: BLE001 - visibility unknown: the records stay owners-only
+            visibility = None
         out: list[AdoDocument] = []
         errors: list[ObjectError] = []
         for chunk in _chunks(ids, 200):               # the batch endpoint takes at most 200 ids
             for wi in await self._client.work_items(chunk):
                 try:
-                    out.append(self._wi_doc(project, wi))
+                    out.append(self._wi_doc(project, wi, visibility))
                 except Exception as exc:              # noqa: BLE001 - one bad item must not fail the project
                     errors.append(ObjectError(scope=project, object_id=f"{project}#{wi.get('id')}",
                                               source_version=to_utc_iso((wi.get("fields") or {}).get("System.ChangedDate")),

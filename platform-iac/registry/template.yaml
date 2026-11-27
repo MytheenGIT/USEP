@@ -1,0 +1,136 @@
+# Ontology registry (C-06) and pack signing (C-07): the signing key, the registry bucket and the roles (ADR-20).
+# NOT DEPLOYED OR VALIDATED: written without cfn-lint or AWS access. Run `cfn-lint platform-iac/registry/template.yaml` and
+# review with the security architect before first use. tests/test_registry_iac.py checks the properties ADR-20 relies on.
+AWSTemplateFormatVersion: "2010-09-09"
+Description: USEP ontology registry, signing key and roles
+
+Parameters:
+  Environment: {Type: String, AllowedValues: [dev, staging, prod]}
+  GitHubRepo: {Type: String, Description: "owner/name of the repository whose release job may publish, for example usep/usep"}
+  GitHubOidcProviderArn: {Type: String, Description: "ARN of the account's token.actions.githubusercontent.com OIDC provider"}
+  ReleaseEnvironment: {Type: String, Default: ontology-release, Description: "GitHub environment with required reviewers; only jobs in it can assume the publisher role"}
+  DataKmsKeyArn: {Type: String, Description: "KMS key that encrypts the registry bucket"}
+  KeyAdminRoleArn: {Type: String, Description: "Role that administers the signing key. It cannot sign."}
+
+Resources:
+  SigningKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub "USEP ontology release signing key (${Environment})"
+      KeySpec: ECC_NIST_P256
+      KeyUsage: SIGN_VERIFY
+      EnableKeyRotation: false                 # rotation is not supported for asymmetric keys: rotate by a new key and trust-store entry
+      PendingWindowInDays: 30
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AdministerNotSign
+            Effect: Allow
+            Principal: {AWS: !Ref KeyAdminRoleArn}
+            Action: ["kms:Describe*", "kms:List*", "kms:Get*", "kms:Put*", "kms:Update*", "kms:Enable*", "kms:Disable*",
+                     "kms:TagResource", "kms:UntagResource", "kms:ScheduleKeyDeletion", "kms:CancelKeyDeletion"]
+            Resource: "*"
+          - Sid: PublisherMayOnlySignAndReadThePublicKey
+            Effect: Allow
+            Principal: {AWS: !GetAtt PublisherRole.Arn}
+            Action: ["kms:Sign", "kms:GetPublicKey", "kms:DescribeKey"]
+            Resource: "*"
+          - Sid: NobodyElseSigns
+            Effect: Deny
+            NotPrincipal: {AWS: !GetAtt PublisherRole.Arn}
+            Action: ["kms:Sign"]
+            Resource: "*"
+
+  SigningKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties: {AliasName: !Sub "alias/usep-${Environment}-ontology-signing", TargetKeyId: !Ref SigningKey}
+
+  RegistryBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "usep-${Environment}-ontology-registry"
+      VersioningConfiguration: {Status: Enabled}
+      ObjectLockEnabled: true
+      ObjectLockConfiguration:
+        ObjectLockEnabled: Enabled
+        Rule: {DefaultRetention: {Mode: GOVERNANCE, Days: 365}}      # releases and pin history cannot be removed or rewritten
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: "aws:kms", KMSMasterKeyID: !Ref DataKmsKeyArn}
+            BucketKeyEnabled: true
+
+  RegistryBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref RegistryBucket
+      PolicyDocument:
+        Statement:
+          - Sid: TlsOnly
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource: [!GetAtt RegistryBucket.Arn, !Sub "${RegistryBucket.Arn}/*"]
+            Condition: {Bool: {"aws:SecureTransport": "false"}}
+          - Sid: NoDeletes
+            Effect: Deny
+            Principal: "*"
+            Action: ["s3:DeleteObject", "s3:DeleteObjectVersion", "s3:PutObjectRetention", "s3:BypassGovernanceRetention"]
+            Resource: !Sub "${RegistryBucket.Arn}/*"
+
+  PublisherRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "usep-${Environment}-ontology-publisher"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Federated: !Ref GitHubOidcProviderArn}
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "token.actions.githubusercontent.com:aud": sts.amazonaws.com
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubRepo}:environment:${ReleaseEnvironment}"
+      Policies:
+        - PolicyName: publish
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ["s3:PutObject", "s3:GetObject"]
+                Resource: !Sub "${RegistryBucket.Arn}/registry/*"
+              - Effect: Allow
+                Action: ["s3:ListBucket"]
+                Resource: !GetAtt RegistryBucket.Arn
+                Condition: {StringLike: {"s3:prefix": ["registry/*"]}}
+              - Effect: Allow
+                Action: ["kms:GenerateDataKey", "kms:Encrypt", "kms:Decrypt"]
+                Resource: !Ref DataKmsKeyArn
+
+  # Attach to every service that loads the ontology (pipeline, resolver, fabric writer, context engine). Read only.
+  RegistryReaderPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "usep-${Environment}-ontology-registry-read"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: ["s3:GetObject"]
+            Resource: !Sub "${RegistryBucket.Arn}/registry/*"
+          - Effect: Allow
+            Action: ["s3:ListBucket"]
+            Resource: !GetAtt RegistryBucket.Arn
+            Condition: {StringLike: {"s3:prefix": ["registry/*"]}}
+          - Effect: Allow
+            Action: ["kms:Decrypt"]
+            Resource: !Ref DataKmsKeyArn
+
+Outputs:
+  SigningKeyArn: {Value: !GetAtt SigningKey.Arn, Description: "Pass to `scripts/registry.py public-key --kms` and add the output to config/registry/trusted_keys.yaml"}
+  RegistryBucketName: {Value: !Ref RegistryBucket}
+  PublisherRoleArn: {Value: !GetAtt PublisherRole.Arn}
+  ReaderPolicyArn: {Value: !Ref RegistryReaderPolicy}

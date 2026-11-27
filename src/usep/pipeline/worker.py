@@ -27,8 +27,10 @@ from usep.pipeline.egress import EgressPolicy, decide as decide_egress
 from usep.pipeline.links import extract as extract_links, refs_for_evidence
 from usep.pipeline.mapping import to_candidate, validate_with_common
 from usep.pipeline.normalize import Record, normalize
-from usep.pipeline.redact import RedactionReport, redact_text, redact_value
-from usep.pipeline.topics import EVIDENCE_SCHEMA_VERSION, QUARANTINE_TOPIC, entity_topic, evidence_topic
+from usep.pipeline.sources_config import apply_mappings as apply_acl_mappings
+from usep.pipeline.redact import RedactionPolicy, RedactionReport, redact_text, redact_value
+from usep.pipeline.topics import (EVIDENCE_SCHEMA_VERSION, FAMILY_SYSTEMS, QUARANTINE_TOPIC, RETRACTION_TOPIC, entity_topic,
+                                  evidence_topic)
 from usep.ports.event_bus import Event, EventBus
 from usep.ports.object_store import ObjectStore
 
@@ -54,6 +56,7 @@ class Outcome:
     links: int = 0
     evidence_only: int = 0
     quarantined: int = 0
+    retracted: int = 0
     reasons: list[str] = field(default_factory=list)
 
     def add(self, other: "Outcome") -> None:
@@ -62,6 +65,7 @@ class Outcome:
         self.links += other.links
         self.evidence_only += other.evidence_only
         self.quarantined += other.quarantined
+        self.retracted += other.retracted
         self.reasons += other.reasons
 
 
@@ -69,8 +73,12 @@ class AcquisitionWorker:
     def __init__(self, bus: EventBus, store: ObjectStore, ontology: Callable[[], OntologyBundle],
                  policy: ClassificationPolicy | None = None, evidence_prefix: str = "evidence",
                  quarantine_prefix: str = "quarantine", repo_hosts: tuple[str, ...] = (),
-                 project_keys: tuple[str, ...] = (), egress: EgressPolicy | None = None) -> None:
+                 project_keys: tuple[str, ...] = (), egress: EgressPolicy | None = None,
+                 redaction: RedactionPolicy | None = None,
+                 acl_mappings: dict[str, tuple[str, ...]] | None = None) -> None:
+        self._acl_map = dict(acl_mappings or {})
         self._egress = egress or EgressPolicy()
+        self._redaction = redaction or RedactionPolicy()
         self._pkeys = tuple(project_keys)
         self._hosts = tuple(h.lower() for h in repo_hosts)
         self._bus, self._store, self._ontology = bus, store, ontology
@@ -94,17 +102,33 @@ class AcquisitionWorker:
             out.add(self._record(event, bundle, rec))
         return out
 
+    def handle_tombstone(self, event: Event) -> Outcome:
+        """A connector found that an object is gone from its source. Announce a retraction so every consumer drops what it
+        holds for that object (entity candidates, chunks, graph nodes). Evidence objects stay: they are immutable and audit
+        needs them; the retraction says they are no longer current."""
+        p = event.payload
+        family = p["source_family"]
+        key = hashlib.sha256(f"{event.tenant_id}|{family}|{p['source_id']}|{event.event_id}".encode()).hexdigest()
+        self._publish(RETRACTION_TOPIC, p["source_id"], "retraction.object_deleted", event.tenant_id,
+                      {"source_family": family, "source_systems": list(FAMILY_SYSTEMS.get(family, (family,))),
+                       "source_id": p["source_id"], "scope": p.get("scope", ""), "reason": p.get("reason", ""),
+                       "detected_at": p["detected_at"], "idempotency_key": key}, {"idempotency_key": key})
+        out = Outcome()
+        out.retracted = 1
+        return out
+
     # ------------------------------------------------------------------ one record
     def _record(self, event: Event, bundle: OntologyBundle, rec: Record) -> Outcome:
         p, out = event.payload, Outcome()
         # 1. redact before anything is stored or leaves for a model
-        text, report = redact_text(rec.text)
-        title, r = redact_text(rec.title)
+        text, report = redact_text(rec.text, self._redaction)
+        title, r = redact_text(rec.title, self._redaction)
         report.merge(r)
-        scope, r = redact_value(rec.scope)
+        scope, r = redact_value(rec.scope, self._redaction)
         report.merge(r)
         # 2. label. The ACL is what the parser read from the payload plus what the connector harvested beside it.
         acl = merge_acl(rec.acl, from_connector(p["source"], p.get("acl")))
+        acl = apply_acl_mappings(p["source"], acl, self._acl_map)      # owner-stated principals; restrictive only
         labels = classify(rec.labels, acl, report, self._policy)
         redacted = Record(rec.source_system, rec.source_object, rec.source_id, rec.source_version, rec.event_time,
                           title, text, acl, rec.labels, scope, rec.links, link_fields=rec.link_fields,

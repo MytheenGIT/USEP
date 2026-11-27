@@ -59,7 +59,7 @@ One loader, `usep.ontology_runtime.load_ontology`, reads this folder at run time
 
 Pack CI (`tools/check_ontology.py`) still decides whether a pack is allowed to exist (additive only, policies only tighten). The loader trusts a pack that passed it. The run-time validator reads the YAML, not the Turtle shapes, so rdflib stays out of the run-time path.
 
-Not built: signing and the registry (C-06, C-07), and field mapping from dotted source paths beyond the last segment.
+Signing and the registry (C-06, C-07) are built in `src/usep/registry/` (ADR-20, proposed): signed immutable releases, a trust store, per-tenant pins, `scripts/registry.py`, a release workflow and IaC. Not yet exercised: the IaC and workflow have never run, and no production signing key exists. Dotted source paths map at any depth. Still open: the project pack's state translation (`state_tables.py`) beyond the reference rows.
 
 ## Ingestion run-time (`src/usep/ontology_runtime/`)
 
@@ -95,4 +95,4 @@ Pack relationships and shapes: the application pack adds `references` and `docum
 - Pack-level query templates are not supported yet (loader, check and golden set know only the eight core ones).
 - Proposals awaiting the owner are listed in `docs/review/ontology-owner-review.md`.
 - Where the engineering domain fragment lives (OI-18) and whether the pilot needs a project pack (OI-19).
-- Pack signing: `signed: false` and `signature_ref: null` until C-07 exists. Nothing here is published.
+- Pack signing: packs in Git keep `signed: false` and `signature_ref: null`; the signature lives in the registry release (ADR-20), and `config/registry/trusted_keys.yaml` is empty until the platform lead creates the KMS key. Nothing here is published.

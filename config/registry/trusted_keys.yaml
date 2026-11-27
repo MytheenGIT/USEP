@@ -1,0 +1,15 @@
+# Keys whose signatures the registry client accepts (ADR-20). Public keys only; the private key never leaves AWS KMS.
+# Add the production key after the platform lead creates it (platform-iac/registry/template.yaml):
+#   python scripts/registry.py public-key --kms <key arn>      prints an entry to paste here
+# To retire a key set `status: revoked` in a reviewed pull request. Every release it signed then stops loading, so re-sign first.
+# Empty until a key exists: with no trusted key, nothing signed can load.
+keys: []
+# keys:
+#   - key_id: arn:aws:kms:eu-west-1:111122223333:key/00000000-0000-0000-0000-000000000000
+#     alg: ecdsa-p256-sha256
+#     status: active
+#     not_after: "2027-12-31T00:00:00Z"
+#     public_key_pem: |
+#       -----BEGIN PUBLIC KEY-----
+#       ...
+#       -----END PUBLIC KEY-----

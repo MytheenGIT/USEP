@@ -197,3 +197,11 @@ fails so Lambda and its Errors alarm see it. `USEP_INGESTION_S3_BUCKET` and `USE
 Tokens come from the Secrets Manager secret named by `USEP_INGESTION_SECRETS_ARN` (JSON of `USEP_INGESTION_*` keys).
 Build with `scripts/build_lambda.sh`; the template is `platform-iac/lambda/template.yaml` (not yet validated).
 The downstream worker is `usep.pipeline` (C-02, below the connectors in the data flow): see `src/usep/pipeline`.
+
+### Webhooks and the sources file
+`webhook_handler.handler` (HTTP API `POST /webhook/{source}`) is a doorbell: it checks a per-source secret (HMAC for GitHub, Jira
+and Confluence; a token header for GitLab, ADO and ServiceNow), then asks the connector Lambda for an incremental sync. The
+payload is never read or stored, so a forged call can only cause one extra sync. Secrets are
+`USEP_INGESTION_WEBHOOK_SECRET_<SOURCE>`; a source with none, or disabled in `config/sources.yaml`, is refused.
+`config/sources.yaml` sets which sources run, their interval and scopes, and the first-backfill start; an environment variable
+overrides the file, and a credential-looking key in the file is an error.

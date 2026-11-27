@@ -30,6 +30,11 @@ class AdoClient(BaseAPIClient):
             "query": f"SELECT [System.Id] FROM WorkItems WHERE {where} ORDER BY [System.ChangedDate] ASC"})
         return [w["id"] for w in body.get("workItems", [])]
 
+    async def project_visibility(self, project: str) -> str | None:
+        """'private' or 'public' for the project, as Azure DevOps states it (work items do not carry it)."""
+        body = await self.get_json(f"/_apis/projects/{self._p(project)}", params={"api-version": "7.1"})
+        return body.get("visibility")
+
     async def work_items(self, ids: list[int]) -> list[dict[str, Any]]:
         body = await self.post_json(f"/_apis/wit/workitemsbatch?{API}", json={"ids": ids, "$expand": "relations"})
         return body.get("value", [])

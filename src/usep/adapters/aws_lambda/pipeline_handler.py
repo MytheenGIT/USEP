@@ -44,11 +44,14 @@ from usep.core.errors import PipelineError
 from usep.ontology_runtime import load_ontology
 from usep.ontology_runtime.events import OntologyConfigCache
 from usep.ontology_runtime.events import register_schemas as register_ontology_schemas
+from usep.pipeline.policy_config import load_runtime_policy
+from usep.pipeline.sources_config import load_acl_mappings
 from usep.pipeline.topics import RAW_FAMILIES, register_schemas
 from usep.pipeline.worker import AcquisitionWorker, Outcome
 from usep.ports.event_bus import Event, SchemaRegistry, consume
 
 _RAW_KEY = re.compile(r"^(?P<prefix>.+?)/(?P<topic>raw\.[a-z]+)/p\d+/[^/]+\.json$")
+_TOMBSTONE_KEY = re.compile(r"^(?P<prefix>.+?)/(?P<topic>tombstone\.[a-z]+)/p\d+/[^/]+\.json$")
 logger = logging.getLogger(__name__)
 _state: dict[str, Any] = {}        # per warm container
 _injected: dict[str, Any] = {}     # same, for a build with an injected client (tests): never cached
@@ -77,6 +80,21 @@ def build(s3_client: Any | None = None, bundle_loader: Any | None = None) -> tup
     allow_ref = os.environ.get("USEP_ONTOLOGY_ALLOW_REFERENCE", "false").lower() == "true"
     loader = bundle_loader or (lambda p: load_ontology(_env("USEP_ONTOLOGY_DIR", "ontology"), p,
                                                        allow_reference_only=allow_ref))
+    if os.environ.get("USEP_REGISTRY_BUCKET") and bundle_loader is None:
+        # Deployed path (ADR-20): the tenant's pins and the signed releases come from the registry, not from the package.
+        # A release that is unsigned, altered or unpinned is refused, and a bad release event leaves the cached ontology as it is.
+        from usep.registry import RegistryClient, TrustStore
+        from usep.registry.store import S3RegistryStore
+        reg_tenant = _env("USEP_TENANT_ID")
+        registry_client = RegistryClient(
+            S3RegistryStore(s3_client, os.environ["USEP_REGISTRY_BUCKET"], os.environ.get("USEP_REGISTRY_PREFIX", "registry")),
+            TrustStore.load(os.environ.get("USEP_TRUST_STORE", "config/registry/trusted_keys.yaml")),
+            os.environ.get("USEP_ONTOLOGY_CACHE_DIR", "/tmp/usep-ontology"))
+        record = registry_client.current_pins(reg_tenant)
+        if record is None:
+            raise PipelineError(f"tenant {reg_tenant} has no pinned ontology in the registry")
+        pins = list(record["packs"])
+        loader = lambda p: registry_client.load(p, allow_reference_only=allow_ref)          # noqa: E731
     bundle = loader(pins)                                       # fails closed: a bad ontology means no processing
     registry = SchemaRegistry()
     register_schemas(registry, bundle.domains)
@@ -90,8 +108,11 @@ def build(s3_client: Any | None = None, bundle_loader: Any | None = None) -> tup
     cache = OntologyConfigCache(tenant, f"{group}-ontology", loader, initial=bundle) if tenant else None
     hosts = tuple(h.strip() for h in os.environ.get("USEP_REPO_HOSTS", "").split(",") if h.strip())
     pkeys = tuple(k.strip() for k in os.environ.get("USEP_JIRA_PROJECT_KEYS", "").split(",") if k.strip())
+    policy = load_runtime_policy(os.environ.get("USEP_POLICY_DIR", "config/runtime"))     # fails closed on a bad file
     worker = AcquisitionWorker(bus, store, (lambda: cache.current) if cache else (lambda: bundle),
-                               repo_hosts=hosts, project_keys=pkeys)
+                               policy=policy.classification, repo_hosts=hosts, project_keys=pkeys,
+                               egress=policy.egress, redaction=policy.redaction,
+                               acl_mappings=load_acl_mappings(os.environ.get("USEP_SOURCES_FILE", "config/sources.yaml")))
     state = {"worker": worker, "bus": bus, "group": group, "cache": cache, "bundle": bundle, "last_refresh": 0.0, "s3": s3_client}
     if injected:
         _injected.clear()
@@ -114,10 +135,11 @@ def _handle_s3_notification(note: dict[str, Any], bus: S3EventBus, worker: Acqui
         if not s3:
             continue
         key = unquote_plus(s3["object"]["key"])
-        if not _RAW_KEY.match(key):
-            continue                                            # not a raw event object (offsets, other topics)
+        is_tombstone = bool(_TOMBSTONE_KEY.match(key))
+        if not is_tombstone and not _RAW_KEY.match(key):
+            continue                                            # not a raw or tombstone event object (offsets, other topics)
         ev = _read_event(bus._s3, s3["bucket"]["name"], key)    # noqa: SLF001 - same client the bus uses
-        total.add(worker.handle(ev))
+        total.add(worker.handle_tombstone(ev) if is_tombstone else worker.handle(ev))
         n += 1
     return n
 
@@ -148,6 +170,11 @@ def handler(event: dict[str, Any], context: Any = None, *, _s3: Any | None = Non
                 total.add(worker.handle(e))
                 handled += 1
             consume(bus, f"raw.{fam}", group, one, int(event.get("limit", 100)))
+            def gone(e: Event) -> None:
+                nonlocal handled
+                total.add(worker.handle_tombstone(e))
+                handled += 1
+            consume(bus, f"tombstone.{fam}", group, gone, int(event.get("limit", 100)))
     failures: list[dict[str, str]] = []
     for rec in event.get("Records", []):
         if rec.get("eventSource") == "aws:sqs":
@@ -159,6 +186,6 @@ def handler(event: dict[str, Any], context: Any = None, *, _s3: Any | None = Non
         else:
             handled += _handle_s3_notification({"Records": [rec]}, bus, worker, total)
     return {"batchItemFailures": failures, "handled": handled, "entities": total.entities, "edges": total.edges, "links": total.links,
-            "evidence_only": total.evidence_only, "quarantined": total.quarantined,
+            "evidence_only": total.evidence_only, "quarantined": total.quarantined, "retracted": total.retracted,
             "ontology_digest": (state["cache"].current if state.get("cache") else state["bundle"]).release.digest,
             "ontology_error": ontology_error}

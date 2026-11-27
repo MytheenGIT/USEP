@@ -29,6 +29,13 @@ PII_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 
+@dataclass(frozen=True)
+class RedactionPolicy:
+    """Patterns a tenant adds on top of the built-in ones. Redaction only tightens: a built-in pattern cannot be turned off."""
+    extra_secret: tuple[tuple[str, re.Pattern[str]], ...] = ()
+    extra_pii: tuple[tuple[str, re.Pattern[str]], ...] = ()
+
+
 @dataclass
 class RedactionReport:
     secrets: dict[str, int] = field(default_factory=dict)
@@ -61,9 +68,10 @@ def _luhn(digits: str) -> bool:
     return total % 10 == 0
 
 
-def redact_text(text: str) -> tuple[str, RedactionReport]:
+def redact_text(text: str, policy: RedactionPolicy | None = None) -> tuple[str, RedactionReport]:
+    policy = policy or RedactionPolicy()
     report = RedactionReport()
-    for kind, pat in SECRET_PATTERNS:
+    for kind, pat in (*SECRET_PATTERNS, *policy.extra_secret):
         def sub(m: re.Match[str], kind: str = kind) -> str:
             report.secrets[kind] = report.secrets.get(kind, 0) + 1
             if kind == "credential_assignment":
@@ -72,7 +80,7 @@ def redact_text(text: str) -> tuple[str, RedactionReport]:
                 return f"{m.group(1)}[REDACTED:{kind}]{m.group(2)}"
             return f"[REDACTED:{kind}]"
         text = pat.sub(sub, text)
-    for kind, pat in PII_PATTERNS:
+    for kind, pat in (*PII_PATTERNS, *policy.extra_pii):
         def sub_pii(m: re.Match[str], kind: str = kind) -> str:
             if kind == "card_number" and not _luhn(re.sub(r"\D", "", m.group(0))):
                 return m.group(0)
@@ -82,21 +90,21 @@ def redact_text(text: str) -> tuple[str, RedactionReport]:
     return text, report
 
 
-def redact_value(value: Any) -> tuple[Any, RedactionReport]:
+def redact_value(value: Any, policy: RedactionPolicy | None = None) -> tuple[Any, RedactionReport]:
     """Redact every string inside a JSON-like value. Keys are kept."""
     report = RedactionReport()
     if isinstance(value, str):
-        return redact_text(value)
+        return redact_text(value, policy)
     if isinstance(value, dict):
         out = {}
         for k, v in value.items():
-            out[k], r = redact_value(v)
+            out[k], r = redact_value(v, policy)
             report.merge(r)
         return out, report
     if isinstance(value, (list, tuple)):
         items = []
         for v in value:
-            nv, r = redact_value(v)
+            nv, r = redact_value(v, policy)
             items.append(nv)
             report.merge(r)
         return items, report

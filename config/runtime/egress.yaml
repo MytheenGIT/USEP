@@ -1,0 +1,6 @@
+# May a record's text leave for an external model or embedding service? (usep.pipeline.egress, decision D8)
+# Fail closed. Relaxing any line is a data-owner and security-architect decision, recorded in the review pack.
+max_sensitivity: 1
+allow_owners_only: false
+allow_secret_hit: false
+allow_pii_hit: false

@@ -132,3 +132,21 @@ def test_ado_scope_is_a_project_and_batches_work_items():
     (p,) = [d for d in fetched.documents if d.source_type == "pull_request"]
     assert p.state == "merged" and p.source_object_id == "ado:Pay/svc!7" and p.source_version == "2026-07-01T00:00:00.000Z"
     assert fetched.errors == [] and next_cursor(None, fetched) == "2026-07-01T00:00:00.000Z"
+
+
+class FakeAdoVisible(FakeAdo):
+    def __init__(self, vis=None, fail=False):
+        self.vis, self.fail = vis, fail
+
+    async def project_visibility(self, project):
+        if self.fail:
+            raise RuntimeError("403")
+        return self.vis
+
+
+def test_ado_work_items_carry_project_visibility_and_fail_to_unknown():
+    for client, want in ((FakeAdoVisible("private"), "private"), (FakeAdoVisible(fail=True), None)):
+        fetched = run(AdoConnector(client, "https://dev.azure.com/o", ["Pay"]).fetch_scope("Pay", None))
+        wis = [d for d in fetched.documents if d.source_type == "work_item"]
+        assert wis and all(d.acl["visibility"] == want for d in wis)
+        assert fetched.errors == []                                   # a visibility failure never fails the sync

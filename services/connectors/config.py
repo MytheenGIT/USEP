@@ -149,4 +149,8 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    return Settings()
+    import os
+
+    import sources_file
+    settings = Settings()
+    return sources_file.apply(settings, sources_file.load(os.environ.get("USEP_SOURCES_FILE", "config/sources.yaml")))
