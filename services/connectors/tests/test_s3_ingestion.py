@@ -99,3 +99,17 @@ async def test_cursor_key_with_a_jql_scope_is_a_safe_s3_key() -> None:
     (key,) = keys(s3, "state/connectors/")
     assert key.count("/") == 2 and " " not in key and "(" not in key          # one segment, nothing needing escapes
     assert await cursors.get_cursor("jira:project = ABC AND type in (Story, Bug)") == "2026-01-01T00:00:00.000Z"
+
+
+@pytest.mark.asyncio
+async def test_raw_event_carries_scope_version_and_acl_but_not_content(audit_writer) -> None:
+    s3 = FakeS3()
+    doc = make_source_document()
+    doc.scope, doc.acl = "project = ABC", {"project_key": "ABC", "security_level": "Finance"}
+    service, _ = build(s3, FakeConnector(SourceType.JIRA, [doc]), audit_writer)
+    await service.sync_source("jira")
+    (event_key,) = keys(s3, "bus/raw.jira/")
+    payload = json.loads(s3.objects[event_key])["payload"]
+    assert payload["scope"] == "project = ABC" and payload["source_version"] == doc.source_version
+    assert payload["acl"] == {"project_key": "ABC", "security_level": "Finance"}
+    assert "raw_payload" not in payload and "content" not in payload

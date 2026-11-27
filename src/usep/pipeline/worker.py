@@ -21,12 +21,14 @@ from usep.core.errors import PipelineError
 from usep.core.ids import to_iso, utc_now_iso
 from usep.ontology_runtime.gate import Candidate, Q_SCHEMA, Quarantine
 from usep.ontology_runtime.model import OntologyBundle
+from usep.pipeline.acl import from_connector, merge as merge_acl
 from usep.pipeline.classify import ClassificationPolicy, classify
+from usep.pipeline.egress import EgressPolicy, decide as decide_egress
 from usep.pipeline.links import extract as extract_links, refs_for_evidence
 from usep.pipeline.mapping import to_candidate, validate_with_common
 from usep.pipeline.normalize import Record, normalize
 from usep.pipeline.redact import RedactionReport, redact_text, redact_value
-from usep.pipeline.topics import QUARANTINE_TOPIC, entity_topic
+from usep.pipeline.topics import EVIDENCE_SCHEMA_VERSION, QUARANTINE_TOPIC, entity_topic, evidence_topic
 from usep.ports.event_bus import Event, EventBus
 from usep.ports.object_store import ObjectStore
 
@@ -67,7 +69,8 @@ class AcquisitionWorker:
     def __init__(self, bus: EventBus, store: ObjectStore, ontology: Callable[[], OntologyBundle],
                  policy: ClassificationPolicy | None = None, evidence_prefix: str = "evidence",
                  quarantine_prefix: str = "quarantine", repo_hosts: tuple[str, ...] = (),
-                 project_keys: tuple[str, ...] = ()) -> None:
+                 project_keys: tuple[str, ...] = (), egress: EgressPolicy | None = None) -> None:
+        self._egress = egress or EgressPolicy()
         self._pkeys = tuple(project_keys)
         self._hosts = tuple(h.lower() for h in repo_hosts)
         self._bus, self._store, self._ontology = bus, store, ontology
@@ -100,17 +103,18 @@ class AcquisitionWorker:
         report.merge(r)
         scope, r = redact_value(rec.scope)
         report.merge(r)
-        # 2. label
-        labels = classify(rec.labels, rec.acl, report, self._policy)
+        # 2. label. The ACL is what the parser read from the payload plus what the connector harvested beside it.
+        acl = merge_acl(rec.acl, from_connector(p["source"], p.get("acl")))
+        labels = classify(rec.labels, acl, report, self._policy)
         redacted = Record(rec.source_system, rec.source_object, rec.source_id, rec.source_version, rec.event_time,
-                          title, text, rec.acl, rec.labels, scope, rec.links, link_fields=rec.link_fields,
+                          title, text, acl, rec.labels, scope, rec.links, link_fields=rec.link_fields,
                           parent_id=rec.parent_id)
         # 3. map and 4. gate
         mapped = to_candidate(bundle, rec.source_system, rec.source_object, redacted.mapping_payload())
         if not mapped.ok:
             return self._quarantine(event, bundle, rec.source_system, rec.source_id, mapped.quarantine)
         cand = mapped.candidate
-        evidence_ref = self._write_evidence(p, redacted, labels, report)
+        evidence_ref = self._write_evidence(event, bundle, redacted, labels, report)
         if cand.kind == "evidence":
             out.evidence_only = 1
             return out
@@ -149,7 +153,7 @@ class AcquisitionWorker:
             "kind": cand.kind, "type": cand.type, "attributes": attrs, "evidence_ref": evidence_ref,
             "labels": {"sensitivity": labels.sensitivity, "acl_state": labels.acl_state,
                        "owners_only": labels.owners_only, "reasons": list(labels.reasons),
-                       "redaction": report.as_dict()},
+                       "acl": acl.as_dict(), "redaction": report.as_dict()},
             "idempotency_key": hashlib.sha256(
                 f"{event.tenant_id}|{rec.source_system}|{rec.source_id}|{cand.kind}|{cand.type}|{p['checksum']}".encode()
             ).hexdigest(),
@@ -188,16 +192,42 @@ class AcquisitionWorker:
         return n
 
     # ------------------------------------------------------------------ writes
-    def _write_evidence(self, p: dict[str, Any], rec: Record, labels: Any, report: RedactionReport) -> str:
-        """Normalized, redacted text with provenance, keyed by snapshot checksum. Evidence is by reference: the
-        entity event carries the ref, never the text (HLD 4.1: every hit resolves to an entity or evidence)."""
-        body = {"source_system": rec.source_system, "source_object": rec.source_object, "source_id": rec.source_id,
+    def _write_evidence(self, event: Event, bundle: OntologyBundle, rec: Record, labels: Any,
+                        report: RedactionReport) -> str:
+        """Write the evidence object, then announce it on evidence.<family>. Returns the evidence reference.
+
+        The key is the snapshot checksum plus a hash of the labels, ACL and egress decision. The checksum alone is not
+        enough: some ACL facts (a GitLab project's visibility) are not in the payload, so a permission change leaves the
+        checksum as it was. A changed label set therefore makes a new object and a new event; consumers keep the one
+        with the newest `retrieved_at` for a given (source_system, source_id). Objects are immutable once written.
+        """
+        p = event.payload
+        egress = decide_egress(labels, report, self._egress)
+        body = {"schema_version": EVIDENCE_SCHEMA_VERSION, "tenant_id": event.tenant_id,
+                "source_system": rec.source_system, "source_object": rec.source_object, "source_id": rec.source_id,
                 "source_version": rec.source_version, "source_url": p["source_url"], "snapshot_ref": p["snapshot_ref"],
-                "checksum": p["checksum"], "title": rec.title, "text": rec.text, "labels": rec.labels,
-                "sensitivity": labels.sensitivity, "acl_state": labels.acl_state, "owners_only": labels.owners_only,
-                "redaction": report.as_dict(), "refs": refs_for_evidence(rec, self._hosts, self._pkeys)}
-        key = f"{self._ev}/{rec.source_system}/{_seg(rec.source_object)}/{_seg(rec.source_id)}/{p['checksum']}.json"
-        return self._store.put_if_absent(key, _canonical(body))
+                "checksum": p["checksum"], "retrieved_at": p["retrieved_at"], "title": rec.title, "text": rec.text,
+                "labels": rec.labels, "sensitivity": labels.sensitivity, "acl_state": labels.acl_state,
+                "owners_only": labels.owners_only, "acl": rec.acl.as_dict(), "egress": egress,
+                "redaction": report.as_dict(), "refs": refs_for_evidence(rec, self._hosts, self._pkeys),
+                "ontology": bundle.release.digest}
+        label_hash = hashlib.sha256(_canonical({k: body[k] for k in ("sensitivity", "acl_state", "owners_only", "acl",
+                                                                    "egress")})).hexdigest()[:12]
+        key = (f"{self._ev}/{rec.source_system}/{_seg(rec.source_object)}/{_seg(rec.source_id)}/"
+               f"{p['checksum']}.{label_hash}.json")
+        evidence_ref = self._store.put_if_absent(key, _canonical(body))
+        payload = {"evidence_ref": evidence_ref, "source_system": rec.source_system, "source_object": rec.source_object,
+                   "source_id": rec.source_id, "source_version": rec.source_version, "source_url": p["source_url"],
+                   "snapshot_ref": p["snapshot_ref"], "checksum": p["checksum"], "retrieved_at": p["retrieved_at"],
+                   "sensitivity": labels.sensitivity, "acl_state": labels.acl_state, "owners_only": labels.owners_only,
+                   "acl": rec.acl.as_dict(), "egress": egress, "ontology": bundle.release.digest,
+                   "idempotency_key": hashlib.sha256(
+                       f"{event.tenant_id}|{evidence_ref}".encode()).hexdigest()}
+        if not rec.text.strip():                      # an edge-only record has no text: nothing for a chunker to read
+            return evidence_ref
+        self._publish(evidence_topic(p["source"]), rec.source_id, "evidence.written", event.tenant_id, payload,
+                      {"idempotency_key": payload["idempotency_key"], "ontology_digest": bundle.release.digest})
+        return evidence_ref
 
     def _quarantine(self, event: Event, bundle: OntologyBundle, system: str, source_id: str, q: Quarantine) -> Outcome:
         p = event.payload

@@ -15,6 +15,7 @@ def _gh_acl(private: Any) -> Acl:
 
 def parse(raw: Mapping[str, Any], ref: str = "") -> list[Record]:
     commits = raw.get("commits") or []
+    review_list = raw.get("reviews") or []
     raw = raw.get("pull_request", raw)                       # the connector keeps commits and reviews next to the PR
     if "number" in raw:                                            # pull request
         base = raw.get("base") or {}
@@ -23,14 +24,20 @@ def parse(raw: Mapping[str, Any], ref: str = "") -> list[Record]:
         state = "merged" if raw.get("merged_at") else ("opened" if raw.get("state") == "open" else "closed")
         labels = [str(x.get("name", "")).lower() for x in raw.get("labels") or []]
         body = raw.get("body") or ""
+        messages = [str((c.get("commit") or {}).get("message", "")).strip() for c in commits]
+        messages = [m for m in messages if m]
+        reviews = [str(r.get("body", "")) for r in review_list if r.get("body")]
         pr = {"id": sid, "title": raw.get("title", ""), "state": state, "iid": raw["number"], "project_id": repo,
               "source_branch": (raw.get("head") or {}).get("ref"), "target_branch": base.get("ref")}
         rec = Record("git", "pull_request", sid, raw.get("updated_at") or "", raw.get("updated_at") or "",
-                     raw.get("title", ""), "\n\n".join(p for p in [raw.get("title", ""), body] if p),
+                     raw.get("title", ""),
+                     "\n\n".join(p for p in [raw.get("title", ""), body,
+                                             "Commits:\n" + "\n".join(f"- {m}" for m in messages) if messages else "",
+                                             "Reviews:\n" + "\n\n".join(reviews) if reviews else ""] if p),
                      _gh_acl((base.get("repo") or {}).get("private")), labels,
                      {k: v for k, v in pr.items() if v is not None})
         rec.link_fields = {"title": raw.get("title", ""), "branch": pr["source_branch"] or "", "description": body,
-                           "commit": "\n".join(str((c.get("commit") or {}).get("message", "")) for c in commits)}
+                           "commit": "\n".join(messages), "comment": "\n".join(reviews)}
         return [rec]
     full = raw["full_name"]                                        # repository
     sid = f"github:{full}"

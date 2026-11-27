@@ -17,11 +17,13 @@ usep/
     mapping.py      application-pack mapping + project-pack state translation + gate
     state_tables.py which source field feeds which core attribute, and which workflow table translates it
     links.py        deterministic cross-system edges with method, confidence and evidence
+    acl.py          merges the connector's harvested ACL with the parser's: principals, scopes, never loosens
+    egress.py       may this text go to an external model? decided from labels, recorded on evidence
     topics.py       topic names and schemas
 ```
 
 Flow per snapshot: `normalize` -> `redact` -> `classify` -> `mapping` (gate G1) -> evidence write -> publish
-`entity.<domain>` (or `quarantine`) -> `links`.
+`entity.<domain>` (or `quarantine`) -> `links`. Each evidence object is also announced on `evidence.<family>` (contract: `docs/contracts/evidence.md`).
 
 ## Add a source
 Connector side (`services/connectors`): `<source>/{client,models,connector,factory}.py`, a settings block in `config.py`,

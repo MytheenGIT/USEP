@@ -18,10 +18,11 @@ class Acl:
     scheme: str = ""
     principals: tuple[str, ...] = ()
     restricted: bool = False
+    scopes: tuple[str, ...] = ()        # what governs access, for example "project:ABC". Never makes an ACL "known".
 
     def as_dict(self) -> dict[str, Any]:
         return {"known": self.known, "scheme": self.scheme, "principals": list(self.principals),
-                "restricted": self.restricted}
+                "restricted": self.restricted, "scopes": list(self.scopes)}
 
 
 UNKNOWN_ACL = Acl(False)
@@ -49,9 +50,13 @@ class Record:
 
 
 def html_to_text(html: str) -> str:
-    text = re.sub(r"(?i)<br\s*/?>|</p>|</h[1-6]>|</li>|</tr>", "\n", html or "")
+    """Strip markup but keep the structure a chunker needs: headings as '#' lines, list items as '- ' lines."""
+    text = re.sub(r"(?i)<h([1-6])[^>]*>", lambda m: "\n" + "#" * int(m.group(1)) + " ", html or "")
+    text = re.sub(r"(?i)<li[^>]*>", "\n- ", text)
+    text = re.sub(r"(?i)<br\s*/?>|</p>|</h[1-6]>|</li>|</tr>|</div>", "\n", text)
     text = unescape(_TAGS.sub("", text))
-    return "\n".join(_WS.sub(" ", ln).strip() for ln in text.splitlines()).strip()
+    lines = (_WS.sub(" ", ln).strip() for ln in text.splitlines())
+    return "\n".join(ln for ln in lines if ln)
 
 
 def adf_to_text(node: Any) -> str:

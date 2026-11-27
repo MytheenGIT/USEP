@@ -122,6 +122,9 @@ class SyncService:
                         snapshot_ref=snapshot_ref,
                         checksum=payload_checksum(document.raw_payload),
                         retrieved_at=document.retrieved_at,
+                        scope=document.scope,
+                        source_version=document.source_version,
+                        acl=document.acl,
                     )
                 )
                 landed.append(document)

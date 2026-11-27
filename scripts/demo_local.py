@@ -59,7 +59,7 @@ class StandIn:
 
     async def fetch_scope(self, scope, cursor):
         docs = [SourceDocument(source=self.source, source_type="dummy", source_object_id=i["id"], scope=scope,
-                               source_version="2026-01-01T00:00:00.000Z",
+                               source_version="2026-01-01T00:00:00.000Z", acl=i.get("acl", {}),
                                source_url=f"https://dummy.invalid/{i['id']}", retrieved_at=datetime.now(UTC),
                                raw_payload=i["raw"], title=i["id"]) for i in self._items]
         return ScopeFetch(documents=docs)
@@ -120,11 +120,22 @@ def main() -> int:
         for i in items:
             print(f"  {source}/{i['id']}: {i['expect']}")
 
+    ev_events = [e for t, evs in events.items() if t.startswith("evidence.") for e in evs]
+    if ev_events:
+        allowed = sum(1 for e in ev_events if e["payload"]["egress"]["external_model"])
+        blocked = Counter(r for e in ev_events for r in e["payload"]["egress"]["reasons"])
+        print(f"\n== evidence for chunking and LLM teams ==\n  {len(ev_events)} evidence objects | "
+              f"external model allowed {allowed} | blocked {len(ev_events) - allowed} {dict(sorted(blocked.items()))}")
+
     if args.show:
         print("\n== entity and quarantine events ==")
         for topic, evs in events.items():
             for e in evs:
                 p = e["payload"]
+                if topic.startswith("evidence."):
+                    print(f"  [{topic}] {p['source_system']}/{p['source_id']} sens={p['sensitivity']} "
+                          f"acl={p['acl_state']} scopes={p['acl']['scopes']} egress={p['egress']['external_model']}")
+                    continue
                 if topic == "quarantine":
                     print(f"  [{topic}] {p['source_system']}/{p['source_ref']} {p['reason_code']}: {p['reason']}")
                 else:

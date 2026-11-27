@@ -1,12 +1,13 @@
 """Contract for publishing a raw event (C-03 topic ``raw.<family>``) after a snapshot is durable.
 
 The event carries references, never the payload: source_ref, snapshot_ref, checksum, source version and event time.
+Optionally also the scope, the source's own updated time and the harvested ACL attributes (small metadata, not content).
 Consumers (C-02 acquisition workers) read the snapshot from the raw store. The default only logs.
 """
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 import structlog
 from pydantic import BaseModel
@@ -22,6 +23,11 @@ class RawEvent(BaseModel):
     snapshot_ref: str           # where the immutable raw snapshot lives. Must be durable before publish.
     checksum: str               # sha256 of the canonical raw payload
     retrieved_at: datetime
+    # Optional, add-only (schema v1 stays compatible). The connector harvested these next to the object; the
+    # pipeline turns acl into labels and chunk-level access scopes.
+    scope: str = ""
+    source_version: str | None = None
+    acl: dict[str, Any] = {}
 
 
 class RawEventPublisher(Protocol):

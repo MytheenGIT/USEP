@@ -72,6 +72,7 @@ EventBridge schedule {"source": "jira"}
     parse+normalize -> redact -> label -> map to ontology -> gate G1 -> write evidence -> publish
    v
     bus/entity.<domain>/...   node and edge candidates        bus/quarantine/...   records that failed
+    bus/evidence.<family>/... one pointer per evidence object: the handoff to chunking and the LLM team
 ```
 
 Seven sources: Jira, GitLab, GitHub, Confluence, Figma, ServiceNow, Azure DevOps. The pipeline stops at entity candidates. The entity resolver, steward review, fabric writer, PostgreSQL commit and projectors come next and are not built.
@@ -87,12 +88,12 @@ Seven sources: Jira, GitLab, GitHub, Confluence, Figma, ServiceNow, Azure DevOps
 | `raw/<source>/<id>/<sha256>.json` | immutable source snapshots (unredacted; encryption by KMS) |
 | `bus/<topic>/p<NNN>/<uuid7>.json` | events, partition = crc32(tenant:key) mod 16; `bus/_offsets/` holds consumer positions |
 | `state/connectors/<source>.json` | sync cursor |
-| `evidence/<system>/<object>/<id>/<sha256>.json` | normalized, redacted text with provenance and the keys and URLs it cites |
+| `evidence/<system>/<object>/<id>/<sha256>.<labelhash>.json` | normalized, redacted text with provenance, labels, ACL, egress decision and the keys and URLs it cites. A changed ACL writes a new object |
 | `quarantine/<system>/<id>/<sha256>.json` | reason code and field names, never content |
 
 ## Topics
 
-`raw.<family>` (jira, gitlab, github, confluence, figma, servicenow, ado), `entity.<domain>` (business, architecture, product, security, operations, platform, testing), `quarantine`, `ontology.release`. Events carry references, not payloads, and a `tenant_id`. Schemas are in `src/usep/pipeline/topics.py`.
+`raw.<family>` (jira, gitlab, github, confluence, figma, servicenow, ado), `entity.<domain>` (business, architecture, product, security, operations, platform, testing), `evidence.<family>` (same families as raw), `quarantine`, `ontology.release`. Events carry references, not payloads, and a `tenant_id`. Schemas are in `src/usep/pipeline/topics.py`.
 
 ## Quarantine reason codes
 
@@ -102,6 +103,8 @@ Seven sources: Jira, GitLab, GitHub, Confluence, Figma, ServiceNow, Azure DevOps
 | `Q-STATE` | a source state or code has no rule | add a row to the project pack's table |
 | `Q-SCHEMA` | gate G1 failed (required attribute, vocabulary value, endpoint type) | read the reason, fix the mapping or source data |
 | `Q-PARSE` | the snapshot is not the shape the parser expects (source schema drift) | fix the parser |
+
+**Handoff to chunking and LLM teams:** read `evidence.<family>` events and the evidence objects they point at. Contract, labels, ACL handling and the egress rule: `docs/contracts/evidence.md`.
 
 # Run and test
 
