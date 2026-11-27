@@ -18,7 +18,7 @@ def test_backoff_sequence_and_cap() -> None:
 
 
 def test_compute_delay_rejects_non_positive_attempt() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="attempt"):
         compute_delay(0, base_delay_s=2.0, max_delay_s=600.0)
 
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+import pytest
+
 from usep.ingestion.domain.raw_object import canonicalize, content_hash, object_key
 
 TENANT = uuid4()
@@ -35,3 +37,32 @@ def test_object_key_changes_when_content_hash_changes() -> None:
     key1 = object_key(TENANT, "jira", "PROJ", "issue", "PROJ-1", "hash1")
     key2 = object_key(TENANT, "jira", "PROJ", "issue", "PROJ-1", "hash2")
     assert key1 != key2
+
+
+def test_keys_do_not_collide_when_a_part_contains_a_slash() -> None:
+    first = object_key(TENANT, "gitlab", "g/p", "blob", "x", "h")
+    second = object_key(TENANT, "gitlab", "g", "p", "blob/x", "h")
+
+    assert first != second
+
+
+def test_plain_parts_keep_the_documented_key_layout() -> None:
+    assert object_key(TENANT, "jira", "PROJ", "issue", "PROJ-1", "abc") == (
+        f"raw/{TENANT}/jira/PROJ/issue/PROJ-1/abc.json"
+    )
+
+
+@pytest.mark.parametrize("dots", [".", ".."])
+def test_a_part_made_only_of_dots_cannot_act_as_a_path_step(dots: str) -> None:
+    key = object_key(TENANT, "jira", "PROJ", "issue", dots, "abc")
+
+    assert f"/{dots}/" not in key
+
+
+@pytest.mark.parametrize("empty_part", [0, 1, 2, 3])
+def test_empty_key_part_is_rejected(empty_part: int) -> None:
+    parts = ["jira", "PROJ", "issue", "PROJ-1"]
+    parts[empty_part] = ""
+
+    with pytest.raises(ValueError, match="non-empty"):
+        object_key(TENANT, parts[0], parts[1], parts[2], parts[3], "abc")

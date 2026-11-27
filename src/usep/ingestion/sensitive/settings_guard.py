@@ -1,7 +1,9 @@
-"""Scans every string field of `Settings` for a credential-shaped value before it
-is trusted (section 5.1). Lives here, not in `usep.core.config`, because
-`usep.core` has no dependency on any other usep package (`usep/core/__init__.py`);
-this module legitimately depends on both `usep.core.config` and
+"""Scans every string field of `Settings` for a credential-shaped value.
+
+This runs before the settings are trusted (section 5.1).
+
+Lives here, not in `usep.core.config`, because `usep.core` has no dependency on any other usep
+package (`usep/core/__init__.py`); this module legitimately depends on both `usep.core.config` and
 `usep.ingestion.sensitive.patterns`, so the scan lives on this side of that line.
 
 Use `load_settings()` wherever `Settings` is built from real configuration; the
@@ -29,10 +31,12 @@ def find_leaked_secret_pattern(value: str) -> str | None:
     return None
 
 
-def assert_no_leaked_secrets(data: Mapping[str, Any], *, path: str = "") -> None:
-    """Recursively scans a (nested) mapping of settings values. Raises `ConfigError`
-    naming the field path and pattern name only — never the matched value."""
-    for key, value in data.items():
+def assert_no_leaked_secrets(values: Mapping[str, Any], *, path: str = "") -> None:
+    """Recursively scans a (nested) mapping of settings values.
+
+    Raises `ConfigError` naming the field path and pattern name only — never the matched value.
+    """
+    for key, value in values.items():
         field_path = f"{path}.{key}" if path else str(key)
         if isinstance(value, str):
             pattern_name = find_leaked_secret_pattern(value)
@@ -43,9 +47,9 @@ def assert_no_leaked_secrets(data: Mapping[str, Any], *, path: str = "") -> None
 
 
 def load_settings(**overrides: Any) -> Settings:
-    """Construct `Settings`, then scan every string field for a credential-shaped
-    value. Raises `ConfigError` naming the field and pattern or error type only, never
-    the value.
+    """Construct `Settings`, then scan every string field for a credential-shaped value.
+
+    Raises `ConfigError` naming the field and pattern or error type only, never the value.
     """
     try:
         settings = Settings(**overrides)

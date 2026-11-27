@@ -10,6 +10,8 @@ from usep.ingestion.domain.events import QuarantineRecord
 
 
 class QuarantinePort(Protocol):
+    """Holds objects that failed a rule."""
+
     async def quarantine(
         self,
         tenant_id: UUID,
@@ -18,10 +20,13 @@ class QuarantinePort(Protocol):
         object_type: str,
         object_id: str,
         record: QuarantineRecord,
-    ) -> UUID: ...
+    ) -> UUID:
+        """Record a quarantined object and return the ID of the new entry."""
 
 
 class DeadLetterPort(Protocol):
+    """Holds objects whose retries were exhausted."""
+
     async def dead_letter(
         self,
         tenant_id: UUID,
@@ -30,10 +35,13 @@ class DeadLetterPort(Protocol):
         object_type: str,
         object_id: str,
         reason: str,
-    ) -> None: ...
+    ) -> None:
+        """Record an object as dead-lettered, with the reason."""
 
 
 class WorkItemPort(Protocol):
+    """Tracks the retry state of each object."""
+
     async def upsert(
         self,
         tenant_id: UUID,
@@ -46,4 +54,5 @@ class WorkItemPort(Protocol):
         attempts: int,
         retry_at: datetime | None = None,
         last_reason: str = "",
-    ) -> None: ...
+    ) -> None:
+        """Create or update the retry state of an object."""

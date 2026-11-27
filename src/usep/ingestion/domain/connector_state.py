@@ -1,7 +1,8 @@
-"""The connector state machine: six states, seven transitions, exactly LLD §4.1
-Table 11 (section 5.3). Guards (access route tested, reconciliation diff below
-threshold, ...) are the caller's responsibility to check *before* calling
-`transition()` — this module only enforces which (state, event) pairs exist.
+"""The connector state machine: six states and seven transitions (LLD §4.1 Table 11).
+
+Guards (access route tested, reconciliation diff below threshold, ...) are the caller's
+responsibility to check *before* calling `transition()` — this module only enforces which (state,
+event) pairs exist.
 """
 
 from __future__ import annotations
@@ -14,6 +15,8 @@ from usep.core.errors import InvalidStateTransitionError
 
 
 class ConnectorState(StrEnum):
+    """Lifecycle state of a connector scope."""
+
     DISCOVERED = "DISCOVERED"
     BACKFILLING = "BACKFILLING"
     LIVE = "LIVE"
@@ -23,6 +26,8 @@ class ConnectorState(StrEnum):
 
 
 class TransitionEvent(StrEnum):
+    """An event that moves a connector scope from one state to another."""
+
     SCOPE_APPROVED = "scope_approved"
     BACKFILL_COMPLETE = "backfill_complete"
     DEGRADE = "degrade"  # rate limit or 5xx for more than 5 minutes
@@ -34,6 +39,8 @@ class TransitionEvent(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class StateRecord:
+    """A scope's current state, when it entered that state, and why."""
+
     state: ConnectorState
     entered_at: datetime
     reason: str = ""
@@ -53,8 +60,10 @@ for _state in ConnectorState:
 
 
 def transition(current: ConnectorState, event: TransitionEvent) -> ConnectorState:
-    """The next state for `event` from `current`. Raises `InvalidStateTransitionError`
-    if the state machine (Table 11) has no such transition."""
+    """The next state for `event` from `current`.
+
+    Raises `InvalidStateTransitionError` if the state machine (Table 11) has no such transition.
+    """
     key = (current, event)
     if key not in _TABLE:
         raise InvalidStateTransitionError(f"no transition for state={current} event={event}")

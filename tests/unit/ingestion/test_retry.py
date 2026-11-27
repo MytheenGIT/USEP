@@ -312,3 +312,53 @@ async def test_unexpected_exception_is_logged_with_type_and_frames_only(
     assert record.exception_type == "ValueError"  # type: ignore[attr-defined]
     assert record.endpoint == "/issues"  # type: ignore[attr-defined]
     assert "glpat" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_dead_letter_is_logged_as_an_error_with_reason_and_attempts(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    clock = FakeClock()
+
+    async def always_transient() -> SendOutcome[str]:
+        raise TransientError(f"connect timeout {_ECHOED_SECRET}")
+
+    with caplog.at_level(logging.INFO, logger="usep.ingestion.runtime.retry"):
+        await call_with_retry(
+            always_transient,
+            key=_key(),
+            policy=RetryPolicy(max_attempts=2, base_delay_s=0.001, max_delay_s=0.01),
+            rate_limiter=_limiter(clock),
+            clock=clock,
+            observer=ListObserver(),
+            endpoint="/issues",
+            source_system="jira",
+        )
+
+    retrying = next(r for r in caplog.records if r.getMessage() == "call retrying")
+    dead = next(r for r in caplog.records if r.getMessage() == "call dead-lettered")
+    assert (retrying.levelno, dead.levelno) == (logging.INFO, logging.ERROR)
+    assert (dead.reason, dead.attempts, dead.endpoint) == ("TransientError", 2, "/issues")  # type: ignore[attr-defined]
+    assert "glpat" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_deferral_is_logged_as_a_warning(caplog: pytest.LogCaptureFixture) -> None:
+    clock = FakeClock()
+    send = _Scripted([SendOutcome(Classification.RETRYABLE, is_429=True, retry_after_s=900.0, reason="429")])
+
+    with caplog.at_level(logging.INFO, logger="usep.ingestion.runtime.retry"):
+        await call_with_retry(
+            send,
+            key=_key(),
+            policy=RetryPolicy(),
+            rate_limiter=_limiter(clock),
+            clock=clock,
+            observer=ListObserver(),
+            endpoint="/issues",
+            source_system="jira",
+        )
+
+    record = next(r for r in caplog.records if r.getMessage() == "call deferred")
+    assert record.levelno == logging.WARNING
+    assert record.reason == "retry_after_over_cap"  # type: ignore[attr-defined]

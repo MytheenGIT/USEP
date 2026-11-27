@@ -8,8 +8,10 @@ from uuid import UUID
 
 @dataclass(frozen=True, slots=True)
 class RawObjectPublished:
-    """The reference-only event published after a raw object is stored. Never
-    carries payload bytes."""
+    """The reference-only event published after a raw object is stored.
+
+    Never carries payload bytes.
+    """
 
     event_id: UUID
     schema_version: str
@@ -26,5 +28,7 @@ class RawObjectPublished:
 
 @dataclass(frozen=True, slots=True)
 class QuarantineRecord:
+    """What is kept for a quarantined object: reason and match counts, never the text."""
+
     reason_code: str
     detector_counts: dict[str, int]

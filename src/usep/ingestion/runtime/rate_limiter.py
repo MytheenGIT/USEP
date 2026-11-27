@@ -11,16 +11,18 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal
 from uuid import UUID
 
 from usep.core.clock import Clock
+from usep.ingestion.domain.cursor import Lane
 
-Lane = Literal["live", "backfill"]
+DEFAULT_RATE_PER_SECOND = 1.0
 
 
 @dataclass(frozen=True, slots=True)
 class RateLimitKey:
+    """Identifies one rate-limit budget: tenant, source system, account and lane."""
+
     tenant_id: UUID
     source_system: str
     account: str
@@ -41,6 +43,7 @@ class _Bucket:
         self.updated_at = now
 
     def wait_seconds(self, now: datetime) -> float:
+        """Return how long a caller must wait for a token and any penalty."""
         self._refill(now)
         candidates = [0.0]
         if self.tokens < 1:
@@ -50,10 +53,6 @@ class _Bucket:
         if self.penalized_until is not None:
             candidates.append(max((self.penalized_until - now).total_seconds(), 0.0))
         return max(candidates)
-
-    def consume(self, now: datetime) -> None:
-        self._refill(now)
-        self.tokens = max(self.tokens - 1, 0.0)
 
     def reserve(self, now: datetime) -> float:
         """Take one token now and return how long the caller must wait before using it.
@@ -70,6 +69,12 @@ class RateLimiter:
     """Owns one `_Bucket` per `RateLimitKey`."""
 
     def __init__(self, clock: Clock, *, backfill_fraction: float) -> None:
+        """Build the limiter.
+
+        Args:
+            clock: Time source.
+            backfill_fraction: The backfill lane's rate as a fraction of the live lane's.
+        """
         self._clock = clock
         self._backfill_fraction = backfill_fraction
         self._buckets: dict[RateLimitKey, _Bucket] = {}
@@ -83,8 +88,9 @@ class RateLimiter:
         rate_per_second: float,
         capacity: float | None = None,
     ) -> None:
-        """Set the live lane's rate; the backfill lane's rate is derived as
-        `rate_per_second * backfill_fraction` (default fraction 0.5).
+        """Set the live lane's rate; the backfill lane's rate is derived from it.
+
+        The backfill lane's rate is `rate_per_second * backfill_fraction` (default fraction 0.5).
 
         Raises:
             ValueError: If `rate_per_second` is not positive (a zero rate would block forever).
@@ -93,28 +99,31 @@ class RateLimiter:
             raise ValueError("rate_per_second must be positive")
         now = self._clock.now()
         live_capacity = capacity if capacity is not None else max(rate_per_second, 1.0)
-        self._buckets[RateLimitKey(tenant_id, source_system, account, "live")] = _Bucket(
+        self._buckets[RateLimitKey(tenant_id, source_system, account, Lane.LIVE)] = _Bucket(
             rate_per_second, live_capacity, live_capacity, now
         )
         backfill_rate = rate_per_second * self._backfill_fraction
         backfill_capacity = max(backfill_rate, 1.0)
-        self._buckets[RateLimitKey(tenant_id, source_system, account, "backfill")] = _Bucket(
+        self._buckets[RateLimitKey(tenant_id, source_system, account, Lane.BACKFILL)] = _Bucket(
             backfill_rate, backfill_capacity, backfill_capacity, now
         )
 
     def _bucket(self, key: RateLimitKey) -> _Bucket:
         if key not in self._buckets:
-            # Conservative default (1 req/s) for an unconfigured key, so a caller that
-            # forgets to call configure() still gets rate-limited rather than unlimited.
-            self.configure(key.tenant_id, key.source_system, key.account, rate_per_second=1.0)
+            # Conservative default for an unconfigured key, so a caller that forgets to call
+            # configure() still gets rate-limited rather than unlimited.
+            self.configure(
+                key.tenant_id, key.source_system, key.account, rate_per_second=DEFAULT_RATE_PER_SECOND
+            )
         return self._buckets[key]
 
     def wait_seconds(self, key: RateLimitKey) -> float:
-        """How long `acquire(key)` would currently have to wait. Pure — no side effect."""
+        """Return how long a caller must wait for a token and any penalty."""
         return self._bucket(key).wait_seconds(self._clock.now())
 
     async def acquire(self, key: RateLimitKey) -> float:
         """Reserve a token, then wait for it and for any active penalty to expire.
+
         Returns the number of seconds slept (0 if none).
 
         The reservation happens before the first `await`, so concurrent callers on one key
@@ -126,8 +135,10 @@ class RateLimiter:
         return wait
 
     def penalize(self, key: RateLimitKey, duration_seconds: float) -> None:
-        """Pause every caller on this exact key for `duration_seconds` (section 5.7:
-        "A penalty API pauses every caller on a key after a 429")."""
+        """Pause every caller on this key for `duration_seconds`.
+
+        Section 5.7: a penalty pauses every caller on a key after a 429.
+        """
         bucket = self._bucket(key)
         until = self._clock.now() + timedelta(seconds=duration_seconds)
         # Keep the longer pause: a later 429 with a short Retry-After must not cut a long one short.

@@ -1,0 +1,15 @@
+"""Default numbers shared by settings and by the code that uses them, so each one is written once."""
+
+from __future__ import annotations
+
+SECONDS_PER_DAY = 86_400
+MILLISECONDS_PER_SECOND = 1000
+
+DEFAULT_MAX_ATTEMPTS = 5
+DEFAULT_BASE_DELAY_S = 2.0
+DEFAULT_MAX_DELAY_S = 600.0
+DEFAULT_DEFER_MAX_S = float(SECONDS_PER_DAY)
+DEFAULT_RECONCILE_INTERVAL_S = SECONDS_PER_DAY
+DEFAULT_TOMBSTONE_MIN_AGE_S = 72_000  # 20 hours
+DEFAULT_MAX_PAGES = 10_000
+DEFAULT_PAGE_SIZE = 100

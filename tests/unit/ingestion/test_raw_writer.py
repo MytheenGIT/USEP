@@ -223,7 +223,8 @@ async def _lost_race() -> tuple[
         RUN,
     )
     payload = {"summary": "v1", **_envelope()}
-    stripped, object_type, scope_id, _ = _extract_envelope(payload)
+    stripped, envelope = _extract_envelope(payload)
+    object_type, scope_id = envelope.object_type, envelope.scope_id
     canonical = canonicalize(stripped)
     digest = content_hash(canonical)
     key = object_key(TENANT, "jira", scope_id, object_type, "PROJ-1", digest)
@@ -401,7 +402,7 @@ _ECHOED_SECRET = "secret glpat-abcdefghijklmnopqrstuvwxyz"  # SYNTHETIC
 
 
 class _BrokenObjectStore(InMemoryObjectStore):
-    async def put(self, key: str, data: bytes) -> None:
+    async def put(self, key: str, content: bytes) -> None:
         raise RuntimeError(f"storage said: {_ECHOED_SECRET}")
 
 
@@ -455,3 +456,60 @@ async def test_audit_outage_does_not_replace_the_envelope_error() -> None:
 
     with pytest.raises(EnvelopeError):
         await writer.write("jira", "PROJ-1", {"summary": "no envelope"})
+
+
+def _payload_with_version(version: object) -> dict:
+    envelope = _envelope()
+    envelope["_usep"]["source_version"] = version
+    return {"summary": "v1", **envelope}
+
+
+@pytest.mark.asyncio
+async def test_source_version_from_the_envelope_is_stored_on_the_row() -> None:
+    writer, raw_index, *_ = _writer()
+
+    await writer.write("jira", "PROJ-1", _payload_with_version("2026-01-01T10:00:00Z"))
+
+    assert raw_index.all_refs()[0].source_version == "2026-01-01T10:00:00Z"
+
+
+@pytest.mark.asyncio
+async def test_source_version_is_updated_when_only_the_version_changed() -> None:
+    writer, raw_index, _, event_bus, *_ = _writer()
+    await writer.write("jira", "PROJ-1", _payload_with_version("v1"))
+
+    await writer.write("jira", "PROJ-1", _payload_with_version("v2"))
+
+    assert raw_index.all_refs()[0].source_version == "v2"
+    assert len(event_bus.published) == 1
+
+
+@pytest.mark.parametrize("bad_version", ["", 5, ["v1"]])
+def test_source_version_must_be_a_non_empty_string_when_given(bad_version: object) -> None:
+    with pytest.raises(EnvelopeError, match="source_version"):
+        _extract_envelope(_payload_with_version(bad_version))
+
+
+@pytest.mark.parametrize(("source", "object_id"), [("", "PROJ-1"), ("jira", "")])
+@pytest.mark.asyncio
+async def test_empty_source_or_object_id_is_a_caller_error(source: str, object_id: str) -> None:
+    writer, *_ = _writer()
+
+    with pytest.raises(EnvelopeError, match="non-empty"):
+        await writer.write(source, object_id, {"summary": "v1", **_envelope()})
+
+
+@pytest.mark.asyncio
+async def test_quarantine_is_logged_with_reason_and_counts_but_never_the_matched_value(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    writer, *_ = _writer()
+    card = "4111 1111 1111 1111"  # SYNTHETIC industry-standard test card number
+
+    with caplog.at_level(logging.WARNING, logger="usep.ingestion.raw.writer"):
+        await writer.write("jira", "PROJ-1", {"summary": f"card {card}", **_envelope()})
+
+    record = next(r for r in caplog.records if r.getMessage() == "object quarantined")
+    assert record.reason_code == "Q-PII"  # type: ignore[attr-defined]
+    assert record.counts == {"Q-PII": 1}  # type: ignore[attr-defined]
+    assert "4111" not in caplog.text

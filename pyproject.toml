@@ -15,6 +15,7 @@ dependencies = [
   "uuid6>=2024.7.10",
   "structlog>=24.4",
   "opentelemetry-api>=1.27",
+  "cryptography>=43.0",
 ]
 
 [project.optional-dependencies]
@@ -22,10 +23,9 @@ postgres = ["psycopg[binary,pool]>=3.2"]
 s3 = ["boto3>=1.35"]
 kafka = ["aiokafka>=0.11"]
 vault = ["hvac>=2.3"]
-crypto = ["cryptography>=43.0"]
 http = ["httpx>=0.27"]
 all = [
-  "usep[postgres,s3,kafka,vault,crypto,http]",
+  "usep[postgres,s3,kafka,vault,http]",
 ]
 dev = [
   "ruff>=0.7",
@@ -77,19 +77,36 @@ src = ["src", "tests"]
 extend-exclude = ["src/usep/ontology"]
 
 [tool.ruff.lint]
-# Standards 9.3 reference set (E W F I B UP SIM S PL RUF) plus BLE, which enforces the
-# "no blind except outside a top-level handler" rule (3.6), and ASYNC. Not yet enabled:
-# D (Google docstrings), about 160 findings, tracked as a separate change.
-select = ["E", "W", "F", "I", "B", "UP", "SIM", "S", "PL", "RUF", "BLE", "ASYNC"]
-# PLR0913/PLR0917: ports and the writer take their dependencies as arguments by design.
-# PLR2004: HTTP status codes, checksum constants and the UUID version are clearer inline.
-ignore = ["E501", "PLR0913", "PLR0917", "PLR2004"]
+# Standards 9.3 reference set (E W F I B UP SIM S PL RUF D) plus BLE (no blind except outside a
+# top-level handler, 3.6), ASYNC, C90 (complexity), N (naming), DTZ (no naive datetimes), G and
+# LOG (logging), T20 (no print), ERA (no commented-out code), C4, RET, PERF, PIE, TID, PT, FURB,
+# PGH, RSE, ISC and TRY. Not enabled: TC (pydantic needs runtime imports), ARG (no-op methods that
+# satisfy a Protocol), ANN (mypy --strict covers annotations) and EM (exception-message style).
+select = [
+  "E", "W", "F", "I", "B", "UP", "SIM", "S", "PL", "RUF", "D",
+  "BLE", "ASYNC", "C90", "N", "DTZ", "G", "LOG", "T20", "ERA", "C4", "RET", "PERF", "PIE", "TID",
+  "PT", "FURB", "PGH", "RSE", "ISC", "TRY",
+]
+ignore = [
+  "E501",    # line length is the formatter's job
+  "PLR0913", "PLR0917",  # ports and the writer take their dependencies as arguments by design
+  "TRY003",  # exception messages name the operation and context (standards 1.3)
+  "TRY400",  # failures log exception type and frames only: logger.exception would print the message,
+             # which can echo secrets or source content
+  "D100", "D104",  # per the standards reference config
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S311", "PLC0415"]
+"tests/**" = ["S101", "S105", "S311", "PLC0415", "PLR2004", "D"]
 # ontology/ and evals/ predate these rules and are out of scope to modify; they keep the old rule set.
-"ontology/**" = ["W", "S", "PL", "RUF", "BLE"]
-"evals/**" = ["W", "S", "PL", "RUF", "BLE"]
+"ontology/**" = ["W", "S", "PL", "RUF", "D", "BLE", "C90", "N", "DTZ", "G", "LOG", "T20", "ERA", "C4", "RET", "PERF", "PIE", "TID", "PT", "FURB", "PGH", "RSE", "ISC", "TRY"]
+"evals/**" = ["W", "S", "PL", "RUF", "D", "BLE", "C90", "N", "DTZ", "G", "LOG", "T20", "ERA", "C4", "RET", "PERF", "PIE", "TID", "PT", "FURB", "PGH", "RSE", "ISC", "TRY"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["usep"]

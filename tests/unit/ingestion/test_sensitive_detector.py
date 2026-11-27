@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
 from usep.ingestion.sensitive.detector import detect
+from usep.ingestion.sensitive.patterns import luhn_is_valid
 
 # Synthetic fixtures only — every value below is a widely recognised test/placeholder
 # value (industry-standard test card number, a sequential Aadhaar-shaped number
@@ -98,3 +101,47 @@ def test_result_never_carries_the_matched_text() -> None:
     for value in result.counts.values():
         assert isinstance(value, int)
     assert FAKE_GITLAB_PAT not in repr(result)
+
+
+def _first_luhn_valid_epoch_millis() -> int:
+    n = 1_700_000_000_000
+    while not luhn_is_valid(str(n)):
+        n += 1
+    return n
+
+
+def test_epoch_millisecond_timestamp_that_passes_luhn_is_not_a_card_number() -> None:
+    timestamp = _first_luhn_valid_epoch_millis()
+
+    assert detect(f'{{"updatedAt": {timestamp}}}').matched is False
+
+
+def _first_luhn_valid(prefix: str, length: int) -> str:
+    n = int(prefix.ljust(length, "0"))
+    while not luhn_is_valid(str(n)):
+        n += 1
+    return str(n)
+
+
+@pytest.mark.parametrize(
+    "card",
+    [
+        "5555 5555 5555 4444",
+        "3782 822463 10005",
+        "6011 1111 1111 1117",
+        _first_luhn_valid("7", 16),
+        _first_luhn_valid("8", 16),
+        _first_luhn_valid("9", 16),
+        _first_luhn_valid("1", 15),  # UATP cards are the only ones starting with 1
+    ],
+)
+def test_card_numbers_from_other_networks_are_still_detected(card: str) -> None:
+    assert detect(f"card {card}").counts == {"Q-PII": 1}
+
+
+def test_card_number_written_with_non_ascii_digits_is_still_detected() -> None:
+    arabic_indic_visa = (
+        "\u0664\u0661\u0661\u0661 \u0661\u0661\u0661\u0661 \u0661\u0661\u0661\u0661 \u0661\u0661\u0661\u0661"
+    )
+
+    assert detect(f"card {arabic_indic_visa}").counts == {"Q-PII": 1}

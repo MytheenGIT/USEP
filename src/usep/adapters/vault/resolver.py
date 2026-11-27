@@ -16,12 +16,19 @@ from typing import Any
 import hvac
 import hvac.exceptions
 
-from usep.core.config import is_valid_secret_ref
+from usep.core.config import VAULT_FIELD_SEPARATOR, VAULT_REF_PREFIX, is_valid_secret_ref
 from usep.core.errors import ConfigError
 from usep.ingestion.ports.secrets import SecretValue, SvidProviderPort
 
+DEFAULT_AUDIENCE = "vault"
+
 
 class VaultSecretResolver:
+    """Resolves `vault:path#field` references from a Vault KV v2 secret.
+
+    It logs in with a workload JWT before each read.
+    """
+
     def __init__(
         self,
         client: hvac.Client,
@@ -30,8 +37,18 @@ class VaultSecretResolver:
         jwt_auth_mount: str,
         kv_mount: str,
         vault_role: str,
-        audience: str = "vault",
+        audience: str = DEFAULT_AUDIENCE,
     ) -> None:
+        """Build the resolver.
+
+        Args:
+            client: Vault client, shared by all calls.
+            svid_provider: Source of the workload JWT used to log in.
+            jwt_auth_mount: Mount point of Vault's JWT auth method.
+            kv_mount: Mount point of the KV v2 secrets engine.
+            vault_role: Vault role to log in as.
+            audience: Audience requested for the workload JWT.
+        """
         self._client = client
         self._svid_provider = svid_provider
         self._jwt_auth_mount = jwt_auth_mount
@@ -45,9 +62,21 @@ class VaultSecretResolver:
         self._lock = asyncio.Lock()
 
     async def resolve(self, ref: str) -> SecretValue:
-        if not is_valid_secret_ref(ref) or not ref.startswith("vault:"):
+        """Read one field of a Vault secret.
+
+        Args:
+            ref: A reference of the form `vault:path#field`.
+
+        Returns:
+            The field's value, wrapped so it cannot be logged by accident.
+
+        Raises:
+            ConfigError: If `ref` is not a `vault:` reference, Vault cannot be read, or the field is
+                missing or not a non-empty string.
+        """
+        if not is_valid_secret_ref(ref) or not ref.startswith(VAULT_REF_PREFIX):
             raise ConfigError("secret reference is not a vault: reference")
-        path, _, field = ref[len("vault:") :].partition("#")
+        path, _, field = ref[len(VAULT_REF_PREFIX) :].partition(VAULT_FIELD_SEPARATOR)
 
         async with self._lock:
             svid = await self._svid_provider.fetch_jwt_svid(self._audience)
@@ -63,14 +92,14 @@ class VaultSecretResolver:
                     path=path,
                     mount_point=self._kv_mount,
                 )
-                data = response["data"]["data"]
+                secret_fields = response["data"]["data"]
             except (hvac.exceptions.VaultError, OSError, KeyError, TypeError) as err:
                 # OSError covers connection failures raised by the HTTP layer under hvac. The
                 # message names the path and exception type only: vendor messages can echo URLs.
                 raise ConfigError(f"could not read vault secret at {path!r}: {type(err).__name__}") from err
-        if not isinstance(data, dict) or field not in data:
+        if not isinstance(secret_fields, dict) or field not in secret_fields:
             raise ConfigError(f"vault secret at {path!r} has no field named {field!r}")
-        value = data[field]
+        value = secret_fields[field]
         if not isinstance(value, str) or not value:
             raise ConfigError(f"vault secret at {path!r} field {field!r} is not a non-empty string")
         return SecretValue(value)

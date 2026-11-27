@@ -1,5 +1,4 @@
-"""Configuration: `Settings` (the validated schema this phase defines) and `Config`
-(a narrower, permissive dotted-key facade for callers outside that schema).
+"""Configuration: the validated `Settings` schema and the permissive `Config` reader.
 
 Two distinct objects, deliberately:
 
@@ -23,15 +22,39 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from typing import Any, Literal
+from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from usep.core.defaults import (
+    DEFAULT_BASE_DELAY_S,
+    DEFAULT_DEFER_MAX_S,
+    DEFAULT_MAX_ATTEMPTS,
+    DEFAULT_MAX_DELAY_S,
+    DEFAULT_MAX_PAGES,
+    DEFAULT_RECONCILE_INTERVAL_S,
+    DEFAULT_TOMBSTONE_MIN_AGE_S,
+)
 from usep.core.errors import ConfigError
 
-Environment = Literal["dev", "test", "staging", "prod"]
+
+class Environment(StrEnum):
+    """Deployment environment. Staging and prod are production-like and get stricter validation."""
+
+    DEV = "dev"
+    TEST = "test"
+    STAGING = "staging"
+    PROD = "prod"
+
+
+PRODUCTION_LIKE_ENVIRONMENTS = frozenset({Environment.STAGING, Environment.PROD})
+ENV_REF_PREFIX = "env:"
+VAULT_REF_PREFIX = "vault:"
+VAULT_FIELD_SEPARATOR = "#"
+UUID_VERSION_7 = 7
 
 _DEV_PLACEHOLDER_TENANT_ID = UUID("00000000-0000-7000-8000-000000000000")
 """The exact placeholder from .env.example. Accepted only when environment == dev (D10)."""
@@ -51,9 +74,23 @@ class Config:
     _ENV_PREFIX = "USEP_"
 
     def __init__(self, env: Mapping[str, str] | None = None) -> None:
+        """Build the reader.
+
+        Args:
+            env: Variables to read instead of `os.environ`.
+        """
         self._env: Mapping[str, str] = dict(env) if env is not None else dict(os.environ)
 
     def get(self, key: str, default: Any = None) -> Any:
+        """Return the value for a dotted key.
+
+        Args:
+            key: Dotted key such as `ontology.dir`.
+            default: Returned when the variable is not set.
+
+        Returns:
+            The raw string value, or `default`.
+        """
         env_name = self._ENV_PREFIX + key.upper().replace(".", "__")
         return self._env.get(env_name, default)
 
@@ -68,22 +105,24 @@ def is_valid_secret_ref(value: str) -> bool:
     module, so both can depend on one definition without `usep.core` depending on
     anything in `usep.ingestion`.
     """
-    if value.startswith("env:"):
-        return len(value) > len("env:")
-    if value.startswith("vault:"):
-        rest = value[len("vault:") :]
-        path, _, field = rest.partition("#")
+    if value.startswith(ENV_REF_PREFIX):
+        return len(value) > len(ENV_REF_PREFIX)
+    if value.startswith(VAULT_REF_PREFIX):
+        rest = value[len(VAULT_REF_PREFIX) :]
+        path, _, field = rest.partition(VAULT_FIELD_SEPARATOR)
         return bool(path) and bool(field)
     return False
 
 
 class RetryRuntimeSettings(BaseModel):
+    """Attempt cap and back-off bounds for connector HTTP calls."""
+
     model_config = SettingsConfigDict(frozen=True)
 
-    max_attempts: int = Field(default=5, ge=1, le=20)
-    base_delay_s: float = Field(default=2.0, gt=0)
-    max_delay_s: float = Field(default=600.0, gt=0)
-    defer_max_s: float = Field(default=86400.0, gt=0)
+    max_attempts: int = Field(default=DEFAULT_MAX_ATTEMPTS, ge=1, le=20)
+    base_delay_s: float = Field(default=DEFAULT_BASE_DELAY_S, gt=0)
+    max_delay_s: float = Field(default=DEFAULT_MAX_DELAY_S, gt=0)
+    defer_max_s: float = Field(default=DEFAULT_DEFER_MAX_S, gt=0)
 
     @model_validator(mode="after")
     def _max_at_least_base(self) -> RetryRuntimeSettings:
@@ -93,25 +132,31 @@ class RetryRuntimeSettings(BaseModel):
 
 
 class RateRuntimeSettings(BaseModel):
+    """Rate-limit settings for connector HTTP calls."""
+
     model_config = SettingsConfigDict(frozen=True)
 
     backfill_fraction: float = Field(default=0.5, gt=0, le=1)
 
 
 class RuntimeSettings(BaseModel):
+    """Connector runtime timing, paging and reconciliation settings."""
+
     model_config = SettingsConfigDict(frozen=True)
 
     retry: RetryRuntimeSettings = RetryRuntimeSettings()
     rate: RateRuntimeSettings = RateRuntimeSettings()
     degraded_after_s: int = Field(default=300, gt=0)
     recover_after_s: int = Field(default=600, gt=0)
-    reconcile_interval_s: int = Field(default=86400, gt=0)
-    tombstone_min_age_s: int = Field(default=72000, gt=0)
-    max_pages: int = Field(default=10_000, gt=0)
+    reconcile_interval_s: int = Field(default=DEFAULT_RECONCILE_INTERVAL_S, gt=0)
+    tombstone_min_age_s: int = Field(default=DEFAULT_TOMBSTONE_MIN_AGE_S, gt=0)
+    max_pages: int = Field(default=DEFAULT_MAX_PAGES, gt=0)
     poll_interval_s: int = Field(default=900, ge=60)
 
 
 class ConnectorRawSettings(BaseModel):
+    """Settings for raw-payload storage."""
+
     model_config = SettingsConfigDict(frozen=True)
 
     retention_days: int = Field(default=365, gt=0)
@@ -119,6 +164,8 @@ class ConnectorRawSettings(BaseModel):
 
 
 class ConnectorSettings(BaseModel):
+    """Connector settings: runtime behaviour and raw-payload storage."""
+
     model_config = SettingsConfigDict(frozen=True)
 
     runtime: RuntimeSettings = RuntimeSettings()
@@ -140,7 +187,7 @@ class Settings(BaseSettings):
         frozen=True,
     )
 
-    environment: Environment = "dev"
+    environment: Environment = Environment.DEV
     tenant_id: UUID
     vault_addr: str | None = None
     vault_jwt_auth_mount: str = "jwt"
@@ -150,19 +197,19 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_tenant_id(self) -> Settings:
-        if self.tenant_id == _DEV_PLACEHOLDER_TENANT_ID and self.environment != "dev":
+        if self.tenant_id == _DEV_PLACEHOLDER_TENANT_ID and self.environment != Environment.DEV:
             raise ConfigError("tenant_id: the .env.example placeholder is only accepted when environment=dev")
-        if self.tenant_id.version != 7:
+        if self.tenant_id.version != UUID_VERSION_7:
             raise ConfigError("tenant_id: must be a UUID v7")
         return self
 
     @model_validator(mode="after")
     def _validate_production_rules(self) -> Settings:
-        if self.environment in ("staging", "prod"):
+        if self.environment in PRODUCTION_LIKE_ENVIRONMENTS:
             if not self.vault_addr:
                 raise ConfigError("vault_addr: required when environment is staging or prod")
             if not self.kms_key_alias:
                 raise ConfigError("kms_key_alias: required when environment is staging or prod")
-        if self.environment != "dev" and not self.connector.raw.encrypt:
+        if self.environment != Environment.DEV and not self.connector.raw.encrypt:
             raise ConfigError("connector.raw.encrypt: must be true outside environment=dev")
         return self

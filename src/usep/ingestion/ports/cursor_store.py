@@ -1,6 +1,9 @@
-"""`CursorStorePort`: matches the connectors branch's `CursorManager` Protocol
-exactly (`get_cursor(source)` / `set_cursor(source, cursor)`). `tenant_id` is
-bound at adapter construction, not passed per call.
+"""`CursorStorePort`: matches the connectors branch's `CursorManager` protocol.
+
+It matches the connectors branch's `CursorManager` Protocol exactly: `get_cursor(source)` and
+`set_cursor(source, cursor)`.
+
+`tenant_id` is bound at adapter construction, not passed per call.
 
 No optimistic-version parameter: the exact Protocol has no room for one, so
 concurrent-writer conflict detection (sketched in an earlier pass of this work)
@@ -14,9 +17,13 @@ from typing import Protocol
 
 
 class CursorStorePort(Protocol):
+    """Persists the sync cursor of each source."""
+
     async def get_cursor(self, source: str) -> str | None:
-        """The last persisted cursor for `source` (within this adapter's bound
-        tenant), or `None` for a full sync."""
+        """Return the last saved cursor for `source`, or `None` for a full sync.
+
+        The cursor is read within this adapter's bound tenant.
+        """
         ...
 
     async def set_cursor(self, source: str, cursor: str) -> None:

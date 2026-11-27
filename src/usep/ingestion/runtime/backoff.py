@@ -14,7 +14,9 @@ def compute_delay(
     *,
     rng: random.Random | None = None,
 ) -> float:
-    """Full-jitter delay for a 1-based retry `attempt`: uniform(0, min(max_delay_s, base * 2**(attempt-1))).
+    """Return a full-jitter back-off delay for a 1-based retry `attempt`.
+
+    The delay is uniform(0, min(max_delay_s, base * 2**(attempt-1))).
 
     Matches section 5.7 exactly: base 2s, doubling, capped at `max_delay_s` (600s).
     """
@@ -26,8 +28,10 @@ def compute_delay(
 
 
 def parse_retry_after(value: str, *, now: datetime) -> float | None:
-    """Parse a `Retry-After` header value (delay-seconds or an HTTP-date) to seconds
-    from `now`. Returns `None` if the value cannot be parsed either way."""
+    """Parse a `Retry-After` header value (delay-seconds or an HTTP-date) to seconds from `now`.
+
+    Returns `None` if the value cannot be parsed either way.
+    """
     text = value.strip()
     if not text:
         return None

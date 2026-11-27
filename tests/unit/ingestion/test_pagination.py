@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 import pytest
 
 from usep.core.errors import PaginationError
 from usep.ingestion.runtime.pagination import paginate_cursor, paginate_link_header, paginate_offset
+
+
+async def _drain(pages: AsyncIterator[list[str]], into: list[str]) -> None:
+    async for page in pages:
+        into.extend(page)
 
 
 @pytest.mark.asyncio
@@ -15,8 +22,7 @@ async def test_pagination_repeated_cursor_raises() -> None:
 
     collected: list[str] = []
     with pytest.raises(PaginationError, match="repeated cursor"):
-        async for page in paginate_cursor(fetch_page):
-            collected.extend(page)
+        await _drain(paginate_cursor(fetch_page), collected)
     assert collected == ["a", "b"]
 
 

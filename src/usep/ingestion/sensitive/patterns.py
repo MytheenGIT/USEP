@@ -11,9 +11,6 @@ from __future__ import annotations
 
 import re
 
-Q_SECRET = "Q-SECRET"  # noqa: S105 - a reason code, not a credential
-Q_PII = "Q-PII"
-
 # ---- secrets (Q-SECRET) -----------------------------------------------------------
 GITLAB_PAT_RE = re.compile(r"glpat-[A-Za-z0-9_-]{20,}")
 ATLASSIAN_TOKEN_RE = re.compile(r"ATATT3[A-Za-z0-9+/_=-]{20,}")
@@ -30,10 +27,27 @@ SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
 }
 
 # ---- personal data (Q-PII) ---------------------------------------------------------
-CARD_CANDIDATE_RE = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
+CARD_MIN_DIGITS = 13
+CARD_MAX_DIGITS = 19
+UATP_DIGITS = 15
+CARD_CANDIDATE_RE = re.compile(rf"(?<!\d)(?:\d[ -]?){{{CARD_MIN_DIGITS},{CARD_MAX_DIGITS}}}(?!\d)")
 AADHAAR_CANDIDATE_RE = re.compile(r"(?<!\d)[2-9]\d{11}(?!\d)")
 PAN_RE = re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b")
 SSN_CANDIDATE_RE = re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
+
+
+def plausible_card_prefix(digits: str) -> bool:
+    """False for a number that starts with 1 but is not 15 digits long.
+
+    Only UATP cards (15 digits) start with 1, while epoch-millisecond, microsecond and nanosecond
+    timestamps (13, 16 and 19 digits) start with 1 until 2033 and would otherwise pass Luhn about
+    one time in ten.
+    """
+    return digits[0] != "1" or len(digits) == UATP_DIGITS
+
+
+LUHN_DIGIT_CEILING = 9
+LUHN_MODULUS = 10
 
 
 def luhn_is_valid(digits: str) -> bool:
@@ -43,10 +57,10 @@ def luhn_is_valid(digits: str) -> bool:
         d = int(ch)
         if i % 2 == 1:
             d *= 2
-            if d > 9:
-                d -= 9
+            if d > LUHN_DIGIT_CEILING:
+                d -= LUHN_DIGIT_CEILING
         total += d
-    return total % 10 == 0
+    return total % LUHN_MODULUS == 0
 
 
 _VERHOEFF_D = [
@@ -81,11 +95,18 @@ def verhoeff_is_valid(digits: str) -> bool:
     return checksum == 0
 
 
+SSN_INVALID_AREAS = ("000", "666")
+SSN_RESERVED_AREA_FLOOR = 900
+
+
 def ssn_is_plausible(value: str) -> bool:
-    """Excludes the invalid area/group/serial ranges (000, 666, 900-999 area; 00
-    group; 0000 serial) so an obviously-not-an-SSN NNN-NN-NNNN string doesn't match."""
+    """Return whether an NNN-NN-NNNN string is in a valid SSN range.
+
+    Excludes the invalid ranges (area 000, 666 and 900-999; group 00; serial 0000), so an obviously
+    invalid string does not match.
+    """
     area, group, serial = value.split("-")
-    if area in ("000", "666") or int(area) >= 900:
+    if area in SSN_INVALID_AREAS or int(area) >= SSN_RESERVED_AREA_FLOOR:
         return False
     if group == "00":
         return False

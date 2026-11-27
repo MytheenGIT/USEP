@@ -12,21 +12,25 @@ from __future__ import annotations
 import datetime as dt
 from typing import Protocol
 
+_MICROSECONDS_PER_MILLISECOND = 1000
+
 
 def _truncate_to_milliseconds(value: dt.datetime) -> dt.datetime:
     """Drop sub-millisecond precision so every stored or compared timestamp is exact to 1ms."""
-    microsecond = (value.microsecond // 1000) * 1000
+    microsecond = (value.microsecond // _MICROSECONDS_PER_MILLISECOND) * _MICROSECONDS_PER_MILLISECOND
     return value.replace(microsecond=microsecond)
 
 
 class Clock(Protocol):
     """A source of the current UTC time, millisecond precision."""
 
-    def now(self) -> dt.datetime: ...
+    def now(self) -> dt.datetime:
+        """Return the current time in UTC."""
 
 
 class SystemClock:
     """The real wall clock. The only `Clock` implementation used outside tests."""
 
     def now(self) -> dt.datetime:
+        """Return the current UTC time, truncated to milliseconds."""
         return _truncate_to_milliseconds(dt.datetime.now(dt.UTC))

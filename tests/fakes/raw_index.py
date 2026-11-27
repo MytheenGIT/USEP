@@ -36,6 +36,12 @@ class InMemoryRawIndex:
         self._rows[key] = ref
         return ref
 
+    async def set_source_version(self, ref: RawObjectRef, source_version: str) -> None:
+        key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
+        existing = self._rows.get(key)
+        if existing is not None:
+            self._rows[key] = _replace(existing, source_version=source_version)
+
     async def mark_published(self, ref: RawObjectRef) -> None:
         key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
         existing = self._rows.get(key)

@@ -32,7 +32,7 @@ def test_is_transient_exception() -> None:
     assert is_transient_exception(TimeoutError())
     assert is_transient_exception(ConnectionError())
 
-    class ReadTimeout(Exception):
+    class ReadTimeout(Exception):  # noqa: N818 - mirrors the httpx name the classifier matches
         pass
 
     assert is_transient_exception(ReadTimeout())

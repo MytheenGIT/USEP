@@ -43,8 +43,10 @@ class CursorConflictError(DomainError):
 
 
 class RawStorageError(DomainError):
-    """The stored state of a raw object contradicts what the writer needs (for example a row
-    with no wrapped data key)."""
+    """The stored state of a raw object contradicts what the writer needs.
+
+    For example, an index row that has no wrapped data key.
+    """
 
 
 class PaginationError(UsepError):
