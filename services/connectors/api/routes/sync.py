@@ -56,6 +56,24 @@ async def sync_servicenow(
     return await _run_source("servicenow", sync_service, include_documents, scope)
 
 
+@router.post("/github", response_model=SyncResponse)
+async def sync_github(
+    include_documents: bool = Query(True),
+    scope: list[str] | None = Query(None, description="Limit the run to these configured scopes."),
+    sync_service: SyncService = Depends(get_sync_service),
+) -> SyncResponse:
+    return await _run_source("github", sync_service, include_documents, scope)
+
+
+@router.post("/servicenow", response_model=SyncResponse)
+async def sync_servicenow(
+    include_documents: bool = Query(True),
+    scope: list[str] | None = Query(None, description="Limit the run to these configured scopes."),
+    sync_service: SyncService = Depends(get_sync_service),
+) -> SyncResponse:
+    return await _run_source("servicenow", sync_service, include_documents, scope)
+
+
 @router.get("/{source}/scopes", response_model=list[str])
 async def list_scopes(source: str, sync_service: SyncService = Depends(get_sync_service)) -> list[str]:
     try:

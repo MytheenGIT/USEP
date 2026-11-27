@@ -316,9 +316,3 @@ tr.sel { background: var(--accent-soft); }
 /* Microsoft Edge adds its own reveal eye inside password boxes. Our eye is the only one we want. */
 .secret-box input::-ms-reveal, .secret-box input::-ms-clear { display: none; }
 .secret-box input::-webkit-credentials-auto-fill-button { visibility: hidden; display: none !important; }
-
-/* Ontology page */
-.chip-button { background: transparent; color: inherit; font: inherit; font-size: 12px; margin: 2px 4px 2px 0; }
-.chip-button.selected { background: var(--accent-soft); border-color: transparent; }
-.chip-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.stack { display: grid; gap: 14px; margin-top: 12px; }
