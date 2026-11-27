@@ -38,7 +38,7 @@ def test_backfill_never_exceeds_fraction() -> None:
 
     # Drain the live bucket completely; it should not affect the backfill bucket's tokens.
     for _ in range(10):
-        limiter._bucket(live_key).consume(clock.now())  # type: ignore[attr-defined]
+        limiter._bucket(live_key).reserve(clock.now())  # type: ignore[attr-defined]
     assert limiter.wait_seconds(live_key) > 0.0
     assert limiter.wait_seconds(backfill_key) == 0.0  # untouched, still has its own tokens
 
@@ -54,7 +54,7 @@ def test_live_unaffected_by_saturated_backfill() -> None:
 
     backfill_capacity = limiter._bucket(backfill_key).capacity  # type: ignore[attr-defined]
     for _ in range(int(backfill_capacity)):
-        limiter._bucket(backfill_key).consume(clock.now())  # type: ignore[attr-defined]
+        limiter._bucket(backfill_key).reserve(clock.now())  # type: ignore[attr-defined]
 
     assert limiter.wait_seconds(backfill_key) > 0.0
     assert limiter.wait_seconds(live_key) == 0.0
@@ -69,3 +69,19 @@ async def test_acquire_consumes_a_token_and_reports_wait() -> None:
 
     waited = await limiter.acquire(key)
     assert waited == 0.0
+
+
+@pytest.mark.asyncio
+async def test_concurrent_callers_on_an_empty_bucket_queue_up_instead_of_bursting() -> None:
+    """Ten callers arriving together on a 100/s bucket must wait 10 ms, 20 ms ... 100 ms."""
+    import asyncio
+
+    clock = FakeClock()
+    limiter = RateLimiter(clock, backfill_fraction=0.5)
+    limiter.configure(TENANT, "jira", "acct", rate_per_second=100.0, capacity=1.0)
+    key = RateLimitKey(TENANT, "jira", "acct", "live")
+    await limiter.acquire(key)  # drain the single token
+
+    waits = sorted(await asyncio.gather(*(limiter.acquire(key) for _ in range(10))))
+
+    assert waits == pytest.approx([0.01 * n for n in range(1, 11)])

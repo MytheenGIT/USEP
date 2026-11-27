@@ -36,6 +36,11 @@ def get_scheduler(request: Request) -> IngestionScheduler:
     return _from_state(request, "scheduler")
 
 
+def get_source_overview(request: Request) -> Any:
+    """The container's ``source_overview`` function (which sources are selected, running, and why not)."""
+    return _from_state(request, "source_overview")
+
+
 def get_output_dir(request: Request) -> Path:
     return Path(_from_state(request, "output_dir"))
 

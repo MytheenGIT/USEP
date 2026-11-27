@@ -39,17 +39,16 @@ class IngestionScheduler:
             return int(override)
         return int(getattr(self._settings, f"{source}_interval_minutes", 60))
 
-    def start(self) -> None:
-        if not self._settings.enabled:
-            logger.info("scheduler.disabled")
-            return
-
+    def _register_jobs(self) -> None:
+        """One interval job per source and scope. Safe to call again: new scopes get jobs, gone ones lose theirs."""
+        wanted: set[str] = set()
         for source in self._sync_service.available_sources:
             scopes = self._sync_service.scopes(source)
             if not scopes:
                 logger.info("scheduler.no_scopes", source=source)
             for scope in scopes:
                 minutes = self._interval_minutes(source, scope)
+                wanted.add(job_id(source, scope))
                 self._scheduler.add_job(
                     self._sync_service.sync_source,
                     trigger=IntervalTrigger(minutes=minutes, jitter=self._settings.jitter_seconds or None),
@@ -62,6 +61,31 @@ class IngestionScheduler:
                     coalesce=True,
                 )
                 logger.info("scheduler.job_registered", source=source, scope=scope, interval_minutes=minutes)
+        for job in self._scheduler.get_jobs():
+            if job.id.startswith("sync-") and job.id not in wanted:
+                self._scheduler.remove_job(job.id)
+                logger.info("scheduler.job_removed", job=job.name)
+
+    async def _refresh(self) -> None:
+        await self._sync_service.refresh_scopes()
+        self._register_jobs()
+
+    def start(self) -> None:
+        if not self._settings.enabled:
+            logger.info("scheduler.disabled")
+            return
+
+        self._register_jobs()
+        if self._sync_service.has_dynamic_scopes:
+            self._scheduler.add_job(
+                self._refresh,
+                trigger=IntervalTrigger(minutes=self._settings.scope_refresh_minutes),
+                id="refresh-scopes",
+                name="refresh scopes",
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
+            )
 
         self._scheduler.start()
 

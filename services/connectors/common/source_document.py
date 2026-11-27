@@ -23,13 +23,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SourceType(StrEnum):
+    ADO = "ado"
     JIRA = "jira"
     GITLAB = "gitlab"
     CONFLUENCE = "confluence"
     FIGMA = "figma"
     GITHUB = "github"
     SERVICENOW = "servicenow"
-    ADO = "ado"
 
 
 def hash_payload(payload: Any) -> str:

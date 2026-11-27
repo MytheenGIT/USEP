@@ -37,6 +37,20 @@ class ScopeFetch(BaseModel):
     errors: list[ObjectError] = []
 
 
+class ScopeCheck(BaseModel):
+    scope: str
+    ok: bool
+    detail: str = ""
+
+
+class SourceCheck(BaseModel):
+    """Result of asking a source whether the saved credentials and scopes really work (read-only calls)."""
+
+    ok: bool
+    detail: str = ""
+    scopes: list[ScopeCheck] = []
+
+
 class SourceConnector(Protocol):
     source: SourceType
 
@@ -48,6 +62,10 @@ class SourceConnector(Protocol):
     async def fetch_scope(self, scope: str, cursor: str | None) -> ScopeFetch:
         """Fetch objects in ``scope`` updated at or after ``cursor`` (a UTC ISO timestamp)."""
         ...
+
+    # Optional, found with getattr by the service:
+    #   async def check(self) -> SourceCheck       credentials and every scope, with read-only calls
+    #   async def refresh_scopes(self) -> None     re-discover scopes (GitLab, when it fetches all member repos)
 
 
 def next_cursor(previous: str | None, fetched: ScopeFetch) -> str | None:

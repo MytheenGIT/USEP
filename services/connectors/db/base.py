@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -22,3 +23,18 @@ async def create_tables(engine: AsyncEngine) -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if conn.dialect.name == "postgresql":
+            # Append-only audit trail (spec 7.5): refuse UPDATE and DELETE, even for the table owner.
+            await conn.execute(
+                text(
+                    "CREATE OR REPLACE FUNCTION audit_event_append_only() RETURNS trigger AS $$ "
+                    "BEGIN RAISE EXCEPTION 'audit_event is append-only'; END; $$ LANGUAGE plpgsql"
+                )
+            )
+            await conn.execute(text("DROP TRIGGER IF EXISTS audit_event_append_only ON audit_event"))
+            await conn.execute(
+                text(
+                    "CREATE TRIGGER audit_event_append_only BEFORE UPDATE OR DELETE ON audit_event "
+                    "FOR EACH ROW EXECUTE FUNCTION audit_event_append_only()"
+                )
+            )

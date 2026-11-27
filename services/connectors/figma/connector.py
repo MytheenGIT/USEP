@@ -21,8 +21,8 @@ from urllib.parse import parse_qs, urlparse
 import structlog
 
 from common.binary_store import BinaryStore
-from common.client_base import PayloadTooLarge, download_unauthenticated
-from common.connector_base import ObjectError, ScopeFetch
+from common.client_base import PayloadTooLarge, download_unauthenticated, error_detail
+from common.connector_base import ObjectError, ScopeCheck, ScopeFetch, SourceCheck
 from common.source_document import SourceType
 from common.timeutil import to_utc_iso
 from figma.client import FigmaClient
@@ -88,7 +88,7 @@ class FigmaConnector:
         export_max_bytes: int = 10_485_760,
     ) -> None:
         self._client = client
-        self._scopes = [k for k in file_keys if k.strip()]
+        self._scopes = list(dict.fromkeys(k.strip() for k in file_keys if k.strip()))
         self._export_format = export_format
         self._binary_store = binary_store
         self._download_exports = download_exports and binary_store is not None
@@ -97,6 +97,21 @@ class FigmaConnector:
     @property
     def scopes(self) -> list[str]:
         return list(self._scopes)
+
+    async def check(self) -> SourceCheck:
+        """Credentials and every file, with the cheapest call (file metadata only, no document tree)."""
+        results = []
+        for scope in self._scopes:
+            try:
+                file_key, _ = parse_scope(scope)
+                meta = await self._client.get_file(file_key, depth=1)
+                results.append(ScopeCheck(scope=scope, ok=True, detail=meta.get("name", "file found")))
+            except Exception as exc:  # noqa: BLE001
+                results.append(ScopeCheck(scope=scope, ok=False, detail=str(exc) if isinstance(exc, ValueError) else error_detail(exc)))
+        if not results:  # a token limited to file reading cannot call /v1/me, so only a file proves it works
+            return SourceCheck(ok=False, detail="add a file to test the token with")
+        ok = all(r.ok for r in results)
+        return SourceCheck(ok=ok, detail="" if ok else "see the scopes", scopes=results)
 
     def _pages(self, file_data: dict[str, Any], selected: list[str]) -> list[FigmaPage]:
         if not selected:

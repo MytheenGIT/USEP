@@ -28,8 +28,9 @@ def effective_cursor(cursor_value: str | None, overlap_seconds: int) -> str | No
 
 @dataclass(frozen=True, slots=True)
 class Batch:
-    source: str
-    fetch_from: str | None
+    key: str  # "<source>:<scope>:<lane>": checkpoints are per source and scope (LLD 2.1), per lane (LLD 4.3)
+    fetch_from: str | None  # stored cursor minus the overlap window: where to start fetching
+    cursor: str | None  # stored cursor as is: the floor for the next cursor, so an empty run never moves it back
 
 
 class CursorManager:
@@ -37,9 +38,10 @@ class CursorManager:
         self._store = store
         self._overlap_seconds = overlap_seconds
 
-    async def start_batch(self, source: str) -> Batch:
-        cursor_value = await self._store.get_cursor(source)
-        return Batch(source=source, fetch_from=effective_cursor(cursor_value, self._overlap_seconds))
+    async def start_batch(self, source: str, scope: str = "", lane: str = "live") -> Batch:
+        key = f"{source}:{scope}:{lane}"
+        cursor_value = await self._store.get_cursor(key)
+        return Batch(key=key, fetch_from=effective_cursor(cursor_value, self._overlap_seconds), cursor=cursor_value)
 
     async def advance(self, batch: Batch, new_cursor: str, outcomes: list[str]) -> None:
         """Advances the cursor only if every object in the batch reached a
@@ -48,4 +50,4 @@ class CursorManager:
         unresolved = [o for o in outcomes if o not in _RESOLVED_OUTCOMES]
         if unresolved:
             raise ValueError(f"cannot advance cursor: unresolved outcomes {unresolved}")
-        await self._store.set_cursor(batch.source, new_cursor)
+        await self._store.set_cursor(batch.key, new_cursor)

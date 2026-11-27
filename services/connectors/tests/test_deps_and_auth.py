@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.routes import api_router
-from common.interfaces.audit_writer import AuditEvent, StructlogAuditWriter
 
 
 def _app(tmp_path, **state) -> TestClient:
@@ -50,10 +47,3 @@ def test_missing_app_state_is_a_clear_503(tmp_path) -> None:
 
     client.app.state.sync_service = None
     assert client.post("/sync/jira").status_code == 503
-
-
-async def test_audit_writer_does_not_raise_on_non_json_details() -> None:
-    event = AuditEvent(
-        source="jira", action="sync", status="failed", at=datetime.now(UTC), details={"error": RuntimeError("boom"), "obj": object()}
-    )
-    await StructlogAuditWriter().record(event)

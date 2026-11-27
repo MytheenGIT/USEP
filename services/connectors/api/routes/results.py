@@ -22,7 +22,7 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/results", tags=["results"])
 
-KNOWN_SOURCES = {"jira", "gitlab", "confluence", "figma"}
+KNOWN_SOURCES = {"jira", "gitlab", "confluence", "figma", "github", "servicenow"}
 _RUN_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 
 

@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from common.client_base import BaseAPIClient
+from common.client_base import BaseAPIClient, ClientRuntime
 
 PAGE_EXPAND = (
     "body.storage,version,ancestors,metadata.labels,space,"
@@ -20,6 +20,7 @@ class ConfluenceClient(BaseAPIClient):
         api_token: str,
         timeout: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
+        runtime: ClientRuntime | None = None,
     ) -> None:
         super().__init__(
             base_url=base_url,
@@ -27,6 +28,7 @@ class ConfluenceClient(BaseAPIClient):
             timeout=timeout,
             auth=(email, api_token),
             transport=transport,
+            runtime=runtime,
         )
 
     @staticmethod
@@ -54,6 +56,12 @@ class ConfluenceClient(BaseAPIClient):
 
     async def search_pages(self, cql: str, limit: int = 25, expand: str = PAGE_EXPAND) -> list[dict[str, Any]]:
         return await self._all_results("/wiki/rest/api/content/search", {"cql": cql, "limit": limit, "expand": expand})
+
+    async def get_current_user(self) -> dict[str, Any]:
+        return await self.get_json("/wiki/rest/api/user/current")
+
+    async def get_space(self, space_key: str) -> dict[str, Any]:
+        return await self.get_json(f"/wiki/rest/api/space/{space_key}")
 
     async def get_page(self, page_id: str, expand: str = PAGE_EXPAND) -> dict[str, Any]:
         return await self.get_json(f"/wiki/rest/api/content/{page_id}", params={"expand": expand})

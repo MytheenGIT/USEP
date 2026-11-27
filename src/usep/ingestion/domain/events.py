@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 
@@ -22,6 +24,13 @@ class RawObjectPublished:
     content_hash: str
     run_id: UUID
     checkpoint: str | None
+    # LLD 3.5: every event carries source_version, acl_ref and extracted_at.
+    source_version: str | None = None
+    extracted_at: datetime | None = None
+    # LLD 4.4: until a source permission is mapped to a group, the record is visible to owners only.
+    acl_ref: str = "owners-only"
+    # Permission attributes harvested from the source (project role, space restrictions, ...), for the mapping step.
+    source_acl: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

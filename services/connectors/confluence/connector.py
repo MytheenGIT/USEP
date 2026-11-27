@@ -17,7 +17,9 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from common.connector_base import ObjectError, ScopeFetch
+from common.client_base import error_detail
+from common.connector_base import ObjectError, ScopeCheck, ScopeFetch, SourceCheck
+from common.scopes import confluence_scope_problem
 from common.source_document import SourceType
 from common.timeutil import parse_ts, to_utc_iso
 from confluence.client import ConfluenceClient
@@ -36,6 +38,9 @@ def _page_url(base_url: str, page: dict[str, Any]) -> str:
 
 def scope_filter(scope: str) -> tuple[str, str | None]:
     """CQL filter for a scope, and the space key when the scope names one."""
+    problem = confluence_scope_problem(scope)
+    if problem:  # the key goes into the query text, so only plain keys and real URLs get through
+        raise ValueError(problem)
     value = scope.strip()
     if "://" in value:
         path = urlparse(value).path
@@ -72,7 +77,7 @@ class ConfluenceConnector:
     ) -> None:
         self._client = client
         self._base_url = base_url.rstrip("/")
-        self._scopes = [s for s in space_keys if s.strip()]
+        self._scopes = list(dict.fromkeys(s.strip() for s in space_keys if s.strip()))
         self._page_size = page_size
         self._fetch_version_history = fetch_version_history
         self._version_history_limit = version_history_limit
@@ -80,6 +85,28 @@ class ConfluenceConnector:
     @property
     def scopes(self) -> list[str]:
         return list(self._scopes)
+
+    async def check(self) -> SourceCheck:
+        """Credentials, then every space (or page tree): each must exist and be readable by this user."""
+        try:
+            await self._client.get_current_user()
+        except Exception as exc:  # noqa: BLE001 -- reported, not raised
+            return SourceCheck(ok=False, detail=f"cannot sign in: {error_detail(exc)}")
+        results = []
+        for scope in self._scopes:
+            try:
+                _, space_key = scope_filter(scope)
+                if space_key:
+                    info = await self._client.get_space(space_key)
+                    results.append(ScopeCheck(scope=scope, ok=True, detail=info.get("name", "space found")))
+                else:
+                    page_id = _PAGE_URL.search(urlparse(scope).path).group(1)  # type: ignore[union-attr]
+                    page = await self._client.get_page(page_id, expand="version")
+                    results.append(ScopeCheck(scope=scope, ok=True, detail=page.get("title", "page found")))
+            except Exception as exc:  # noqa: BLE001
+                results.append(ScopeCheck(scope=scope, ok=False, detail=error_detail(exc) if not isinstance(exc, ValueError) else str(exc)))
+        ok = all(r.ok for r in results)
+        return SourceCheck(ok=ok, detail="signed in" if ok else "see the scopes", scopes=results)
 
     def build_cql(self, scope: str, cursor: str | None) -> str:
         where, _ = scope_filter(scope)

@@ -4,13 +4,18 @@ from common.source_document import SourceDocument
 
 
 class ServiceNowDocument(SourceDocument):
-    """An incident or change request. State and priority are the instance's codes, translated by the project pack."""
+    """One ServiceNow record (an incident, change request, problem, ...). Reference fields keep their display name."""
 
-    table: str                                   # incident | change_request
+    table: str
     number: str
     sys_id: str
+    short_description: str = ""
+    description: str | None = None
     state: str | None = None
     priority: str | None = None
-    assignment_group: str | None = None          # sys_id; resolved to a Team by the resolver
-    cmdb_ci: str | None = None                   # sys_id of the configuration item
-    caused_by: str | None = None                 # sys_id of the change (incidents only)
+    category: str | None = None
+    assignment_group: str | None = None
+    assigned_to: str | None = None
+    configuration_item: str | None = None
+    opened_at: str | None = None
+    closed_at: str | None = None

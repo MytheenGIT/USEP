@@ -5,6 +5,8 @@ must never be logged or stored beyond the counts themselves.
 
 from __future__ import annotations
 
+from typing import Any
+
 from usep.ingestion.domain.sensitive import DetectionResult
 from usep.ingestion.sensitive import patterns as p
 
@@ -40,3 +42,16 @@ def detect(text: str) -> DetectionResult:
     raw_counts = {"Q-SECRET": _count_secrets(text), "Q-PII": _count_pii(text)}
     counts = {code: count for code, count in raw_counts.items() if count}
     return DetectionResult(counts=counts, matched=bool(counts))
+
+
+def payload_text(payload: Any) -> str:
+    """The string values of a JSON-like payload, one per line. Numbers and keys are left
+    out: a JSON number is never a card or national ID, and long decimals (Figma colours,
+    epoch-millisecond timestamps) pass the card and Aadhaar checksums by chance."""
+    if isinstance(payload, str):
+        return payload
+    if isinstance(payload, dict):
+        return "\n".join(t for v in payload.values() if (t := payload_text(v)))
+    if isinstance(payload, (list, tuple)):
+        return "\n".join(t for v in payload if (t := payload_text(v)))
+    return ""

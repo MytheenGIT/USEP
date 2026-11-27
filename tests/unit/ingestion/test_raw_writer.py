@@ -54,8 +54,9 @@ async def test_overlap_window_single_write_after_dedupe() -> None:
     payload = {"summary": "Example", **_envelope()}
     ref1 = await writer.write("jira", "PROJ-1", payload)
     ref2 = await writer.write("jira", "PROJ-1", payload)
-    assert ref1.startswith("raw/")
-    assert ref2 == ref1  # skipped_unchanged resolves to the same reference
+    assert ref1.outcome == "written" and ref1.object_key.startswith("raw/")
+    assert ref2.outcome == "skipped_unchanged"
+    assert ref2.object_key == ref1.object_key  # skipped_unchanged resolves to the same reference
     assert len(raw_index.all_refs()) == 1
 
 
@@ -78,7 +79,7 @@ async def test_schema_drift_quarantined_not_dropped() -> None:
         pass
 
     ref = await writer.write("jira", "PROJ-2", {"bad": NotJsonSerializable(), **_envelope()})
-    assert ref.startswith("quarantined://Q-SCHEMA")
+    assert (ref.outcome, ref.reason) == ("quarantined", "Q-SCHEMA")
     assert quarantine.entries[0].record.reason_code == "Q-SCHEMA"
     assert object_store.objects == {}
     assert event_bus.published == []
@@ -134,10 +135,94 @@ async def test_pii_payload_quarantined_before_any_write() -> None:
     ref = await writer.write(
         "jira", "PROJ-3", {"summary": "Card on file: 4111 1111 1111 1111", **_envelope()}
     )
-    assert ref.startswith("quarantined://Q-PII")
+    assert (ref.outcome, ref.reason) == ("quarantined", "Q-PII")
     assert raw_index.all_refs() == []
     assert object_store.objects == {}
     assert event_bus.published == []
     assert quarantine.entries[0].record.detector_counts == {"Q-PII": 1}
     assert "4111" not in repr(audit.entries)
     assert "4111" not in repr(quarantine.entries)
+
+
+@pytest.mark.asyncio
+async def test_source_version_and_acl_go_on_the_event_and_default_to_owners_only() -> None:
+    writer, raw_index, _, event_bus, *_ = _writer()
+    envelope = _envelope()
+    envelope["_usep"].update(source_version="2026-01-01T00:00:00Z", acl={"project_key": "ABC"})
+
+    await writer.write("jira", "PROJ-1", {"summary": "s", **envelope})
+
+    [event] = event_bus.published
+    assert event.source_version == "2026-01-01T00:00:00Z"
+    assert event.source_acl == {"project_key": "ABC"}
+    assert event.acl_ref == "owners-only"  # LLD 4.4: unmapped permission is visible to owners only
+
+
+async def _read_back(writer, raw_index, object_store) -> dict:
+    import json
+
+    from usep.ingestion.raw.crypto import decrypt, unpack
+
+    [ref] = raw_index.all_refs()
+    data_key = await writer._key_store.unwrap(TENANT, ref.wrapped_dek, ref.kek_id)
+    aad = ref.object_key.encode() + str(TENANT).encode()
+    return json.loads(decrypt(unpack(object_store.objects[ref.object_key]), data_key, aad=aad))
+
+
+@pytest.mark.asyncio
+async def test_retry_after_a_failed_put_reuses_the_stored_key_so_the_object_decrypts() -> None:
+    writer, raw_index, object_store, *_ = _writer()
+    real_put = object_store.put
+
+    async def failing_put(key: str, data: bytes) -> None:
+        raise OSError("object store down")
+
+    object_store.put = failing_put  # type: ignore[method-assign]
+    first = await writer.write("jira", "PROJ-1", {"summary": "s", **_envelope()})
+    assert first.outcome == "failed" and object_store.objects == {}
+    assert [r.published_at for r in raw_index.all_refs()] == [None]  # the key is already safe in the index
+
+    object_store.put = real_put  # type: ignore[method-assign]
+    second = await writer.write("jira", "PROJ-1", {"summary": "s", **_envelope()})
+
+    assert second.outcome == "written"
+    assert await _read_back(writer, raw_index, object_store) == {"summary": "s"}
+
+
+@pytest.mark.asyncio
+async def test_a_writer_that_loses_the_insert_race_uses_the_winners_key() -> None:
+    import dataclasses
+
+    from usep.ingestion.raw.crypto import generate_data_key
+
+    writer, raw_index, object_store, *_ = _writer()
+    real_insert = raw_index.insert_if_absent
+
+    async def racing_insert(ref):  # a competing writer inserts its own row, with its own key, first
+        wrapped, kek_id = await writer._key_store.wrap(TENANT, generate_data_key())
+        await real_insert(dataclasses.replace(ref, wrapped_dek=wrapped, kek_id=kek_id))
+        return False
+
+    raw_index.insert_if_absent = racing_insert  # type: ignore[method-assign]
+    result = await writer.write("jira", "PROJ-1", {"summary": "s", **_envelope()})
+
+    assert result.outcome == "written"
+    assert await _read_back(writer, raw_index, object_store) == {"summary": "s"}  # decrypts with the stored key
+
+
+@pytest.mark.asyncio
+async def test_a_failing_audit_sink_does_not_hide_a_failed_write() -> None:
+    writer, _, object_store, _, _, audit = _writer()
+
+    async def broken_put(key: str, data: bytes) -> None:
+        raise OSError("down")
+
+    async def broken_record(event) -> None:
+        raise RuntimeError("audit down")
+
+    object_store.put = broken_put  # type: ignore[method-assign]
+    audit.record = broken_record  # type: ignore[method-assign]
+
+    result = await writer.write("jira", "PROJ-1", {"summary": "s", **_envelope()})
+
+    assert result.outcome == "failed"

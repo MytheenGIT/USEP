@@ -1,47 +1,51 @@
-"""SyncService: runs connectors scope by scope.
+"""SyncService: runs connectors scope by scope through the foundation's ingestion path.
 
-For each scope it reads the resume cursor, calls the connector, hands each
-raw payload to the Raw Payload Writer, derives and persists the new cursor,
-and records audit events -- all through interfaces, so the real
-(elsewhere-owned) implementations drop in without touching this file.
+For each scope: the Cursor Manager gives the resume point (stored cursor minus the overlap
+window), the connector fetches, each document goes to the Raw Payload Writer (scan, dedupe,
+encrypt, object store, index, publish), and the cursor moves only after the writes, to the
+newest version that is safe. A write that failed holds the cursor back at that object, so it
+is fetched again next run (LLD Table 1: checkpoint only after publish is acknowledged).
 
-Cursor keys are ``<source>:<scope>`` so every JQL query, repository, space
-and file advances independently (spec Module 2: cursors per source item).
-A per-scope lock stops a manual trigger and a scheduled run from syncing
-the same scope at the same time.
+Cursors are keyed ``<source>:<scope>:<lane>`` so every JQL query, repository, space and file
+advances independently. A per-scope lock stops a manual trigger and a scheduled run from
+syncing the same scope at the same time.
 """
 
 from __future__ import annotations
 
 import asyncio
-import uuid
+import hashlib
+import re
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
+from uuid import UUID
 
 import structlog
 
-from common.connector_base import ObjectError, ScopeFetch, SourceConnector, next_cursor
+from common.client_base import error_detail
+from common.connector_base import ObjectError, ScopeFetch, SourceCheck, SourceConnector, next_cursor
 from common.interfaces.audit_writer import AuditEvent, AuditWriter
-from common.interfaces.cursor_manager import CursorManager
-from common.interfaces.object_index import InMemoryObjectIndex, ObjectIndex
-from common.checksum import payload_checksum
-from common.interfaces.raw_event_publisher import NullRawEventPublisher, RawEvent, RawEventPublisher
-from common.interfaces.raw_payload_writer import RawPayloadWriter
 from common.json_file_sink import JsonFileSink
 from common.source_document import SourceDocument
 from common.sync_models import SyncResult, SyncStatus
 from db.repository import SyncRunRepository
+from usep.core.ids import new_id
+from usep.ingestion.cursor.manager import CursorManager
+from usep.ingestion.raw.writer import Outcome, RawPayloadWriter
 
 logger = structlog.get_logger(__name__)
 
-
-def _new_run_id() -> str:
-    # LLD Section 1: UUID v7 so ids sort by creation time (Python 3.14+); v4 otherwise.
-    factory = getattr(uuid, "uuid7", uuid.uuid4)
-    return str(factory())
+_KEY_SAFE_SCOPE = re.compile(r"[A-Za-z0-9._/-]{1,80}")
 
 
-def cursor_key(source: str, scope: str) -> str:
-    return f"{source}:{scope}"
+def scope_id(scope: str) -> str:
+    """The scope as it appears in object keys and the raw index.
+
+    A repository path or space key is used as it is. A JQL query or a URL can be long and holds
+    spaces and quotes, and an S3 key is limited to 1024 bytes, so those become a short stable hash.
+    The readable scope stays in cursors, audit events and the run snapshot.
+    """
+    return scope if _KEY_SAFE_SCOPE.fullmatch(scope) else "s-" + hashlib.sha256(scope.encode()).hexdigest()[:16]
 
 
 class SyncService:
@@ -49,29 +53,20 @@ class SyncService:
         self,
         connectors: dict[str, SourceConnector],
         cursor_manager: CursorManager,
-        raw_payload_writer: RawPayloadWriter,
-        audit_writer: AuditWriter,
+        writer_factory: Callable[[UUID, AuditWriter], RawPayloadWriter],
+        audit_writer_factory: Callable[[UUID], AuditWriter],
         sync_run_repository: SyncRunRepository | None = None,
         json_sink: JsonFileSink | None = None,
-        raw_event_publisher: RawEventPublisher | None = None,
-        object_index: ObjectIndex | None = None,
-        initial_cursor: str | None = None,
-        max_documents_per_scope: int | None = None,
+        record_snapshot: Callable[[UUID, str, list[str]], Awaitable[None]] | None = None,
     ) -> None:
-        """``initial_cursor``: where a scope with no stored cursor starts (a backfill start date). None means everything.
-        ``max_documents_per_scope``: land at most this many objects per scope per run, oldest first. The cursor stops at the
-        last one landed, so a large first sync completes over several runs instead of overrunning a Lambda timeout."""
-        self._object_index = object_index or InMemoryObjectIndex()
-        self._initial_cursor = initial_cursor or None
-        self._max_documents = max_documents_per_scope or None
         self._connectors = connectors
         self._cursor_manager = cursor_manager
-        self._raw_payload_writer = raw_payload_writer
-        self._audit_writer = audit_writer
+        self._writer_factory = writer_factory  # the writer is bound to one run
+        self._audit_writer_factory = audit_writer_factory  # one audit chain per run
+        self._record_snapshot = record_snapshot
         self._sync_run_repository = sync_run_repository
         self._json_sink = json_sink
         self._locks: dict[tuple[str, str], asyncio.Lock] = {}
-        self._raw_event_publisher = raw_event_publisher or NullRawEventPublisher()
 
     @property
     def available_sources(self) -> list[str]:
@@ -79,6 +74,37 @@ class SyncService:
 
     def scopes(self, source: str) -> list[str]:
         return list(self._get_connector(source).scopes)
+
+    @property
+    def has_dynamic_scopes(self) -> bool:
+        """True when some connector finds scopes on its own (GitLab member repositories)."""
+        return any(hasattr(c, "refresh_scopes") for c in self._connectors.values())
+
+    async def refresh_scopes(self) -> dict[str, str]:
+        """Let connectors re-discover their scopes. A failure keeps the previous scopes and is logged.
+
+        Returns the reason for each source that failed, so a caller that must not treat "could not look" as
+        "found nothing" (a console configuration) can tell the difference.
+        """
+        failures: dict[str, str] = {}
+        for source, connector in self._connectors.items():
+            refresh = getattr(connector, "refresh_scopes", None)
+            if refresh is None:
+                continue
+            try:
+                await refresh()
+            except Exception as exc:  # noqa: BLE001 -- the source may be down; the last known scopes stay
+                logger.warning("sync.scope_refresh_failed", source=source, error=str(exc))
+                failures[source] = error_detail(exc)
+        return failures
+
+    async def check_source(self, source: str) -> SourceCheck:
+        """Ask the source whether the saved credentials and scopes work (read-only calls)."""
+        connector = self._get_connector(source)
+        check = getattr(connector, "check", None)
+        if check is None:
+            raise NotImplementedError(f"The {source} connector has no check")
+        return await check()
 
     def _get_connector(self, source: str) -> SourceConnector:
         connector = self._connectors.get(source)
@@ -100,111 +126,108 @@ class SyncService:
             except Exception as exc:
                 logger.warning("sync_run_repository.record_failed", source=result.source.value, error=str(exc))
 
-    async def _audit(self, source: str, action: str, status: str, details: dict) -> None:
+    async def _audit(self, audit: AuditWriter, source: str, action: str, status: str, details: dict) -> None:
         try:
-            await self._audit_writer.record(
-                AuditEvent(source=source, action=action, status=status, at=datetime.now(UTC), details=details)
-            )
+            await audit.record(AuditEvent(source=source, action=action, status=status, at=datetime.now(UTC), details=details))
         except Exception as exc:
             logger.warning("audit_writer.record_failed", source=source, action=action, error=str(exc))
 
-    async def _land_raw(self, run_id: str, fetched: ScopeFetch, scope: str) -> ScopeFetch:
-        """Make each raw payload durable, then announce it. A failure at either step becomes an object error, so the
-        cursor will not pass that object.
+    async def _land_raw(
+        self, writer: RawPayloadWriter, fetched: ScopeFetch, scope: str
+    ) -> tuple[ScopeFetch, list[SourceDocument], list[str]]:
+        """Write each document. Returns (what to report, documents the cursor may pass, outcomes).
 
-        Order matters (ingestion diagram, B): the snapshot must exist before its event is published, because the event
-        carries only a reference to it. A retry repeats both steps safely: snapshots are keyed by checksum (writing the
-        same payload again is a no-op) and consumers are idempotent (the bus delivers at least once).
+        A failed write becomes an object error and is not in the cursor list, so the cursor
+        will not pass it. A quarantined document is resolved for the cursor but is left out of
+        what is reported, because it may hold secrets or personal data.
         """
-        landed: list[SourceDocument] = []
+        reported: list[SourceDocument] = []
+        resolved: list[SourceDocument] = []
+        outcomes: list[str] = []
         errors = list(fetched.errors)
         for document in fetched.documents:
+            payload = {
+                **document.raw_payload,
+                "_usep": {
+                    "object_type": document.source_type,
+                    "scope_id": scope_id(scope),
+                    "checkpoint": document.source_version or document.retrieved_at.isoformat(),
+                    "source_version": document.source_version,
+                    "extracted_at": document.retrieved_at,
+                    "acl": document.acl,
+                },
+            }
             try:
-                snapshot_ref = await self._raw_payload_writer.write(
-                    document.source.value, document.source_object_id, document.raw_payload
-                )
-                await self._raw_event_publisher.publish(
-                    RawEvent(
-                        source=document.source.value,
-                        source_type=document.source_type,
-                        source_ref=document.source_object_id,
-                        source_url=document.source_url,
-                        snapshot_ref=snapshot_ref,
-                        checksum=payload_checksum(document.raw_payload),
-                        retrieved_at=document.retrieved_at,
-                        scope=document.scope,
-                        source_version=document.source_version,
-                        acl=document.acl,
-                    )
-                )
-                landed.append(document)
-            except Exception as exc:
+                result = await writer.write(document.source.value, document.source_object_id, payload)
+                failure = f"raw payload write failed: {result.reason}" if result.outcome == Outcome.FAILED else None
+            except Exception as exc:  # the writer's own contract was broken (for example no envelope)
+                failure = f"raw payload write failed: {exc}"
+            if failure:
                 errors.append(
                     ObjectError(
                         scope=scope,
                         object_id=document.source_object_id,
                         source_version=document.source_version,
-                        error=f"raw landing failed: {exc}",
+                        error=failure,
                     )
                 )
-        return ScopeFetch(documents=landed, errors=errors)
+                continue
+            resolved.append(document)
+            outcomes.append(result.outcome)
+            if result.outcome != Outcome.QUARANTINED:
+                reported.append(document)
+        return ScopeFetch(documents=reported, errors=errors), resolved, outcomes
 
-    async def _sync_scope(self, run_id: str, source: str, connector: SourceConnector, scope: str,
-                          full: bool = False) -> tuple[ScopeFetch, str | None, bool, bool]:
-        """Returns (fetched, new_cursor, scope_failed, truncated).
-
-        ``full`` re-reads the whole scope ignoring the cursor, to pick up changes the source does not stamp with an
-        updated time (a permission change). The stored cursor never moves backwards, and the run-size cap is not applied,
-        so a full refresh is never left half done."""
-        key = cursor_key(source, scope)
-        stored = await self._cursor_manager.get_cursor(key)
-        cursor = stored or self._initial_cursor
+    async def _sync_scope(
+        self, run_id: UUID, source: str, connector: SourceConnector, scope: str, writer: RawPayloadWriter,
+        audit: AuditWriter,
+    ) -> tuple[ScopeFetch, str | None, bool]:
+        """Returns (fetched, new_cursor, scope_failed)."""
+        batch = None
         try:
-            fetched = await connector.fetch_scope(scope, None if full else cursor)
-        except Exception as exc:  # the scope itself could not be read
-            logger.error("sync.scope_failed", source=source, scope=scope, run_id=run_id, error=str(exc))
-            await self._audit(source, "sync_scope", SyncStatus.FAILED.value, {"run_id": run_id, "scope": scope, "error": str(exc)})
-            return ScopeFetch(errors=[ObjectError(scope=scope, error=str(exc))]), stored, True, False
+            batch = await self._cursor_manager.start_batch(source, scope)
+            fetched = await connector.fetch_scope(scope, batch.fetch_from)
+        except Exception as exc:  # the cursor or the scope itself could not be read
+            logger.error("sync.scope_failed", source=source, scope=scope, run_id=str(run_id), error=str(exc))
+            await self._audit(audit, source, "sync_scope", SyncStatus.FAILED.value, {"run_id": str(run_id), "scope": scope, "error": str(exc)})
+            return ScopeFetch(errors=[ObjectError(scope=scope, error=str(exc))]), batch.cursor if batch else None, True
 
-        truncated = False
-        if self._max_documents and not full and len(fetched.documents) > self._max_documents:
-            # Oldest first, objects with no version first (so they cannot starve). The cursor then stops at the last
-            # one landed; what was cut is fetched again next run because fetches are ">= cursor".
-            ordered = sorted(fetched.documents, key=lambda d: (d.source_version is not None, d.source_version or ""))
-            fetched = ScopeFetch(documents=ordered[: self._max_documents], errors=fetched.errors)
-            truncated = True
-
-        fetched = await self._land_raw(run_id, fetched, scope)
-        await self._object_index.add(key, {d.source_object_id for d in fetched.documents})
-        new_cursor = next_cursor(stored if full else cursor, fetched)
-        if new_cursor and new_cursor != stored:
-            await self._cursor_manager.set_cursor(key, new_cursor)
+        fetched, resolved, outcomes = await self._land_raw(writer, fetched, scope)
+        new_cursor = next_cursor(batch.cursor, ScopeFetch(documents=resolved, errors=fetched.errors))
+        if new_cursor and new_cursor != batch.cursor:
+            try:
+                await self._cursor_manager.advance(batch, new_cursor, outcomes)
+            except Exception as exc:  # data is stored; the next run fetches it again and the writer dedupes
+                logger.error("sync.cursor_not_saved", source=source, scope=scope, run_id=str(run_id), error=str(exc))
+                fetched.errors.append(ObjectError(scope=scope, error=f"cursor not saved: {exc}"))
+                new_cursor = batch.cursor
 
         for error in fetched.errors:
             await self._audit(
+                audit,
                 source,
                 "fetch_object",
                 SyncStatus.FAILED.value,
-                {"run_id": run_id, "scope": scope, "object_id": error.object_id, "error": error.error},
+                {"run_id": str(run_id), "scope": scope, "object_id": error.object_id, "error": error.error},
             )
         await self._audit(
+            audit,
             source,
             "sync_scope",
-            SyncStatus.PARTIAL.value if fetched.errors or truncated else SyncStatus.SUCCESS.value,
+            SyncStatus.PARTIAL.value if fetched.errors else SyncStatus.SUCCESS.value,
             {
-                "run_id": run_id,
+                "run_id": str(run_id),
                 "scope": scope,
                 "documents_count": len(fetched.documents),
+                "quarantined_count": len(resolved) - len(fetched.documents),
                 "errors_count": len(fetched.errors),
-                "cursor_before": stored,
+                "cursor_before": batch.cursor,
                 "cursor_after": new_cursor,
-                "full": full,
-                "truncated": truncated,
             },
         )
-        return fetched, new_cursor, False, truncated
+        return fetched, new_cursor, False
 
-    async def sync_source(self, source: str, scopes: list[str] | None = None, full: bool = False) -> SyncResult:
+    async def sync_source(self, source: str, scopes: list[str] | None = None) -> SyncResult:
         connector = self._get_connector(source)
         configured = list(connector.scopes)
         if scopes is not None:
@@ -213,13 +236,19 @@ class SyncService:
                 raise ValueError(f"Unknown scope(s) for source '{source}': {unknown}")
         target_scopes = scopes if scopes is not None else configured
 
-        run_id = _new_run_id()
+        run_id = new_id()
+        audit = self._audit_writer_factory(run_id)
+        writer = self._writer_factory(run_id, audit)  # same audit writer, so the run has one hash chain
         started_at = datetime.now(UTC)
+        if self._record_snapshot:
+            try:
+                await self._record_snapshot(run_id, source, target_scopes)
+            except Exception as exc:  # provenance bookkeeping; the run still goes ahead
+                logger.warning("run_snapshot.record_failed", source=source, run_id=str(run_id), error=str(exc))
         documents: list[SourceDocument] = []
         object_errors: list[ObjectError] = []
         cursors: dict[str, str | None] = {}
         skipped: list[str] = []
-        truncated_scopes: list[str] = []
         failed_scopes = 0
 
         for scope in target_scopes:
@@ -229,10 +258,7 @@ class SyncService:
                 skipped.append(scope)
                 continue
             async with lock:
-                fetched, new_cursor, scope_failed, truncated = await self._sync_scope(
-                    run_id, source, connector, scope, full)
-            if truncated:
-                truncated_scopes.append(scope)
+                fetched, new_cursor, scope_failed = await self._sync_scope(run_id, source, connector, scope, writer, audit)
             documents.extend(fetched.documents)
             object_errors.extend(fetched.errors)
             cursors[scope] = new_cursor
@@ -241,13 +267,13 @@ class SyncService:
         attempted = len(target_scopes) - len(skipped)
         if attempted and failed_scopes == attempted:
             status = SyncStatus.FAILED
-        elif object_errors or skipped or truncated_scopes:
+        elif object_errors or skipped:
             status = SyncStatus.PARTIAL
         else:
             status = SyncStatus.SUCCESS
 
         result = SyncResult(
-            run_id=run_id,
+            run_id=str(run_id),
             source=connector.source,
             status=status,
             started_at=started_at,
@@ -255,19 +281,18 @@ class SyncService:
             documents=documents,
             cursors=cursors,
             skipped_scopes=skipped,
-            truncated_scopes=truncated_scopes,
             object_errors=object_errors,
             errors=[str(e) for e in object_errors],
         )
         await self._audit(
+            audit,
             source,
             "sync",
             status.value,
-            {"run_id": run_id, "documents_count": result.documents_count, "errors_count": len(object_errors), "skipped_scopes": skipped,
-             "truncated_scopes": truncated_scopes, "full": full},
+            {"run_id": str(run_id), "documents_count": result.documents_count, "errors_count": len(object_errors), "skipped_scopes": skipped},
         )
         await self._record_run(result)
-        logger.info("sync.completed", source=source, run_id=run_id, status=status.value, documents_count=result.documents_count)
+        logger.info("sync.completed", source=source, run_id=str(run_id), status=status.value, documents_count=result.documents_count)
         return result
 
     async def sync_all(self) -> list[SyncResult]:
