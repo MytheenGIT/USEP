@@ -103,7 +103,7 @@ export function answerQuestion(graph: GraphDto, question: string, ontology?: Ont
     const connected = graph.edges.filter((e) => hit.some((h) => h.id === e.source || h.id === e.target)).length;
     return { text: `I found ${hit.length} node${hit.length === 1 ? "" : "s"} that match: ${names(hit)}. ${connected} relationship${connected === 1 ? "" : "s"} touch ${hit.length === 1 ? "it" : "them"}.`, citations: hit.slice(0, 6), source: "graph" as const };
   }
-  return { text: "I can answer questions about what is in this knowledge graph: an overview, requirements without a change, incidents and what caused them, who owns what, and recent changes. Try one of the suggestions.", citations: [], source: "graph" as const };
+  return { text: "I can answer questions about what is in this knowledge graph (an overview, requirements without a change, incidents and what caused them, who owns what, recent changes, which labels are used) and about its ontology (what a concept is, what can relate to what, attributes, packs, policies). Try one of the suggestions.", citations: [], source: "graph" as const };
 }
 
 /** Labels refine a concept and never replace it. This answers from the labels the graph's nodes carry, plus the ontology's organisation words. */

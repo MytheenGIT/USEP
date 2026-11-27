@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Link, paths } from "../../app/router";
 import { api } from "../../shared/api/client";
 import { useAsync } from "../../shared/hooks/useAsync";
+import { plural } from "../../shared/lib/format";
 import { Badge, Button, Card, EmptyState, ErrorMessage, Spinner } from "../../shared/ui";
 import { useSession } from "../auth/AuthContext";
 import { useConfigurationList } from "../configurations/ConfigurationsContext";
@@ -107,8 +108,8 @@ function OntologyBody({ id, initialConcept, themeKey }: { id: string; initialCon
               <dl className="kv">
                 <div><dt>Graph checked against</dt><dd>Core {config.ontology.version} · digest <code title={config.ontology.digest}>{config.ontology.digest.slice(0, 12)}</code>{config.ontology.digest === dto.digest ? " (the current ontology)" : " (not the current ontology)"}</dd></div>
                 <div><dt>Packs</dt><dd>{config.ontology.packs.join(", ")}</dd></div>
-                <div><dt>Concepts in use</dt><dd>{Object.keys(used.concepts).length} of {dto.concepts.length} ({Object.values(used.concepts).reduce((a, b) => a + b, 0)} nodes)</dd></div>
-                <div><dt>Relationship types in use</dt><dd>{Object.keys(used.relations).length} of {dto.relationships.length} ({Object.values(used.relations).reduce((a, b) => a + b, 0)} relationships)</dd></div>
+                <div><dt>Concepts in use</dt><dd>{Object.keys(used.concepts).length} of {dto.concepts.length} ({plural(Object.values(used.concepts).reduce((a, b) => a + b, 0), "node")})</dd></div>
+                <div><dt>Relationship types in use</dt><dd>{Object.keys(used.relations).length} of {dto.relationships.length} ({plural(Object.values(used.relations).reduce((a, b) => a + b, 0), "relationship")})</dd></div>
                 <div><dt>Left out by the ontology</dt><dd>{config.ontology.nodes_dropped} item(s), {config.ontology.edges_dropped} relationship(s){config.ontology.nodes_dropped + config.ontology.edges_dropped > 0 ? " — proposed from the sources but not allowed" : ""}</dd></div>
               </dl>
             )}

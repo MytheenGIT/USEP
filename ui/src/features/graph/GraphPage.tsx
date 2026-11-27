@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Link, paths } from "../../app/router";
 import { api } from "../../shared/api/client";
 import { useAsync } from "../../shared/hooks/useAsync";
-import { formatDateTime } from "../../shared/lib/format";
+import { formatDateTime, plural } from "../../shared/lib/format";
 import { Button, Card, EmptyState, ErrorMessage, Icon, Spinner } from "../../shared/ui";
 import { useSession } from "../auth/AuthContext";
 import { useConfiguration } from "../configurations/hooks";
@@ -39,7 +39,7 @@ export function GraphPage({ id, themeKey }: { id: string; themeKey: string }) {
       <div className="page-head">
         <div>
           <h1>{config?.name ?? "Knowledge graph"}</h1>
-          <p className="muted">Ontology {graph.ontology_version} · generated {formatDateTime(graph.generated_at)} · {graph.nodes.length} nodes, {graph.edges.length} relationships</p>
+          <p className="muted">Ontology {graph.ontology_version} · generated {formatDateTime(graph.generated_at)} · {plural(graph.nodes.length, "node")}, {plural(graph.edges.length, "relationship")}</p>
         </div>
         <div className="row-gap">
           <Link to={paths.ontology(id)} className="btn btn-secondary"><Icon name="book" size={16} /> Ontology</Link>
