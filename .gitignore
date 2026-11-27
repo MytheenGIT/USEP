@@ -16,7 +16,7 @@
 id_rsa*
 id_ed25519*
 *.gpg
-secrets/
+/secrets/
 *.secret
 *.secrets
 credentials*

@@ -1,0 +1,96 @@
+"""Three pagination shapes, one async generator each (section 5.7, 9).
+
+A connector's own fetch loop looks the same whichever shape its source uses.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Awaitable, Callable
+
+from usep.core.defaults import DEFAULT_MAX_PAGES, DEFAULT_PAGE_SIZE
+from usep.core.errors import PaginationError
+
+
+async def paginate_cursor[T](
+    fetch_page: Callable[[str | None], Awaitable[tuple[list[T], str | None]]],
+    start_cursor: str | None = None,
+    *,
+    max_pages: int = DEFAULT_MAX_PAGES,
+) -> AsyncIterator[list[T]]:
+    """`fetch_page(cursor) -> (items, next_cursor)`.
+
+    Stops when `next_cursor` is `None`. Raises `PaginationError` if the same cursor
+    is seen twice (a source bug or an infinite loop) or `max_pages` is exceeded.
+    """
+    cursor = start_cursor
+    seen: set[str] = set()
+    pages = 0
+    while True:
+        pages += 1
+        if pages > max_pages:
+            raise PaginationError(f"exceeded max_pages={max_pages}")
+        items, next_cursor = await fetch_page(cursor)
+        yield items
+        if next_cursor is None:
+            return
+        if next_cursor in seen:
+            raise PaginationError(f"repeated cursor: {next_cursor!r}")
+        seen.add(next_cursor)
+        cursor = next_cursor
+
+
+async def paginate_offset[T](
+    fetch_page: Callable[[int, int], Awaitable[tuple[list[T], int | None]]],
+    *,
+    page_size: int = DEFAULT_PAGE_SIZE,
+    max_pages: int = DEFAULT_MAX_PAGES,
+) -> AsyncIterator[list[T]]:
+    """`fetch_page(start, page_size) -> (items, total)`.
+
+    Stops on an empty page, or once `start` reaches or passes `total` when the
+    source reports one. Raises `PaginationError` if `max_pages` is exceeded (a source
+    that ignores `start` and returns the same non-empty page forever).
+    """
+    start = 0
+    pages = 0
+    while True:
+        pages += 1
+        if pages > max_pages:
+            raise PaginationError(f"exceeded max_pages={max_pages}")
+        items, total = await fetch_page(start, page_size)
+        if not items:
+            return
+        yield items
+        start += len(items)
+        if total is not None and start >= total:
+            return
+
+
+async def paginate_link_header[T](
+    fetch_page: Callable[[str | None], Awaitable[tuple[list[T], str | None]]],
+    start_url: str | None = None,
+    *,
+    max_pages: int = DEFAULT_MAX_PAGES,
+) -> AsyncIterator[list[T]]:
+    """Follow `rel="next"` Link headers until there is no next page.
+
+    `fetch_page(url)` returns `(items, next_url)`, where `next_url` is the target of a `rel="next"`
+    Link header, or `None` at the end.
+
+    Raises `PaginationError` if the same URL is returned twice or `max_pages` is exceeded.
+    """
+    url = start_url
+    seen: set[str] = set()
+    pages = 0
+    while True:
+        pages += 1
+        if pages > max_pages:
+            raise PaginationError(f"exceeded max_pages={max_pages}")
+        items, next_url = await fetch_page(url)
+        yield items
+        if next_url is None:
+            return
+        if next_url in seen:
+            raise PaginationError(f"repeated link: {next_url!r}")
+        seen.add(next_url)
+        url = next_url
