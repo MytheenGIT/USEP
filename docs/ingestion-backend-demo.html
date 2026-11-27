@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>USEP ingestion layer: backend demo guide</title>
+<style>
+  :root {
+    --bg:#f4f6fa; --surface:#fff; --text:#0f172a; --muted:#526071; --border:#e2e8f0;
+    --accent:#2554d8; --accent-soft:#e8eefc;
+    --ok:#166534; --ok-soft:#dcfce7; --warn:#92400e; --warn-soft:#fef3c7; --bad:#b42318; --bad-soft:#fee4e2;
+    --shadow:0 1px 2px rgb(15 23 42/6%),0 4px 16px rgb(15 23 42/5%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0b1017; --surface:#131a23; --text:#e6ebf2; --muted:#9aa8b8; --border:#263241; --accent:#7aa2ff; --accent-soft:#1b2a4a;
+      --ok:#86efac; --ok-soft:#14301f; --warn:#fcd34d; --warn-soft:#3a2a0c; --bad:#fca5a5; --bad-soft:#3b1714; --shadow:none; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 24px 64px; }
+  h1 { font-size:1.7rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 { font-size:1.15rem; margin:36px 0 12px; display:flex; align-items:center; gap:10px; }
+  h2 .n { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--surface); font-size:13px; font-weight:700; }
+  p { margin:0 0 10px; } .muted { color:var(--muted); } .small { font-size:13px; }
+  .lead { font-size:1.05rem; max-width:80ch; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:18px 20px; }
+  .grid { display:grid; gap:14px; grid-template-columns:repeat(4,1fr); } @media (max-width:820px){ .grid { grid-template-columns:1fr 1fr; } }
+  .stat .k { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .stat .v { font-size:1.35rem; font-weight:700; margin:2px 0; } .stat .d { font-size:13px; color:var(--muted); }
+  .tag { display:inline-block; padding:1px 9px; border-radius:99px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .t-ok { background:var(--ok-soft); color:var(--ok); } .t-warn { background:var(--warn-soft); color:var(--warn); }
+  .t-bad { background:var(--bad-soft); color:var(--bad); } .t-info { background:var(--accent-soft); color:var(--accent); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--border); }
+  th { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  tr:last-child td { border-bottom:0; } td:first-child { font-weight:600; }
+  .flow { display:grid; grid-template-columns:repeat(6,1fr); gap:22px; }
+  .flow .box { position:relative; border:1px solid var(--border); background:var(--surface); border-radius:10px; padding:10px 12px; font-size:13px; min-width:0; }
+  .flow .box b { display:block; font-size:14px; margin-bottom:2px; }
+  .flow .box.temp { border-style:dashed; border-color:var(--warn); }
+  .flow .box:not(:last-child)::after { content:"\2192"; position:absolute; right:-18px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:16px; }
+  @media (max-width:900px) { .flow { grid-template-columns:repeat(2,1fr); } .flow .box::after { display:none; } }
+  .checks { display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; margin:0; padding:0; list-style:none; } @media (max-width:820px){ .checks { grid-template-columns:1fr; } }
+  .checks li { padding-left:24px; position:relative; font-size:14px; }
+  .checks li::before { content:"✓"; position:absolute; left:0; color:var(--ok); font-weight:800; }
+  details { border:1px solid var(--border); border-radius:10px; background:var(--surface); margin-bottom:10px; }
+  summary { cursor:pointer; padding:12px 16px; font-weight:600; list-style:none; display:flex; gap:10px; align-items:center; }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:"▸"; color:var(--muted); transition:transform .12s; } details[open] summary::before { transform:rotate(90deg); }
+  details > div { padding:0 16px 14px 36px; font-size:14px; }
+  details ul { margin:6px 0 0; padding-left:18px; } details li { margin-bottom:4px; }
+  .callout { border-left:4px solid var(--warn); background:var(--warn-soft); color:var(--text); border-radius:8px; padding:12px 16px; margin-top:14px; }
+  .callout b { color:var(--warn); }
+  .decide li { margin-bottom:8px; }
+  code { font:12.5px ui-monospace,Menlo,Consolas,monospace; background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:5px; }
+  @media print { body { background:#fff; } .card,details { box-shadow:none; } details > div { display:block; } }
+
+  .qa dt { font-weight:600; margin-top:12px; } .qa dd { margin:2px 0 0; color:var(--text); }
+  .num { font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<h1>USEP ingestion layer: backend demo guide</h1>
+<div class="meta">Universal Semantic Engineering Platform · from the source API to the encrypted raw store · backend only · 27 Nov 2026</div>
+<p class="lead">The ingestion layer reads Jira, Confluence, GitLab, GitHub, ServiceNow and Figma (read-only), and lands every record as an encrypted, deduplicated, audited raw object with a resume cursor. Nothing downstream (normalising, chunking, the graph) is part of it. This page says what was built, how to show it, which HLD/LLD questions it answers, and where the documents disagree.</p>
+
+<div class="grid" style="margin-top:18px">
+ <div class="card stat"><div class="k">Sources</div><div class="v">6</div><div class="d">Jira, Confluence, GitLab, GitHub, ServiceNow, Figma. All optional.</div></div>
+ <div class="card stat"><div class="k">Tests</div><div class="v num">224 + 121</div><div class="d">Connector service + foundation, passing (ruff clean)</div></div>
+ <div class="card stat"><div class="k">Real checks</div><div class="v">Postgres, S3 (mock), 12 processes</div><div class="d">Real Postgres 16 and a multi-process run were done</div></div>
+ <div class="card stat"><div class="k">Live sources</div><div class="v">Jira only</div><div class="d">Read through <code>tools/fetch_jira.py</code>. Others use recorded API shapes.</div></div>
+</div>
+
+<h2><span class="n">1</span>The path one record takes</h2>
+<div class="card">
+<div class="flow">
+ <div class="box"><b>Source API</b>Jira, Confluence, GitLab, GitHub, ServiceNow, Figma</div>
+ <div class="box"><b>Rate limit + retry</b>Per-source limit, backoff, 5 attempts</div>
+ <div class="box"><b>Raw writer</b>Scan, dedupe, encrypt, store</div>
+ <div class="box"><b>Raw store</b>Files in the repo now, S3 later (a setting)</div>
+ <div class="box temp"><b>Event</b>Published to a port. Kafka adapter later (log only now)</div>
+ <div class="box"><b>Cursor + audit</b>Checkpoint after publish, hash-chained audit per run</div>
+</div>
+<p class="small muted" style="margin-top:12px">Dashed = temporary stand-in. Connectors only produce documents; they never write facts (C-01, ADR-05).</p>
+</div>
+
+<h2><span class="n">2</span>What was built in the backend</h2>
+<div class='card' style='padding:6px 8px;overflow-x:auto'><table><tr><th>Part</th><th>What it does</th><th>HLD / LLD ref</th></tr><tr><td>Connectors (6)</td><td>Pull each source over REST (GitHub and GitLab can also read commit history over SSH). Every document keeps source, object id, link, retrieval time and the untouched raw payload. Comments, history, labels and hierarchy stay separate fields.</td><td>C-01, LLD 4.1</td></tr><tr><td>Optional sources</td><td>Each connector has an <code>enabled</code> flag. A switched-on source must be complete, otherwise the service refuses to start. At least one must be on.</td><td>Spec module 2</td></tr><tr><td>Scopes</td><td>Jira: many project keys plus the admin's own JQL queries. Confluence: many space keys. GitLab and GitHub: many repositories, own repository links, or all repositories the token can reach. ServiceNow: tables plus an optional query. Each scope has its own cursor and its own scheduled job.</td><td>LLD 4.1, 4.2</td></tr><tr><td>Rate limiter + retry</td><td>One limiter per source (defaults: Jira 5, Confluence 5, GitLab 10, Figma 1 req/s). Retries with backoff, honours Retry-After, gives up after 5 attempts: logged and audited, cursor stays put so nothing is lost.</td><td>LLD 4.3, 2.1</td></tr><tr><td>Raw payload writer</td><td>Writes the untouched payload as one object per content version. Order: scan for secrets and personal data (a hit is quarantined, not stored), dedupe by content hash, encrypt (AES-GCM, a new data key per object, wrapped by the tenant key), write the key to the raw index <i>first</i>, then put the object, then publish the event.</td><td>HLD 4.6, LLD 3.x</td></tr><tr><td>Raw store</td><td><code>USEP_INGESTION_RAW_STORE=file</code> (default, <code>services/connectors/output/raw</code>, git-ignored) or <code>s3</code>. Same keys, same encrypted bytes. With s3 the bucket is checked at start-up and a missing bucket stops the service.</td><td>HLD 4.5</td></tr><tr><td>Cursor manager</td><td>Keys are <code>source:scope:lane</code>. Overlap window so late updates are not missed. Atomic upsert (fixed a merge race found on real Postgres with 12 processes). Checkpoint only after publish.</td><td>LLD Table 1, 4.2</td></tr><tr><td>Audit</td><td>One hash-chained audit event per run, plus a run snapshot with secrets stripped. Append-only table with a Postgres trigger that blocks update and delete.</td><td>Spec 7.5, D-09</td></tr><tr><td>Sensitive-data detector</td><td>Scans before any write. Covers the identifiers the organisation allows us to detect (e.g. card-like and national-ID patterns). Passport, licence and patient-record formats are not detected because no format is defined.</td><td>D-07</td></tr><tr><td>Scheduler + sync service</td><td>Per-scope scheduled jobs, manual run endpoint, one failing source never stops the others. Sign-in required for sync and results endpoints.</td><td>Module 2</td></tr><tr><td>Console API</td><td>Sign-in, create configuration, automatic connection check, processing, graph, and add a connector later (from saved results). Typed tokens are held in memory for one run and dropped.</td><td>Module 1, ADR-026</td></tr><tr><td>Tools</td><td><code>tools/fetch_jira.py</code> reads Jira with your own account and saves JSON. <code>tools/read_raw.py</code> decrypts and prints a stored raw object, to prove what is on disk.</td><td>Demo aid</td></tr></table></div>
+
+<h2><span class="n">3</span>Security and safety rules applied</h2>
+<div class="card"><ul class="checks">
+<li>Raw objects encrypted per object (envelope encryption)</li>
+<li>Source tokens never stored, logged or returned</li>
+<li>Typed server URLs must be https; private addresses blocked</li>
+<li>Scope entries strictly validated (no query injection)</li>
+<li>SSH keys: temp file mode 0600, host keys must be supplied, refused otherwise</li>
+<li>Figma blocked until the DPIA flag is set (ADR-025)</li>
+<li>Secrets and personal data are quarantined, not stored</li>
+<li>Hash-chained, append-only audit</li>
+<li>Tenant id on every configuration, checked on read</li>
+<li>Fails closed: no admin credentials means no sign-in</li>
+<li>Run snapshots drop any setting named token, secret, password or email</li>
+<li>Typed errors with a trace id, no stack traces</li>
+</ul></div>
+
+<h2><span class="n">4</span>Demo script (about 8 minutes)</h2>
+<div class="card">
+<ol style="margin:0;padding-left:20px">
+<li><b>Show the config.</b> Only the sources you switch on run. Switch Jira on; show that a half-filled Jira stops start-up with a clear message.</li>
+<li><b>Run a sync.</b> Use the sync endpoint or <code>tools/fetch_jira.py</code> against <code>sematic-test.atlassian.net</code>, project <code>KAN</code>. Show the run record and the audit event.</li>
+<li><b>Show the files.</b> Open <code>services/connectors/output/raw</code>. The files are unreadable ciphertext on purpose.</li>
+<li><b>Prove what is inside.</b> Run <code>tools/read_raw.py</code> on one object: decrypts to the original Jira JSON.</li>
+<li><b>Run it again.</b> Nothing new is written: unchanged content is skipped by content hash, and the cursor moved forward.</li>
+<li><b>Show a secret being caught.</b> A record containing a card-like number lands in quarantine, not in the store.</li>
+<li><b>Show switchability.</b> Same run with <code>RAW_STORE=s3</code> against a mock bucket (tests) gives the same keys and bytes.</li>
+</ol>
+<div class="callout"><b>Be upfront.</b> Real Jira is the only live source. S3 was tested against a mock (moto), SSH only against a local repository, GitHub and ServiceNow against recorded API shapes.</div>
+</div>
+
+<h2><span class="n">5</span>Likely HLD and LLD questions, answered</h2>
+<div class='card'><dl class='qa' style='margin:0'><dt>Where does raw data land and is it safe?</dt><dd>As encrypted objects in the raw store: files in the repo for now, S3 by changing one setting. Each object has its own data key, wrapped by the tenant key. The key is saved to the raw index before the object is written, so an object can never exist without its key.</dd><dt>What if the same record is read twice?</dt><dd>Same content hash means no new object and no new event. A changed record becomes a new object (the hash is in the object key), so history is kept.</dd><dt>What if the service crashes halfway?</dt><dd>The cursor is moved only after the publish is acknowledged, so a restart re-reads from the last checkpoint. Duplicates are absorbed by the content-hash dedupe.</dd><dt>What if a source is slow or fails?</dt><dd>Rate limit per source, retry with backoff, Retry-After honoured. After 5 attempts the call is logged and audited and the cursor stays put. One source failing does not stop the others.</dd><dt>Do two processes or two scopes interfere?</dt><dd>No. Cursors are per source, scope and lane, and use atomic upserts. A 12-process run on real Postgres found and fixed a merge race.</dd><dt>How are late edits handled?</dt><dd>The cursor has an overlap window, so records updated near the checkpoint are read again. Dedupe makes that cheap.</dd><dt>How do you keep secrets and personal data out?</dt><dd>The writer scans before storing. A hit is quarantined with a record, not stored. Source tokens are never stored or logged.</dd><dt>Is there an audit trail?</dt><dd>Yes: one hash-chained event per run, stored in an append-only table, and a snapshot of the run settings with secrets removed. Retention and the periodic hash export are open (D-09).</dd><dt>Can an admin choose which sources and scopes?</dt><dd>Yes. Every source is optional. Jira takes project keys and JQL, Confluence space keys, GitLab and GitHub repositories (listed, linked, or all reachable), ServiceNow tables.</dd><dt>What is the event that goes downstream?</dt><dd>A raw-object-published event: source, scope, object id, version, content hash, object key, retrieval time and the source permissions (<code>source_acl</code>). Kafka is behind a port; the adapter is not built, so it is logged.</dd><dt>How is access control carried?</dt><dd>Source permissions are collected and carried on the event. Mapping them to <code>acl_ref</code> is open (D-06); until then everything is owners-only, the LLD's rule for unmapped permissions.</dd><dt>Is it ready for production?</dt><dd>No. It needs the Kafka adapter, Vault and key management, the S3 bucket with Object Lock, migrations, and the open decisions below.</dd></dl></div>
+
+<h2><span class="n">6</span>Verification</h2>
+<div class='card' style='padding:6px 8px;overflow-x:auto'><table><tr><th>Check</th><th>Result</th></tr><tr><td>Connector service tests</td><td>224 passed, 3 skipped</td></tr><tr><td>Foundation tests</td><td>121 passed, 1 error: <code>test_secrets.py</code> imports modules that were never written (<code>usep.adapters.secrets.dev_env</code>, <code>usep.adapters.vault.svid</code>)</td></tr><tr><td>Real Postgres 16</td><td>Run, including the audit trigger that blocks update and delete</td></tr><tr><td>Several processes at once</td><td>12 processes against real Postgres; found and fixed a cursor merge race</td></tr><tr><td>S3 behaviour</td><td>Mock S3 (moto) only. Real S3 is not tested</td></tr><tr><td>Docker image build</td><td>Fails on this network (pip certificate error); needs the corporate CA</td></tr><tr><td>Live sources</td><td>Jira only, through <code>tools/fetch_jira.py</code>. KAN-2 was read. GitLab, Confluence, GitHub, ServiceNow, Figma not run live</td></tr></table></div>
+
+<h2><span class="n">7</span>Not built yet</h2>
+<div class='card' style='padding:6px 8px;overflow-x:auto'><table><tr><th>Item</th><th>Why / what it needs</th></tr><tr><td>Normalising, chunking (C-02)</td><td>Decided: after everything else. Where and in which order it runs is open (D-05)</td></tr><tr><td>24-hour reconciliation and tombstones</td><td>Shredding is irreversible; needs a listing method per connector and a completeness guard</td></tr><tr><td>Kafka adapter</td><td>Port exists; events are logged only (D-03)</td></tr><tr><td>Vault credentials, key management</td><td>Tokens come from environment settings; local key wraps data keys (D-02, D-04)</td></tr><tr><td>Retention clean-up and erasure</td><td>Governance deletion event not built (D-01)</td></tr><tr><td>Dead-letter store, webhooks, api_call_log</td><td>Need a table and owner, or the credentials design</td></tr><tr><td>Scheduling console configurations</td><td>A console configuration is read once, not scheduled (D-14)</td></tr></table></div>
+
+<h2><span class="n">8</span>Where the documents disagree: ask these during the demo</h2>
+<p class="muted">Rule used so far: where documents differ, the HLD and LLD win. Each row says what we did, so you can say it out loud and ask for confirmation.</p>
+<div class='card' style='padding:6px 8px;overflow-x:auto'><table><tr><th>#</th><th>Conflict</th><th>Document A</th><th>Document B</th><th>What the code does now</th><th>Question to ask</th></tr><tr><td>1</td><td>Raw retention</td><td>Spec: raw JSON kept 30 days</td><td>HLD 4.6, D15: source record exists plus 1 year, then crypto-shred</td><td>Follows the HLD. Nothing deletes raw objects</td><td>Who enforces retention and erasure: a governance event, or reconciliation? (D-01)</td></tr><tr><td>2</td><td>Credentials</td><td>Spec / O-18: entered in the UI, encrypted in Postgres, master key outside</td><td>HLD: Vault dynamic credentials, rotated within 30 days</td><td>Tokens from environment (Rancher), typed ones in memory for one run</td><td>Which design goes into ADR-036? (D-02)</td></tr><tr><td>3</td><td>Raw landing</td><td>Spec: pull job writes raw JSON to S3 directly</td><td>HLD / ADR-05: connectors publish to Kafka, one fact writer</td><td>Files in the repo now, S3 by setting, Kafka is a log-only port</td><td>Is a direct S3 write acceptable for the pilot, and when does the Kafka adapter come? (D-03)</td></tr><tr><td>4</td><td>Normalisation location</td><td>Spec: part of chunking (module 3)</td><td>HLD Table 7: C-02 pipeline after the raw topic; order open (LLD OI-24)</td><td>Not built; connectors keep only light conversions</td><td>Where does C-02 run and in what order? (D-05)</td></tr><tr><td>5</td><td>Snapshot rules (O-01)</td><td>Not covered in the spec</td><td>HLD 4.6 leaves four points open</td><td>Written at fetch, scan first, skip unchanged, keep every version</td><td>Confirm these four, or change them in the ADR (suggestions in the decisions document)</td></tr><tr><td>6</td><td>Audit retention</td><td>Spec 7.5: 6 months, configurable</td><td>Register: 7 years, WORM exit (ADR-032)</td><td>Append-only, hash-chained, no retention job</td><td>Which period, and who owns the locked hash export? (D-09)</td></tr><tr><td>7</td><td>Write-once evidence</td><td>HLD 4.5, D5: S3 Object Lock</td><td>File store has none; S3 setting is infrastructure</td><td>Warns at start-up if versioning or Object Lock is missing</td><td>Who sets Object Lock in platform-iac? (D-10)</td></tr><tr><td>8</td><td>Reconciliation check</td><td>LLD 4.2: compare source version</td><td>Foundation compares source version with content hash, which never match</td><td>Reconciliation not enabled</td><td>Store source_version on the raw index row? Needs a listing method per connector</td></tr><tr><td>9</td><td>Sensitive identifiers</td><td>Organisation policy: SSN, Aadhaar, PAN, passport, licence, card, patient records must not be processed</td><td>LLD / O-11: pattern list not reviewed; no format for passport, licence, patient records</td><td>Detects the defined patterns only</td><td>Who reviews the list, and how are the undefined ones blocked? (D-07)</td></tr><tr><td>10</td><td>Source permissions to acl_ref</td><td>LLD 4.4: map from SCIM groups and project roles</td><td>No principal-group source defined</td><td>Owners-only for everything</td><td>Who owns the mapping and where do groups come from? (D-06)</td></tr><tr><td>11</td><td>Scope approval</td><td>LLD 4.1: a data owner approves each scope</td><td>Console lets an admin pick scopes, including all reachable GitLab and GitHub repositories</td><td>Built, off by default</td><td>Does the admin's choice count as the data owner's approval? (D-13, D-16)</td></tr><tr><td>12</td><td>Where configuration lives</td><td>Environment settings (scheduled)</td><td>Console API and UI (read once, not scheduled)</td><td>Both exist</td><td>Which is the source of truth for scheduled runs? (D-14)</td></tr><tr><td>13</td><td>Figma</td><td>Spec lists Figma as a source</td><td>ADR-025 / O-05: DPIA must be signed first</td><td>Blocked until the flag is set</td><td>Who records the DPIA approval and when? (D-08)</td></tr><tr><td>14</td><td>Jira time window</td><td>Spec: default 6 months, configurable</td><td>Code reads by project or JQL with no default window</td><td>Admin's JQL can limit it</td><td>Add the default 6-month window?</td></tr><tr><td>15</td><td>Libraries and migrations</td><td>Standards: one ADR confirming the library set (O-17)</td><td>Service creates tables at start-up</td><td>Works for one database</td><td>Which migration tool, and who writes the ADR? (D-12)</td></tr><tr><td>16</td><td>Saved results for add-a-connector</td><td>Everything should stay encrypted</td><td>Added connectors rebuild the graph from readable JSON saved per source</td><td>Plain JSON under <code>output/configurations</code></td><td>Read back from the encrypted raw store instead? (D-17)</td></tr><tr><td>17</td><td>SSH access</td><td>SSH key accepted for GitHub and GitLab</td><td>An SSH key cannot call the API, so commit history only</td><td>Known hosts must be supplied; tested on a local repository</td><td>Is commit history alone worth offering, and who owns known hosts? (D-15)</td></tr></table></div>
+
+<p class="small muted" style="margin-top:28px">Full text, options and recommendations for every row: <code>docs/ingestion-open-decisions.html</code>. Section numbers come from the repository's copies of the HLD, LLD and decisions register; check against the source documents before quoting.</p>
+</div>
+</body></html>

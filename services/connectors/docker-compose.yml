@@ -1,0 +1,41 @@
+# Local stack: Postgres for the indexes and the audit trail, and the ingestion service.
+# Raw objects land as encrypted files in ./output/raw (git-ignored) until USEP_INGESTION_RAW_STORE=s3 is set in .env.
+#   cp .env.example .env   # fill in the values, then:
+#   docker compose up --build
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: usep
+      POSTGRES_PASSWORD: usep
+      POSTGRES_DB: usep_ingestion
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usep -d usep_ingestion"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  connectors:
+    build:
+      context: ../..
+      dockerfile: services/connectors/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      USEP_INGESTION_DATABASE_URL: postgresql+asyncpg://usep:usep@postgres:5432/usep_ingestion
+      USEP_INGESTION_OUTPUT_DIR: /app/output
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
