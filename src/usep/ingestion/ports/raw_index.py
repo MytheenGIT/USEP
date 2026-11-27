@@ -22,6 +22,12 @@ class RawIndexPort(Protocol):
         races: concurrent writes to the same object share the first writer's event_id."""
         ...
 
+    async def revive(self, ref: RawObjectRef) -> RawObjectRef:
+        """Replace the tombstoned row at this key with `ref` (new wrapped key, new event ID,
+        tombstone and absence marker cleared, unpublished). Returns the stored row: `ref` if
+        revived, the existing row if another writer revived it first."""
+        ...
+
     async def mark_published(self, ref: RawObjectRef) -> None:
         """`UPDATE ... SET published_at = now() WHERE ... AND published_at IS NULL`."""
         ...
@@ -31,6 +37,11 @@ class RawIndexPort(Protocol):
         ...
 
     async def mark_first_seen_extra(self, ref: RawObjectRef, *, at: datetime) -> None: ...
+
+    async def clear_first_seen_extra(self, ref: RawObjectRef) -> None:
+        """Forget an earlier absence: the object is back in the source, so the
+        two-sighting rule starts over if it disappears again."""
+        ...
 
     async def tombstone(self, ref: RawObjectRef, *, at: datetime) -> None:
         """Sets `tombstoned_at` and clears the wrapped data key — crypto-shred:

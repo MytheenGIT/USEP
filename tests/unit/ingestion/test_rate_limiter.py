@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import uuid4
 
 import pytest
@@ -69,3 +70,41 @@ async def test_acquire_consumes_a_token_and_reports_wait() -> None:
 
     waited = await limiter.acquire(key)
     assert waited == 0.0
+
+
+@pytest.mark.asyncio
+async def test_concurrent_acquires_are_spread_over_token_intervals(monkeypatch: pytest.MonkeyPatch) -> None:
+    clock = FakeClock()
+    limiter = RateLimiter(clock, backfill_fraction=0.5)
+    limiter.configure(TENANT, "jira", "acct", rate_per_second=1.0, capacity=1.0)
+    key = RateLimitKey(TENANT, "jira", "acct", "live")
+    limiter._bucket(key).consume(clock.now())  # type: ignore[attr-defined]
+
+    async def instant_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", instant_sleep)
+
+    waits = await asyncio.gather(*(limiter.acquire(key) for _ in range(4)))
+
+    assert sorted(waits) == pytest.approx([1.0, 2.0, 3.0, 4.0])
+
+
+def test_shorter_penalty_does_not_cut_a_longer_one_short() -> None:
+    clock = FakeClock()
+    limiter = RateLimiter(clock, backfill_fraction=0.5)
+    limiter.configure(TENANT, "jira", "acct", rate_per_second=100.0)
+    key = RateLimitKey(TENANT, "jira", "acct", "live")
+
+    limiter.penalize(key, duration_seconds=300.0)
+    limiter.penalize(key, duration_seconds=2.0)
+
+    assert limiter.wait_seconds(key) == pytest.approx(300.0)
+
+
+@pytest.mark.parametrize("rate", [0.0, -1.0])
+def test_configure_rejects_a_rate_that_would_block_forever(rate: float) -> None:
+    limiter = RateLimiter(FakeClock(), backfill_fraction=0.5)
+
+    with pytest.raises(ValueError, match="rate_per_second"):
+        limiter.configure(TENANT, "jira", "acct", rate_per_second=rate)

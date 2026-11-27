@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import datetime as dt
-from uuid import uuid4
+import logging
+from dataclasses import replace
+from uuid import UUID, uuid4
 
 import pytest
 from tests.fakes.audit import InMemoryAudit
@@ -12,8 +14,11 @@ from tests.fakes.object_store import InMemoryObjectStore
 from tests.fakes.quarantine import InMemoryQuarantine
 from tests.fakes.raw_index import InMemoryRawIndex
 
+from usep.core.errors import UsepError
 from usep.core.ids import new_id
 from usep.ingestion.domain.raw_object import RawObjectRef, canonicalize, content_hash, object_key
+from usep.ingestion.ports.audit import AuditEvent
+from usep.ingestion.raw.crypto import decrypt, encrypt, generate_data_key, pack, unpack
 from usep.ingestion.raw.writer import EnvelopeError, RawPayloadWriter, _extract_envelope
 
 TENANT = uuid4()
@@ -181,42 +186,36 @@ async def test_event_id_is_uuid_v7() -> None:
     assert event_id.version == 7
 
 
-class _RaceSimulatingRawIndex(InMemoryRawIndex):
-    """Test double: simulates a race where concurrent writer inserts between find() and insert_if_absent().
-    - find() returns None on first call (simulating no row yet).
-    - insert_if_absent() finds and returns the pre-existing row (another writer inserted in the meantime).
-    This forces the writer to use the pre-existing row's event_id, not its own newly-created one."""
+class _FindMissesOnce(InMemoryRawIndex):
+    """Simulates the race window: the first `find()` sees no row even though another
+    writer has already inserted one."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._find_called = False
 
     async def find(
-        self, tenant_id, source: str, object_type: str, object_id: str, content_hash: str
+        self, tenant_id: UUID, source: str, object_type: str, object_id: str, content_hash: str
     ) -> RawObjectRef | None:
         if not self._find_called:
             self._find_called = True
-            return None  # First call: simulates no row yet (race condition)
+            return None
         return await super().find(tenant_id, source, object_type, object_id, content_hash)
 
-    async def insert_if_absent(self, ref: RawObjectRef) -> RawObjectRef:
-        key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
-        if key in self._rows:
-            return self._rows[key]  # Return the pre-existing row (with its event_id), not the input ref
-        self._rows[key] = ref
-        return ref
 
-
-@pytest.mark.asyncio
-async def test_race_publishes_the_stored_event_id() -> None:
-    """Race: concurrent insert after find() returns None; writer uses pre-inserted event_id."""
-    # Create writer with race-simulating index.
-    race_index = _RaceSimulatingRawIndex()
+async def _lost_race() -> tuple[
+    RawPayloadWriter, InMemoryObjectStore, InMemoryEventBus, RawObjectRef, bytes, bytes
+]:
+    """A writer that loses the insert race to a writer whose row and ciphertext already exist."""
+    raw_index = _FindMissesOnce()
+    object_store = InMemoryObjectStore()
+    key_store = InMemoryKeyEncryption()
+    event_bus = InMemoryEventBus()
     writer = RawPayloadWriter(
-        race_index,
-        InMemoryObjectStore(),
-        InMemoryKeyEncryption(),
-        InMemoryEventBus(),
+        raw_index,
+        object_store,
+        key_store,
+        event_bus,
         InMemoryQuarantine(),
         InMemoryAudit(),
         FakeClock(),
@@ -224,14 +223,16 @@ async def test_race_publishes_the_stored_event_id() -> None:
         RUN,
     )
     payload = {"summary": "v1", **_envelope()}
-
-    # Pre-insert a row with a known event_id (simulating another writer's insert).
     stripped, object_type, scope_id, _ = _extract_envelope(payload)
     canonical = canonicalize(stripped)
     digest = content_hash(canonical)
     key = object_key(TENANT, "jira", scope_id, object_type, "PROJ-1", digest)
-    preinserted_event_id = new_id()
-    preseed = RawObjectRef(
+    aad = key.encode("utf-8") + str(TENANT).encode("utf-8")
+
+    winner_key = generate_data_key()
+    wrapped, kek_id = await key_store.wrap(TENANT, winner_key)
+    object_store.objects[key] = pack(encrypt(canonical, winner_key, aad=aad))
+    winner_row = RawObjectRef(
         tenant_id=TENANT,
         source="jira",
         object_type=object_type,
@@ -243,18 +244,214 @@ async def test_race_publishes_the_stored_event_id() -> None:
         run_id=RUN,
         imported_at=dt.datetime.now(dt.UTC),
         published_at=None,
-        wrapped_dek=b"wrapped",
-        kek_id="kek-1",
-        event_id=preinserted_event_id,
+        wrapped_dek=wrapped,
+        kek_id=kek_id,
+        event_id=new_id(),
     )
-    race_index._rows[(TENANT, "jira", object_type, "PROJ-1", digest)] = preseed
+    raw_index._rows[(TENANT, "jira", object_type, "PROJ-1", digest)] = winner_row
+    return writer, object_store, event_bus, winner_row, winner_key, aad
 
-    # Write: find() returns None (race), then insert_if_absent() returns the pre-inserted ref.
-    result = await writer.write("jira", "PROJ-1", payload)
+
+@pytest.mark.asyncio
+async def test_race_publishes_the_stored_event_id() -> None:
+    writer, _, event_bus, winner_row, _, _ = await _lost_race()
+
+    result = await writer.write("jira", "PROJ-1", {"summary": "v1", **_envelope()})
+
     assert result.startswith("raw/")
-    assert len(race_index.all_refs()) == 1
-    # The published event must use the pre-inserted event_id, not a new one.
-    # If the fix is broken, published[0].event_id will be a different UUID than preinserted_event_id.
-    assert writer._event_bus.published[0].event_id == preinserted_event_id, \
-        f"Expected {preinserted_event_id}, got {writer._event_bus.published[0].event_id}"
+    assert event_bus.published[0].event_id == winner_row.event_id
 
+
+@pytest.mark.asyncio
+async def test_race_loser_leaves_ciphertext_readable_with_the_stored_key() -> None:
+    writer, object_store, _, winner_row, winner_key, aad = await _lost_race()
+
+    await writer.write("jira", "PROJ-1", {"summary": "v1", **_envelope()})
+
+    stored = unpack(object_store.objects[winner_row.object_key])
+    assert decrypt(stored, winner_key, aad=aad) == canonicalize({"summary": "v1"})
+
+
+@pytest.mark.asyncio
+async def test_object_restored_after_tombstone_is_readable_and_published_again() -> None:
+    raw_index, object_store, key_store = InMemoryRawIndex(), InMemoryObjectStore(), InMemoryKeyEncryption()
+    event_bus = InMemoryEventBus()
+    writer = RawPayloadWriter(
+        raw_index,
+        object_store,
+        key_store,
+        event_bus,
+        InMemoryQuarantine(),
+        InMemoryAudit(),
+        FakeClock(),
+        TENANT,
+        RUN,
+    )
+    payload = {"summary": "v1", **_envelope()}
+    await writer.write("jira", "PROJ-1", payload)
+    await raw_index.tombstone(raw_index.all_refs()[0], at=dt.datetime.now(dt.UTC))
+
+    await writer.write("jira", "PROJ-1", payload)
+
+    row = raw_index.all_refs()[0]
+    assert row.tombstoned_at is None
+    assert row.wrapped_dek is not None
+    data_key = await key_store.unwrap(TENANT, row.wrapped_dek, row.kek_id)
+    aad = row.object_key.encode("utf-8") + str(TENANT).encode("utf-8")
+    assert decrypt(unpack(object_store.objects[row.object_key]), data_key, aad=aad) == canonicalize(
+        {"summary": "v1"}
+    )
+    assert len(event_bus.published) == 2
+    assert event_bus.published[0].event_id != event_bus.published[1].event_id
+
+
+class _FirstFindSeesStaleRow(InMemoryRawIndex):
+    """The first `find()` returns a row as it was before another writer changed it."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stale_row: RawObjectRef | None = None
+
+    async def find(
+        self, tenant_id: UUID, source: str, object_type: str, object_id: str, content_hash: str
+    ) -> RawObjectRef | None:
+        if self.stale_row is not None:
+            row, self.stale_row = self.stale_row, None
+            return row
+        return await super().find(tenant_id, source, object_type, object_id, content_hash)
+
+
+@pytest.mark.asyncio
+async def test_restore_race_loser_leaves_ciphertext_readable_with_the_stored_key() -> None:
+    raw_index, object_store, key_store = (
+        _FirstFindSeesStaleRow(),
+        InMemoryObjectStore(),
+        InMemoryKeyEncryption(),
+    )
+    writer = RawPayloadWriter(
+        raw_index,
+        object_store,
+        key_store,
+        InMemoryEventBus(),
+        InMemoryQuarantine(),
+        InMemoryAudit(),
+        FakeClock(),
+        TENANT,
+        RUN,
+    )
+    payload = {"summary": "v1", **_envelope()}
+    await writer.write("jira", "PROJ-1", payload)
+    await raw_index.tombstone(raw_index.all_refs()[0], at=dt.datetime.now(dt.UTC))
+    tombstoned = raw_index.all_refs()[0]
+    raw_index.stale_row = tombstoned  # our writer sees the tombstoned row...
+
+    # ...but another writer revives it first, with its own key and ciphertext.
+    winner_key = generate_data_key()
+    aad = tombstoned.object_key.encode("utf-8") + str(TENANT).encode("utf-8")
+    wrapped, kek_id = await key_store.wrap(TENANT, winner_key)
+    object_store.objects[tombstoned.object_key] = pack(
+        encrypt(canonicalize({"summary": "v1"}), winner_key, aad=aad)
+    )
+    await raw_index.revive(
+        replace(tombstoned, wrapped_dek=wrapped, kek_id=kek_id, event_id=new_id(), tombstoned_at=None)
+    )
+
+    await writer.write("jira", "PROJ-1", payload)
+
+    stored = raw_index.all_refs()[0]
+    assert stored.wrapped_dek == wrapped
+    blob = unpack(object_store.objects[stored.object_key])
+    assert decrypt(blob, winner_key, aad=aad) == canonicalize({"summary": "v1"})
+
+
+@pytest.mark.asyncio
+async def test_race_against_a_tombstoned_row_fails_instead_of_unwrapping_nothing() -> None:
+    writer, _, event_bus, winner_row, _, _ = await _lost_race()
+    writer._raw_index._rows[  # type: ignore[attr-defined]
+        (TENANT, "jira", winner_row.object_type, "PROJ-1", winner_row.content_hash)
+    ] = replace(winner_row, wrapped_dek=None, tombstoned_at=dt.datetime.now(dt.UTC))
+
+    result = await writer.write("jira", "PROJ-1", {"summary": "v1", **_envelope()})
+
+    assert result == "failed://RawStorageError"
+    assert event_bus.published == []
+
+
+@pytest.mark.parametrize("bad_value", [5, "", None, ["issue"]])
+def test_envelope_field_must_be_a_non_empty_string(bad_value: object) -> None:
+    payload = {"summary": "v1", "_usep": {"object_type": bad_value, "scope_id": "PROJ", "checkpoint": "c1"}}
+
+    with pytest.raises(EnvelopeError, match="object_type"):
+        _extract_envelope(payload)
+
+
+def test_envelope_error_is_a_usep_error_and_a_value_error() -> None:
+    assert issubclass(EnvelopeError, UsepError)
+    assert issubclass(EnvelopeError, ValueError)
+
+
+class _AuditDownOnFailures(InMemoryAudit):
+    async def record(self, event: AuditEvent) -> None:
+        if event.status == "failed":
+            raise ConnectionError("audit store unreachable")
+        await super().record(event)
+
+
+_ECHOED_SECRET = "secret glpat-abcdefghijklmnopqrstuvwxyz"  # SYNTHETIC
+
+
+class _BrokenObjectStore(InMemoryObjectStore):
+    async def put(self, key: str, data: bytes) -> None:
+        raise RuntimeError(f"storage said: {_ECHOED_SECRET}")
+
+
+def _failing_writer(audit: InMemoryAudit) -> RawPayloadWriter:
+    return RawPayloadWriter(
+        InMemoryRawIndex(),
+        _BrokenObjectStore(),
+        InMemoryKeyEncryption(),
+        InMemoryEventBus(),
+        InMemoryQuarantine(),
+        audit,
+        FakeClock(),
+        TENANT,
+        RUN,
+    )
+
+
+@pytest.mark.asyncio
+async def test_storage_failure_is_logged_with_type_and_frames_but_not_the_message(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    writer = _failing_writer(InMemoryAudit())
+
+    with caplog.at_level(logging.ERROR, logger="usep.ingestion.raw.writer"):
+        result = await writer.write("jira", "PROJ-1", {"summary": "v1", **_envelope()})
+
+    assert result == "failed://RuntimeError"
+    record = next(r for r in caplog.records if r.getMessage() == "raw object write failed")
+    assert record.exception_type == "RuntimeError"  # type: ignore[attr-defined]
+    assert "put" in record.frames  # type: ignore[attr-defined]
+    assert "glpat" not in caplog.text
+    assert "glpat" not in record.frames  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_audit_outage_does_not_turn_a_failed_write_into_a_raised_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    writer = _failing_writer(_AuditDownOnFailures())
+
+    with caplog.at_level(logging.ERROR, logger="usep.ingestion.raw.writer"):
+        result = await writer.write("jira", "PROJ-1", {"summary": "v1", **_envelope()})
+
+    assert result == "failed://RuntimeError"
+    assert "audit record failed while reporting a failure" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_audit_outage_does_not_replace_the_envelope_error() -> None:
+    writer = _failing_writer(_AuditDownOnFailures())
+
+    with pytest.raises(EnvelopeError):
+        await writer.write("jira", "PROJ-1", {"summary": "no envelope"})

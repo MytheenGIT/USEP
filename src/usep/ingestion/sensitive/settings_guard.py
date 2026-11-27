@@ -14,6 +14,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from pydantic import ValidationError
+
 from usep.core.config import Settings
 from usep.core.errors import ConfigError
 from usep.ingestion.sensitive import patterns as p
@@ -42,8 +44,14 @@ def assert_no_leaked_secrets(data: Mapping[str, Any], *, path: str = "") -> None
 
 def load_settings(**overrides: Any) -> Settings:
     """Construct `Settings`, then scan every string field for a credential-shaped
-    value. Raises `ConfigError` naming the field and pattern only, never the value.
+    value. Raises `ConfigError` naming the field and pattern or error type only, never
+    the value.
     """
-    settings = Settings(**overrides)
+    try:
+        settings = Settings(**overrides)
+    except ValidationError as err:
+        problems = ", ".join(f"{'.'.join(str(part) for part in e['loc'])}: {e['type']}" for e in err.errors())
+        # `from None`: pydantic's error text echoes the offending input, which may be a credential.
+        raise ConfigError(f"invalid settings ({problems})") from None
     assert_no_leaked_secrets(settings.model_dump(mode="python"))
     return settings

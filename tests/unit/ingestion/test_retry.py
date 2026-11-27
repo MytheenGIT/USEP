@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime as dt
+import logging
 from uuid import uuid4
 
 import pytest
@@ -12,6 +14,7 @@ from usep.ingestion.runtime.rate_limiter import RateLimiter, RateLimitKey
 from usep.ingestion.runtime.retry import CallResult, Outcome, RetryPolicy, SendOutcome, call_with_retry
 
 TENANT = uuid4()
+_ECHOED_SECRET = "glpat-abcdefghijklmnopqrstuvwxyz"  # SYNTHETIC
 
 
 def _key() -> RateLimitKey:
@@ -241,3 +244,71 @@ async def test_429_penalizes_the_rate_limit_key() -> None:
     # retry's own backoff, so by completion the penalty may have fully elapsed via the
     # sleep; assert it was set at least once by checking the bucket directly).
     assert limiter._bucket(key).penalized_until is not None  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_retry_after_on_every_attempt_dead_letters_at_max_attempts() -> None:
+    clock = FakeClock()
+    policy = RetryPolicy(max_attempts=3, max_delay_s=600.0)
+    send = _Scripted(
+        [SendOutcome(Classification.RETRYABLE, is_429=True, retry_after_s=0.001, reason="429")] * 10
+    )
+    result = await call_with_retry(
+        send,
+        key=_key(),
+        policy=policy,
+        rate_limiter=_limiter(clock),
+        clock=clock,
+        observer=ListObserver(),
+        endpoint="/issues",
+        source_system="jira",
+    )
+    assert result.outcome is Outcome.DEAD_LETTER
+    assert result.attempts == 3
+    assert send.calls == 3
+
+
+@pytest.mark.asyncio
+async def test_absurd_retry_after_is_deferred_at_the_defer_cap_instead_of_overflowing() -> None:
+    clock = FakeClock()
+    policy = RetryPolicy(max_delay_s=600.0, defer_max_s=86400.0)
+    send = _Scripted([SendOutcome(Classification.RETRYABLE, is_429=True, retry_after_s=1e15, reason="429")])
+    result = await call_with_retry(
+        send,
+        key=_key(),
+        policy=policy,
+        rate_limiter=_limiter(clock),
+        clock=clock,
+        observer=ListObserver(),
+        endpoint="/issues",
+        source_system="jira",
+    )
+    assert result.outcome is Outcome.DEFERRED
+    assert result.reason == "retry_after_exceeds_defer_max"
+    assert result.retry_at == clock.now() + dt.timedelta(seconds=86400.0)
+
+
+@pytest.mark.asyncio
+async def test_unexpected_exception_is_logged_with_type_and_frames_only(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    clock = FakeClock()
+
+    async def send() -> SendOutcome[str]:
+        raise ValueError(f"boom with {_ECHOED_SECRET}")
+
+    with caplog.at_level(logging.ERROR, logger="usep.ingestion.runtime.retry"):
+        await call_with_retry(
+            send,
+            key=_key(),
+            policy=RetryPolicy(),
+            rate_limiter=_limiter(clock),
+            clock=clock,
+            observer=ListObserver(),
+            endpoint="/issues",
+            source_system="jira",
+        )
+    record = next(r for r in caplog.records if r.getMessage() == "unexpected exception from send")
+    assert record.exception_type == "ValueError"  # type: ignore[attr-defined]
+    assert record.endpoint == "/issues"  # type: ignore[attr-defined]
+    assert "glpat" not in caplog.text

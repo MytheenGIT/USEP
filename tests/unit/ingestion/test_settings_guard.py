@@ -41,3 +41,21 @@ def test_config_rejects_plaintext_secret_in_nested_field() -> None:
             vault_addr=f"https://vault.internal/{FAKE_GITLAB_PAT}",
         )
     assert FAKE_GITLAB_PAT not in str(exc_info.value)
+
+
+def test_missing_required_setting_raises_config_error_naming_the_field(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("USEP_TENANT_ID", raising=False)
+
+    with pytest.raises(ConfigError, match="tenant_id: missing"):
+        load_settings(_env_file=None, environment="dev")  # type: ignore[call-arg]
+
+
+def test_invalid_setting_raises_config_error_without_echoing_the_input() -> None:
+    with pytest.raises(ConfigError) as exc_info:
+        load_settings(_env_file=None, environment="dev", tenant_id=FAKE_GITLAB_PAT)  # type: ignore[call-arg]
+
+    assert "tenant_id" in str(exc_info.value)
+    assert FAKE_GITLAB_PAT not in str(exc_info.value)
+    assert exc_info.value.__cause__ is None

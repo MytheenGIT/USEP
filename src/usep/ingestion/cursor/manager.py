@@ -19,6 +19,8 @@ def effective_cursor(cursor_value: str | None, overlap_seconds: int) -> str | No
     commit SHA, for example, has no overlap arithmetic that applies to it)."""
     if cursor_value is None or overlap_seconds <= 0:
         return cursor_value
+    if "-" not in cursor_value:
+        return cursor_value  # fromisoformat also accepts an opaque ID such as "20260101" as a date
     try:
         parsed = datetime.fromisoformat(cursor_value.replace("Z", "+00:00"))
     except ValueError:

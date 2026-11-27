@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from usep.ingestion.domain.raw_object import RawObjectRef
@@ -28,11 +28,19 @@ class InMemoryRawIndex:
         self._rows[key] = ref
         return ref
 
+    async def revive(self, ref: RawObjectRef) -> RawObjectRef:
+        key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
+        existing = self._rows.get(key)
+        if existing is not None and existing.tombstoned_at is None:
+            return existing
+        self._rows[key] = ref
+        return ref
+
     async def mark_published(self, ref: RawObjectRef) -> None:
         key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
         existing = self._rows.get(key)
         if existing is not None and existing.published_at is None:
-            self._rows[key] = _replace(existing, published_at=datetime.now())
+            self._rows[key] = _replace(existing, published_at=datetime.now(UTC))
 
     async def list_extant_by_scope(self, tenant_id: UUID, source: str, scope_id: str) -> list[RawObjectRef]:
         return [
@@ -49,6 +57,12 @@ class InMemoryRawIndex:
         existing = self._rows.get(key)
         if existing is not None and existing.first_seen_extra_at is None:
             self._rows[key] = _replace(existing, first_seen_extra_at=at)
+
+    async def clear_first_seen_extra(self, ref: RawObjectRef) -> None:
+        key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)
+        existing = self._rows.get(key)
+        if existing is not None:
+            self._rows[key] = _replace(existing, first_seen_extra_at=None)
 
     async def tombstone(self, ref: RawObjectRef, *, at: datetime) -> None:
         key = self._key(ref.tenant_id, ref.source, ref.object_type, ref.object_id, ref.content_hash)

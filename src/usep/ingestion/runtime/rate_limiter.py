@@ -55,6 +55,16 @@ class _Bucket:
         self._refill(now)
         self.tokens = max(self.tokens - 1, 0.0)
 
+    def reserve(self, now: datetime) -> float:
+        """Take one token now and return how long the caller must wait before using it.
+
+        The token count may go negative: each concurrent caller reserves its own slot, so
+        N callers are spread over N token intervals instead of all waking at once.
+        """
+        wait = self.wait_seconds(now)
+        self.tokens -= 1
+        return wait
+
 
 class RateLimiter:
     """Owns one `_Bucket` per `RateLimitKey`."""
@@ -74,7 +84,13 @@ class RateLimiter:
         capacity: float | None = None,
     ) -> None:
         """Set the live lane's rate; the backfill lane's rate is derived as
-        `rate_per_second * backfill_fraction` (default fraction 0.5)."""
+        `rate_per_second * backfill_fraction` (default fraction 0.5).
+
+        Raises:
+            ValueError: If `rate_per_second` is not positive (a zero rate would block forever).
+        """
+        if rate_per_second <= 0:
+            raise ValueError("rate_per_second must be positive")
         now = self._clock.now()
         live_capacity = capacity if capacity is not None else max(rate_per_second, 1.0)
         self._buckets[RateLimitKey(tenant_id, source_system, account, "live")] = _Bucket(
@@ -98,17 +114,23 @@ class RateLimiter:
         return self._bucket(key).wait_seconds(self._clock.now())
 
     async def acquire(self, key: RateLimitKey) -> float:
-        """Wait for a token and any active penalty to expire, then consume one.
-        Returns the number of seconds actually slept (0 if none)."""
-        bucket = self._bucket(key)
-        wait = bucket.wait_seconds(self._clock.now())
+        """Reserve a token, then wait for it and for any active penalty to expire.
+        Returns the number of seconds slept (0 if none).
+
+        The reservation happens before the first `await`, so concurrent callers on one key
+        cannot all see the same free token.
+        """
+        wait = self._bucket(key).reserve(self._clock.now())
         if wait > 0:
             await asyncio.sleep(wait)
-        bucket.consume(self._clock.now())
         return wait
 
     def penalize(self, key: RateLimitKey, duration_seconds: float) -> None:
         """Pause every caller on this exact key for `duration_seconds` (section 5.7:
         "A penalty API pauses every caller on a key after a 429")."""
         bucket = self._bucket(key)
-        bucket.penalized_until = self._clock.now() + timedelta(seconds=duration_seconds)
+        until = self._clock.now() + timedelta(seconds=duration_seconds)
+        # Keep the longer pause: a later 429 with a short Retry-After must not cut a long one short.
+        bucket.penalized_until = (
+            until if bucket.penalized_until is None else max(until, bucket.penalized_until)
+        )

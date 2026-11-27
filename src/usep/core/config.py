@@ -80,7 +80,7 @@ def is_valid_secret_ref(value: str) -> bool:
 class RetryRuntimeSettings(BaseModel):
     model_config = SettingsConfigDict(frozen=True)
 
-    max_attempts: int = Field(default=5, ge=0, le=20)
+    max_attempts: int = Field(default=5, ge=1, le=20)
     base_delay_s: float = Field(default=2.0, gt=0)
     max_delay_s: float = Field(default=600.0, gt=0)
     defer_max_s: float = Field(default=86400.0, gt=0)

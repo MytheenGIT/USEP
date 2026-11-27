@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 
-Q_SECRET = "Q-SECRET"
+Q_SECRET = "Q-SECRET"  # noqa: S105 - a reason code, not a credential
 Q_PII = "Q-PII"
 
 # ---- secrets (Q-SECRET) -----------------------------------------------------------

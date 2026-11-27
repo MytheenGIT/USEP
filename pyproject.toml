@@ -51,7 +51,7 @@ pythonpath = ["."]
 markers = [
   "integration: needs Postgres / S3-fake / event-bus-fake services (docker compose)",
 ]
-addopts = "-q"
+addopts = "-q -ra --strict-markers"
 
 [tool.coverage.run]
 source = [
@@ -77,8 +77,19 @@ src = ["src", "tests"]
 extend-exclude = ["src/usep/ontology"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
-ignore = ["E501"]
+# Standards 9.3 reference set (E W F I B UP SIM S PL RUF) plus BLE, which enforces the
+# "no blind except outside a top-level handler" rule (3.6), and ASYNC. Not yet enabled:
+# D (Google docstrings), about 160 findings, tracked as a separate change.
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "S", "PL", "RUF", "BLE", "ASYNC"]
+# PLR0913/PLR0917: ports and the writer take their dependencies as arguments by design.
+# PLR2004: HTTP status codes, checksum constants and the UUID version are clearer inline.
+ignore = ["E501", "PLR0913", "PLR0917", "PLR2004"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S311", "PLC0415"]
+# ontology/ and evals/ predate these rules and are out of scope to modify; they keep the old rule set.
+"ontology/**" = ["W", "S", "PL", "RUF", "BLE"]
+"evals/**" = ["W", "S", "PL", "RUF", "BLE"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["usep"]
@@ -96,15 +107,17 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = [
   "usep.core.*",
+  "usep.adapters.*",
+  "usep.ingestion.cursor.*",
   "usep.ingestion.domain.*",
   "usep.ingestion.ports.*",
+  "usep.ingestion.raw.*",
   "usep.ingestion.runtime.*",
   "usep.ingestion.sensitive.*",
 ]
 strict = true
 
-# Adapters are outside the mypy --strict scope (section 1); these vendor SDKs ship
-# no type stubs, and adapters are the one place vendor imports are allowed at all.
+# These vendor SDKs ship no type stubs; adapters are the one place vendor imports are allowed.
 [[tool.mypy.overrides]]
 module = ["hvac.*", "hvac", "boto3.*", "aiokafka.*", "botocore.*"]
 ignore_missing_imports = true

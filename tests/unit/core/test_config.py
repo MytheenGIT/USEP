@@ -5,7 +5,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
-from usep.core.config import Config, Settings, is_valid_secret_ref
+from usep.core.config import Config, RetryRuntimeSettings, Settings, is_valid_secret_ref
 from usep.core.errors import ConfigError
 
 DEV_PLACEHOLDER = "00000000-0000-7000-8000-000000000000"
@@ -111,3 +111,8 @@ def test_retry_max_delay_must_be_at_least_base_delay() -> None:
 )
 def test_is_valid_secret_ref(value: str, expected: bool) -> None:
     assert is_valid_secret_ref(value) is expected
+
+
+def test_retry_policy_needs_at_least_one_attempt() -> None:
+    with pytest.raises(ValidationError):
+        RetryRuntimeSettings(max_attempts=0)

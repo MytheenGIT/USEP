@@ -10,20 +10,20 @@ vendor-neutral `Classification` from `usep.ingestion.runtime.http`, or a raised
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import TypeVar
 
 from usep.core.clock import Clock
-from usep.core.errors import TransientError
+from usep.core.errors import TransientError, frames_only
 from usep.ingestion.runtime.backoff import compute_delay
 from usep.ingestion.runtime.http import Classification
 from usep.ingestion.runtime.observer import Observer
 from usep.ingestion.runtime.rate_limiter import RateLimiter, RateLimitKey
 
-T = TypeVar("T")
+logger = logging.getLogger(__name__)
 
 
 class Outcome(StrEnum):
@@ -72,6 +72,23 @@ async def call_with_retry[T](
     endpoint: str,
     source_system: str,
 ) -> CallResult[T]:
+    """Send one request, retrying transient failures, and report how it ended.
+
+    Args:
+        send: Makes one attempt and classifies the response. May raise `TransientError`.
+        key: Rate-limit budget the attempts draw from.
+        policy: Attempt cap, back-off bounds and deferral limits.
+        rate_limiter: Source of tokens and of the pause applied after a 429.
+        clock: Time source for latency and deferral timestamps.
+        observer: Receives one event per attempt, wait, retry, deferral and dead letter.
+        endpoint: Endpoint label for observer events.
+        source_system: Source label for observer events.
+
+    Returns:
+        `OK` with the value; `REJECTED` for a non-retryable response or an unexpected
+        exception; `DEAD_LETTER` after `policy.max_attempts` attempts, whether the server
+        sent `Retry-After` or not; `DEFERRED` when `Retry-After` exceeds `policy.max_delay_s`.
+    """
     attempt = 0
     while True:
         attempt += 1
@@ -104,6 +121,15 @@ async def call_with_retry[T](
             await asyncio.sleep(delay)
             continue
         except Exception as exc:  # noqa: BLE001 - unexpected exceptions are rejected, not retried
+            logger.error(
+                "unexpected exception from send",
+                extra={
+                    "source_system": source_system,
+                    "endpoint": endpoint,
+                    "exception_type": type(exc).__name__,
+                    "frames": frames_only(exc),
+                },
+            )
             latency_ms = (clock.now() - start).total_seconds() * 1000
             observer.attempt(
                 source_system=source_system,
@@ -136,19 +162,18 @@ async def call_with_retry[T](
             penalty = min(outcome.retry_after_s or policy.base_delay_s, policy.max_delay_s)
             rate_limiter.penalize(key, duration_seconds=penalty)
 
-        if outcome.is_429 and outcome.retry_after_s is not None:
-            retry_after = outcome.retry_after_s
-            if retry_after <= policy.max_delay_s:
-                observer.retry(
-                    source_system=source_system, endpoint=endpoint, reason="retry_after", delay_s=retry_after
-                )
-                await asyncio.sleep(retry_after)
-                continue
+        if (
+            outcome.is_429
+            and outcome.retry_after_s is not None
+            and outcome.retry_after_s > policy.max_delay_s
+        ):
             # D7: over the 600s cap, defer rather than dead-letter; over defer_max_s
             # (24h), the caller (cursor/reconcile orchestration, PR 5) is responsible
             # for transitioning the scope to PAUSED and emitting the alert event —
-            # this module only flags that case via `reason`.
-            retry_at = clock.now() + timedelta(seconds=retry_after)
+            # this module only flags that case via `reason`. retry_at is capped at
+            # defer_max_s so an absurd header cannot overflow the datetime.
+            retry_after = outcome.retry_after_s
+            retry_at = clock.now() + timedelta(seconds=min(retry_after, policy.defer_max_s))
             observer.deferred(source_system=source_system, endpoint=endpoint, retry_at=retry_at)
             reason = (
                 "retry_after_exceeds_defer_max"
@@ -157,17 +182,14 @@ async def call_with_retry[T](
             )
             return CallResult(Outcome.DEFERRED, attempts=attempt, retry_at=retry_at, reason=reason)
 
-        # Plain RETRYABLE: 429 without Retry-After, or 5xx.
+        reason = outcome.reason or "retryable"
         if attempt >= policy.max_attempts:
-            observer.dead_letter(
-                source_system=source_system, endpoint=endpoint, reason=outcome.reason or "retryable"
-            )
-            return CallResult(Outcome.DEAD_LETTER, attempts=attempt, reason=outcome.reason or "retryable")
-        delay = compute_delay(attempt, policy.base_delay_s, policy.max_delay_s)
-        observer.retry(
-            source_system=source_system,
-            endpoint=endpoint,
-            reason=outcome.reason or "retryable",
-            delay_s=delay,
-        )
+            observer.dead_letter(source_system=source_system, endpoint=endpoint, reason=reason)
+            return CallResult(Outcome.DEAD_LETTER, attempts=attempt, reason=reason)
+
+        if outcome.is_429 and outcome.retry_after_s is not None:
+            reason, delay = "retry_after", outcome.retry_after_s
+        else:
+            delay = compute_delay(attempt, policy.base_delay_s, policy.max_delay_s)
+        observer.retry(source_system=source_system, endpoint=endpoint, reason=reason, delay_s=delay)
         await asyncio.sleep(delay)

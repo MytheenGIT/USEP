@@ -14,6 +14,7 @@ import asyncio
 from typing import Any
 
 import hvac
+import hvac.exceptions
 
 from usep.core.config import is_valid_secret_ref
 from usep.core.errors import ConfigError
@@ -37,25 +38,39 @@ class VaultSecretResolver:
         self._kv_mount = kv_mount
         self._vault_role = vault_role
         self._audience = audience
+        # hvac keeps one token per client: a login must not be replaced by another call's login
+        # before its read has run.
+        # shortcut: every resolve() logs in again and leaves a Vault token to expire by TTL;
+        # upgrade to a token cache refreshed near lease expiry (after security review, ADR-22).
+        self._lock = asyncio.Lock()
 
     async def resolve(self, ref: str) -> SecretValue:
         if not is_valid_secret_ref(ref) or not ref.startswith("vault:"):
             raise ConfigError("secret reference is not a vault: reference")
         path, _, field = ref[len("vault:") :].partition("#")
 
-        svid = await self._svid_provider.fetch_jwt_svid(self._audience)
-        await asyncio.to_thread(
-            self._client.auth.jwt.jwt_login,
-            role=self._vault_role,
-            jwt=svid,
-            path=self._jwt_auth_mount,
-        )
-        response: dict[str, Any] = await asyncio.to_thread(
-            self._client.secrets.kv.v2.read_secret_version,
-            path=path,
-            mount_point=self._kv_mount,
-        )
-        data = response["data"]["data"]
-        if field not in data:
+        async with self._lock:
+            svid = await self._svid_provider.fetch_jwt_svid(self._audience)
+            try:
+                await asyncio.to_thread(
+                    self._client.auth.jwt.jwt_login,
+                    role=self._vault_role,
+                    jwt=svid,
+                    path=self._jwt_auth_mount,
+                )
+                response: dict[str, Any] = await asyncio.to_thread(
+                    self._client.secrets.kv.v2.read_secret_version,
+                    path=path,
+                    mount_point=self._kv_mount,
+                )
+                data = response["data"]["data"]
+            except (hvac.exceptions.VaultError, OSError, KeyError, TypeError) as err:
+                # OSError covers connection failures raised by the HTTP layer under hvac. The
+                # message names the path and exception type only: vendor messages can echo URLs.
+                raise ConfigError(f"could not read vault secret at {path!r}: {type(err).__name__}") from err
+        if not isinstance(data, dict) or field not in data:
             raise ConfigError(f"vault secret at {path!r} has no field named {field!r}")
-        return SecretValue(str(data[field]))
+        value = data[field]
+        if not isinstance(value, str) or not value:
+            raise ConfigError(f"vault secret at {path!r} field {field!r} is not a non-empty string")
+        return SecretValue(value)

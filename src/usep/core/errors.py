@@ -9,6 +9,13 @@ matched sensitive value (ground rule, section 1; LLD CC-05).
 
 from __future__ import annotations
 
+import traceback
+
+
+def frames_only(exc: BaseException) -> str:
+    """The stack frames of `exc` without its message, which may echo secrets or source content."""
+    return "".join(traceback.format_tb(exc.__traceback__))
+
 
 class UsepError(Exception):
     """Base class for every USEP application error."""
@@ -33,6 +40,11 @@ class InvalidStateTransitionError(DomainError):
 
 class CursorConflictError(DomainError):
     """An optimistic version check on a cursor save failed; the caller should retry the batch."""
+
+
+class RawStorageError(DomainError):
+    """The stored state of a raw object contradicts what the writer needs (for example a row
+    with no wrapped data key)."""
 
 
 class PaginationError(UsepError):

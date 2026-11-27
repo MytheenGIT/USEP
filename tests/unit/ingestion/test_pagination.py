@@ -80,3 +80,39 @@ async def test_pagination_offset_and_link_helpers() -> None:
     async for page in paginate_link_header(fetch_link):
         collected_links.extend(page)
     assert collected_links == ["x", "y", "z"]
+
+
+@pytest.mark.asyncio
+async def test_pagination_link_header_repeated_url_raises() -> None:
+    pages = {None: (["x"], "/page2"), "/page2": (["y"], "/page2")}
+
+    async def fetch_link(url: str | None) -> tuple[list[str], str | None]:
+        return pages[url]
+
+    with pytest.raises(PaginationError, match="repeated link"):
+        async for _ in paginate_link_header(fetch_link):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_pagination_link_header_stops_at_max_pages() -> None:
+    counter = {"n": 0}
+
+    async def fetch_link(url: str | None) -> tuple[list[int], str | None]:
+        counter["n"] += 1
+        return [counter["n"]], f"/page{counter['n']}"
+
+    with pytest.raises(PaginationError, match="max_pages"):
+        async for _ in paginate_link_header(fetch_link, max_pages=3):
+            pass
+    assert counter["n"] == 3
+
+
+@pytest.mark.asyncio
+async def test_pagination_offset_stops_at_max_pages_when_source_ignores_start() -> None:
+    async def fetch_offset(start: int, page_size: int) -> tuple[list[int], int | None]:
+        return [1, 2, 3], None
+
+    with pytest.raises(PaginationError, match="max_pages"):
+        async for _ in paginate_offset(fetch_offset, max_pages=3):
+            pass

@@ -12,12 +12,15 @@ hash. `tenant_id` and `run_id` are bound at construction, not passed per call.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from usep.core.clock import Clock
+from usep.core.errors import RawStorageError, UsepError, frames_only
 from usep.core.ids import new_id
 from usep.ingestion.domain.events import QuarantineRecord, RawObjectPublished
 from usep.ingestion.domain.raw_object import RawObjectRef, canonicalize, content_hash, object_key
@@ -31,11 +34,14 @@ from usep.ingestion.ports.raw_index import RawIndexPort
 from usep.ingestion.raw.crypto import encrypt, generate_data_key, pack
 from usep.ingestion.sensitive.detector import detect as _default_detect
 
+logger = logging.getLogger(__name__)
+
 SCHEMA_VERSION = "1.0"
 _ENVELOPE_KEY = "_usep"
 _ENVELOPE_REQUIRED_FIELDS = ("object_type", "scope_id", "checkpoint")
 
-class EnvelopeError(ValueError):
+
+class EnvelopeError(UsepError, ValueError):
     """Raised when `raw_payload["_usep"]` is missing or incomplete."""
 
 
@@ -43,9 +49,11 @@ def _extract_envelope(raw_payload: dict[str, Any]) -> tuple[dict[str, Any], str,
     envelope = raw_payload.get(_ENVELOPE_KEY)
     if not isinstance(envelope, dict):
         raise EnvelopeError(f"raw_payload is missing the {_ENVELOPE_KEY!r} envelope")
-    missing = [f for f in _ENVELOPE_REQUIRED_FIELDS if not envelope.get(f)]
+    missing = [
+        f for f in _ENVELOPE_REQUIRED_FIELDS if not isinstance(envelope.get(f), str) or not envelope[f]
+    ]
     if missing:
-        raise EnvelopeError(f"{_ENVELOPE_KEY!r} envelope is missing required field(s): {missing}")
+        raise EnvelopeError(f"{_ENVELOPE_KEY!r} envelope needs non-empty string field(s): {missing}")
     stripped = {k: v for k, v in raw_payload.items() if k != _ENVELOPE_KEY}
     return stripped, envelope["object_type"], envelope["scope_id"], envelope["checkpoint"]
 
@@ -101,7 +109,7 @@ class RawPayloadWriter:
         try:
             stripped, object_type, scope_id, checkpoint = _extract_envelope(raw_payload)
         except EnvelopeError:
-            await self._audit.record(
+            await self._audit_failure(
                 AuditEvent(
                     source=source,
                     action="object.rejected",
@@ -123,7 +131,16 @@ class RawPayloadWriter:
                 raw_payload=stripped,
             )
         except Exception as exc:  # noqa: BLE001 - one object's failure never fails the run
-            await self._audit.record(
+            logger.error(
+                "raw object write failed",
+                extra={
+                    "source": source,
+                    "object_id": source_object_id,
+                    "exception_type": type(exc).__name__,
+                    "frames": frames_only(exc),
+                },
+            )
+            await self._audit_failure(
                 AuditEvent(
                     source=source,
                     action="object.failed",
@@ -138,10 +155,24 @@ class RawPayloadWriter:
             return f"quarantined://{result.reason}"
         return result.object_key or ""
 
+    async def _audit_failure(self, event: AuditEvent) -> None:
+        """Audit a failure path. An audit outage must not replace the error being reported."""
+        try:
+            await self._audit.record(event)
+        except Exception as exc:  # noqa: BLE001 - the write already failed and the run must go on
+            logger.error(
+                "audit record failed while reporting a failure",
+                extra={
+                    "action": event.action,
+                    "exception_type": type(exc).__name__,
+                    "frames": frames_only(exc),
+                },
+            )
+
     async def _write(
         self,
         *,
-        now: Any,
+        now: datetime,
         source: str,
         object_id: str,
         object_type: str,
@@ -201,7 +232,7 @@ class RawPayloadWriter:
 
         # Step 4: dedupe on (tenant, source, object_type, object_id, content_hash).
         ref = await self._raw_index.find(tenant_id, source, object_type, object_id, digest)
-        if ref is not None and ref.published_at is not None:
+        if ref is not None and ref.tombstoned_at is None and ref.published_at is not None:
             await self._audit.record(
                 AuditEvent(
                     source=source,
@@ -215,7 +246,9 @@ class RawPayloadWriter:
 
         key = object_key(tenant_id, source, scope_id, object_type, object_id, digest)
 
-        if ref is None:
+        if ref is None or ref.tombstoned_at is not None:
+            # A tombstoned row (key destroyed after a source deletion) is re-created below, so an
+            # object that comes back at the source becomes readable again.
             # Step 5: generate a data key, encrypt, wrap.
             data_key = generate_data_key()
             aad = key.encode("utf-8") + str(tenant_id).encode("utf-8")
@@ -224,7 +257,7 @@ class RawPayloadWriter:
 
             # Step 6: put the ciphertext, mint event_id, insert the index row.
             await self._object_store.put(key, pack(encrypted))
-            ref = RawObjectRef(
+            new_ref = RawObjectRef(
                 tenant_id=tenant_id,
                 source=source,
                 object_type=object_type,
@@ -240,7 +273,18 @@ class RawPayloadWriter:
                 kek_id=kek_id,
                 event_id=new_id(),
             )
-            ref = await self._raw_index.insert_if_absent(ref)
+            store_row = self._raw_index.insert_if_absent if ref is None else self._raw_index.revive
+            stored = await store_row(new_ref)
+            if stored.wrapped_dek != wrapped_dek:
+                # Lost an insert race. Our put may have overwritten the winner's ciphertext, but
+                # the index holds the winner's wrapped key, so re-encrypt under that key.
+                # shortcut: a crash between our put and the re-put leaves a blob the stored key
+                # cannot decrypt; upgrade by inserting the row first and putting under its key.
+                if stored.wrapped_dek is None:
+                    raise RawStorageError("raw index row has no wrapped data key")
+                stored_key = await self._key_store.unwrap(tenant_id, stored.wrapped_dek, stored.kek_id)
+                await self._object_store.put(key, pack(encrypt(canonical, stored_key, aad=aad)))
+            ref = stored
 
         # Step 7: publish the reference-only event. event_id is fixed per object
         # (UUID v7, minted when first inserted), so a retried publish after a lost

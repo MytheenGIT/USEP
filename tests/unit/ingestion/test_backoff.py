@@ -41,3 +41,8 @@ def test_retry_after_unparseable_returns_none() -> None:
     now = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
     assert parse_retry_after("not-a-valid-value", now=now) is None
     assert parse_retry_after("", now=now) is None
+
+
+def test_retry_after_with_non_ascii_digits_is_unparseable_not_a_crash() -> None:
+    now = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
+    assert parse_retry_after("\u00b2", now=now) is None
