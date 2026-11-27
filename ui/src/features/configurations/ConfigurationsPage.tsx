@@ -36,18 +36,18 @@ export function ConfigurationsPage() {
     <>
       <div className="page-head">
         <div>
-          <h1>Configurations</h1>
-          <p className="muted">Each configuration reads its sources and builds a knowledge graph.</p>
+          <h1>Connectors</h1>
+          <p className="muted">Each connector configuration reads its sources and builds a knowledge graph.</p>
         </div>
-        <Button variant="primary" onClick={create}>New configuration</Button>
+        <Button variant="primary" onClick={create}>New connector</Button>
       </div>
 
       {error && !items && <ErrorMessage onRetry={() => void refresh()}>{error.message}</ErrorMessage>}
-      {!items && !error && <Spinner label="Loading configurations" />}
+      {!items && !error && <Spinner label="Loading connectors" />}
       {items && (
         <Card>
           {items.length === 0 ? (
-            <EmptyState title="No configurations yet" action={<Button variant="primary" onClick={create}>Create the first one</Button>}>
+            <EmptyState title="No connectors yet" action={<Button variant="primary" onClick={create}>Create the first one</Button>}>
               Connect Jira, Confluence, GitLab or Figma to build a knowledge graph.
             </EmptyState>
           ) : (
